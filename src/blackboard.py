@@ -23,7 +23,7 @@ class Blackboard(Agent):
         lvl_1 (dict): Dictionary of results for the level 1 abstract level.
                       Takes the form of nested dict: {name: {exp_num: (a,b,c), validated: Bool, Pareto: Bool}}
         lvl_2 (dict): Dictionary of results for the level 2 abstract level.
-                      Takes the form of nested dict: {name: {exp_num: (a,b,c), valid: Bool}}
+                      Takes the form of nested dict: {name: {exp_num: (a,b,c), valid_core: Bool}}
         lvl_3 (dict): Dictionary of results for the level 3 abstract level.
                       Takes the form of nested dict: {name: {parameters: DataFrame, xc_set: str}}
         lvl_4 (dict): Dictionary of results for the level 4 abstract level.
@@ -65,5 +65,14 @@ class Blackboard(Agent):
         "Update an entry for abstract level 1"
         for k,v in updated_params.items():
             self.lvl_1[name][k] = v
+
+    def add_abstract_lvl_2(self, name, exp_nums, valid):
+        "Add an entry for abstract level 2"
+        self.lvl_2[name] = {'exp_num': exp_nums, 'valid_core': valid}
     
+    def update_abstract_lvl_2(self, name, updated_params):
+        "Update an entry for abstract level 2 "
+        #TODO: Make sure we update this level if Serpent tells us the core is not valid
+        for k,v in updated_params.items():
+            self.lvl_2[name][k] = v
         
