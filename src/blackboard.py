@@ -75,4 +75,21 @@ class Blackboard(Agent):
         #TODO: Make sure we update this level if Serpent tells us the core is not valid
         for k,v in updated_params.items():
             self.lvl_2[name][k] = v
+
+    def add_abstract_lvl_3(self, name, params, xs_set):
+        "Add an entry for abstract level 3"
+        self.lvl_3[name] = {'reactor_parameters': params, 'xs_set': xs_set}
+    
+    def update_abstract_lvl_3(self, name, updated_params):
+        "Update an entry for abstract level 3 "
+        for k,v in updated_params.items():
+            self.lvl_3[name][k] = v
+
+    def add_abstract_lvl_4(self, name, file):
+        "Add an entry for abstract level 4"
+        self.lvl_4[name] = {'xs_set': file}
         
+    def update_abstract_lvl_4(self, name, updated_params):
+        "Update an entry for abstract level 4"
+        for k,v in updated_params.items():
+            self.lvl_4[name][k] = v

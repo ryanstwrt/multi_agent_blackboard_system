@@ -1,6 +1,7 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
+import pandas as pd
 import blackboard
 import time
     
@@ -14,7 +15,7 @@ def test_blackboard_init_agent():
     ns.shutdown()
     time.sleep(0.01)
     
-def test_add_abstrct_lvl_1_agent():
+def test_add_abstract_lvl_1_agent():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl_1('design_1', (0,0,1))
@@ -34,7 +35,7 @@ def test_update_abstract_lvl_1_agent():
     ns.shutdown()
     time.sleep(0.01)
     
-def test_add_abstrct_lvl_2_agent():
+def test_add_abstract_lvl_2_agent():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl_2('design_1', (0,0,1), False)
@@ -44,7 +45,7 @@ def test_add_abstrct_lvl_2_agent():
     ns.shutdown()
     time.sleep(0.01)
     
-def test_update_abstrct_lvl_2_agent():
+def test_update_abstract_lvl_2_agent():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl_2('design_1', (0,0,1), False)
@@ -53,4 +54,32 @@ def test_update_abstrct_lvl_2_agent():
     assert bb.get_abstract_lvl('level 2') == {'design_1': {'exp_num': (0,0,1), 'valid_core': True}}
     ns.shutdown()
     time.sleep(0.01)
+
+def test_add_abstract_lvl_3_agent():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    raw_data = {'design_1':{'exp_a': 0, 'exp_b': 0, 'exp_c': 0, 'k-eff': 1.0}}
+    data = pd.DataFrame.from_dict(raw_data, orient='index')
+    bb.add_abstract_lvl_3('design_1', data, 'xs_set_1')
+    assert bb.get_abstract_lvl('level 3')['design_1']['xs_set'] == 'xs_set_1' 
+    for k,v in raw_data['design_1'].items():
+        assert bb.get_abstract_lvl('level 3')['design_1']['reactor_parameters'][k][0] == v
+    ns.shutdown()
+    time.sleep(0.01)
+
     
+def test_update_abstract_lvl_3_agent():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    raw_data = {'design_1':{'exp_a': 0, 'exp_b': 0, 'exp_c': 0, 'k-eff': 1.0}}
+    data = pd.DataFrame.from_dict(raw_data, orient='index')
+    bb.add_abstract_lvl_3('design_1', data, 'xs_set_1')
+    assert bb.get_abstract_lvl('level 3')['design_1']['xs_set'] == 'xs_set_1' 
+    for k,v in raw_data['design_1'].items():
+        assert bb.get_abstract_lvl('level 3')['design_1']['reactor_parameters'][k][0] == v
+    bb.update_abstract_lvl_3('design_1', {'xs_set': 'xs_set_2'})
+    assert bb.get_abstract_lvl('level 3')['design_1']['xs_set'] == 'xs_set_2' 
+    for k,v in raw_data['design_1'].items():
+        assert bb.get_abstract_lvl('level 3')['design_1']['reactor_parameters'][k][0] == v
+    ns.shutdown()
+    time.sleep(0.01)
