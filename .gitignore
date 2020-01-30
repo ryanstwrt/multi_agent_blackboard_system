@@ -1,2 +1,8 @@
 .ipynb_check*
 __pycache__
+src/.ipynb_check*
+src/__pycache__
+doc/.ipynb_check*
+doc/__pycache__
+test/.ipynb_check*
+test/__pycache__

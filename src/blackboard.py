@@ -31,8 +31,8 @@ class Blackboard(Agent):
     def on_init(self):
         self.agents = []
         self.trained_models = None
-        db = tb.open_file("blackboard_db", "w")
-        db.close()
+        #db = tb.open_file("blackboard_db", "w")
+        #db.close()
     
         self.lvl_1 = {}
         self.lvl_2 = {}
@@ -40,4 +40,22 @@ class Blackboard(Agent):
         self.lvl_4 = {}
         #pd.DataFrame(cols = ['Design ID', 'Exp A', 'Exp B', 'Exp C',  'k-eff', 'doppler', 'void', 'rod worth', 'LHGR', 'Assembly Map', 'Flux Map', 'Power Map'])
 
-  
+    def get_agents(self):
+        return self.agents
+   
+    def get_trained_models(self):
+        return self.trained_models
+    
+    def get_abstract_lvl(self, level):
+        if level == 1:
+            return self.lvl_1
+        elif level == 2:
+            return self.lvl_2
+        elif level == 3:
+            return self.lvl_3
+        elif level == 4:
+            return self.lvl_3
+        else:
+            print("Warning: Abstract Level {} does not exist.".format(level))
+            return None
+        
