@@ -11,6 +11,9 @@ class Blackboard(Agent):
     The blackboard class inherets from osBrain's agent class.
     This allows for communication between the blackbaord and the other varous knowledge agents.
     
+    It is noted here that a 'get' function is added fore each of the attributes associated with the blackboard.
+    For the agent class, each agent is assigned a proxy, and as such, internal variables are hidden and not accessible.
+    The 'get' function allows other agents to access these attributes when necessary.
     
     The blackboard holds information on four different abstract levels (described below).
     All information for abstract levels are stored in memory.
@@ -33,11 +36,12 @@ class Blackboard(Agent):
         self.trained_models = None
         #db = tb.open_file("blackboard_db", "w")
         #db.close()
-    
+        
         self.lvl_1 = {}
         self.lvl_2 = {}
         self.lvl_3 = {}
         self.lvl_4 = {}
+        self.abstract_levels = {'level 1': self.lvl_1, 'level 2': self.lvl_2, 'level 3': self.lvl_3, 'level 4': self.lvl_4}
         #pd.DataFrame(cols = ['Design ID', 'Exp A', 'Exp B', 'Exp C',  'k-eff', 'doppler', 'void', 'rod worth', 'LHGR', 'Assembly Map', 'Flux Map', 'Power Map'])
 
     def get_agents(self):
@@ -47,15 +51,19 @@ class Blackboard(Agent):
         return self.trained_models
     
     def get_abstract_lvl(self, level):
-        if level == 1:
-            return self.lvl_1
-        elif level == 2:
-            return self.lvl_2
-        elif level == 3:
-            return self.lvl_3
-        elif level == 4:
-            return self.lvl_3
+        if level in self.abstract_levels:
+            return self.abstract_levels[level]
         else:
-            print("Warning: Abstract Level {} does not exist.".format(level))
+            print("Warning: Abstract {} does not exist.".format(level))
             return None
+        
+    def add_abstract_lvl_1(self, name, exp_nums, validated=False, pareto=False):
+        "Add an entry for abstract level 1"
+        self.lvl_1[name] = {'exp_num': exp_nums, 'validated': validated, 'pareto': pareto}
+    
+    def update_abstract_lvl_1(self, name, updated_params):
+        "Update an entry for abstract level 1"
+        for k,v in updated_params.items():
+            self.lvl_1[name][k] = v
+    
         
