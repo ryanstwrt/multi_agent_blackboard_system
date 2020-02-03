@@ -63,11 +63,11 @@ class KaReactorPhysics(KaBase):
         self.surrogate_models = None
         
     def write_to_blackboard(self):
+        """Write to abstract level three of the blackboard when the blackboard is not being written to."""
         self.send(self.rep_alias, 'message')
         write = False
         while write:
             write = self.bb.write_to_blackboard()
-            time.sleep(0.5)
         else:
             self.recv(self.rep_alias)
             self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, self.xs_set)

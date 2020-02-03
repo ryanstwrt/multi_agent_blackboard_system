@@ -73,15 +73,21 @@ def test_write_to_blackboard():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics)
+    ka_rp2 = run_agent(name='ka_rp_2', base=ka.KaReactorPhysics)
     ka_rp.add_blackboard(bb)
     ka_rp.connect_REP_blackboard()
+    ka_rp2.add_blackboard(bb)
+    ka_rp2.connect_REP_blackboard()
     
     assert bb.get_attr('agent_writing') == False
     ka_rp.set_attr(core_name='core_1')
+    ka_rp2.set_attr(core_name='core_2')
     ka_rp.write_to_blackboard()
+    ka_rp2.write_to_blackboard()
     lvl_3 = bb.get_attr('lvl_3')
     assert bb.get_attr('agent_writing') == False
-    assert lvl_3 == {'core_1': {'reactor_parameters': None, 'xs_set': None}}
+    assert lvl_3 == {'core_1': {'reactor_parameters': None, 'xs_set': None},
+                     'core_2': {'reactor_parameters': None, 'xs_set': None}}
 
     ns.shutdown()
     time.sleep(0.01)
