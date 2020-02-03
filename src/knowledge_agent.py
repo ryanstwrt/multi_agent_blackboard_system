@@ -6,6 +6,11 @@ class KaBase(Agent):
     Base agent to define __init__ and basic functions
   
     Knowledge agents will inherit from base agent.
+    
+    Attributes:
+      
+      bb    (Agent) - Reference to the blackboard agent
+      entry (dict)  - Dicitonary of knowledge agents parameters to be added to the blackbaord
     """
 
     def on_init(self):
@@ -20,11 +25,6 @@ class KaBase(Agent):
     def write_to_blackboard(self):
         """Basic function for writing to the blackboard"""
         raise NotImplementedError
-
-    def get_attribute(self, attr):
-        return getattr(self, attr)
-        
-
         
 class KaReactorPhysics(KaBase):
     """
@@ -34,7 +34,7 @@ class KaReactorPhysics(KaBase):
     
     Attibutes:
     
-      name            (str)            - Name of the core
+      core_name       (str)            - Name of the core
       xs_set          (str)            - File name of the xml cross-section set used
       rx_parameters   (dataframe)      - Pandas dataframe containing reactor core parameters from Mammoth
       surroage_models (SurroageModels) - SurrogaeModels class from surrogate_modeling, containes a set of trained surogate mdoels 
@@ -42,7 +42,7 @@ class KaReactorPhysics(KaBase):
 
     def on_init(self):
         super().on_init()
-        self.name = None
+        self.core_name = None
         self.xs_set = None
         self.rx_parameters = None
         self.surrogate_models = None

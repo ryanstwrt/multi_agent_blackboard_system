@@ -10,18 +10,11 @@ def test_ka_init():
     ka_b = ka.KaBase()
     assert ka_b.bb == None
     assert ka_b.entry == None
-
-def test_get_attribute():
-    ka_b = ka.KaBase()
-    ka_b.entry = {'a': 1}
-    assert ka_b.get_attribute('entry') == {'a': 1}
-    assert ka_b.entry == {'a': 1}
-
     
 def test_ka_reactor_physics_init():
     ka_rp = ka.KaReactorPhysics()
     assert ka_rp.bb == None
-    assert ka_rp.name == None
+    assert ka_rp.core_name == None
     assert ka_rp.xs_set == None
     assert ka_rp.rx_parameters == None
     assert ka_rp.surrogate_models == None
@@ -46,7 +39,3 @@ def test_ka_base_write_to_blackboard():
     ka_rp = ka.KaReactorPhysics()
     ka_rp.add_blackboard(bb)
     ka_rp.write_to_blackboard()
-
-def test_set_attribute():
-    ka_rp = ka.KaReactorPhysics()
-#    ka_rp.set_attribute()

@@ -7,17 +7,18 @@ def log_message(self, message):
   self.log_info('{}'.format(message))
 
 class Blackboard(Agent):
-    """This is a class for holding all information regardng the solutions to the problem.
+    """
+    This is a class for holding all information regardng the solutions to the problem.
     The blackboard class inherets from osBrain's agent class.
     This allows for communication between the blackbaord and the other varous knowledge agents.
-    
-    It is noted here that a 'get' function is added fore each of the attributes associated with the blackboard.
-    For the agent class, each agent is assigned a proxy, and as such, internal variables are hidden and not accessible.
-    The 'get' function allows other agents to access these attributes when necessary.
     
     The blackboard holds information on four different abstract levels (described below).
     All information for abstract levels are stored in memory.
     Abstract levels 3 and 4 are also stored in an H5 file to maintain data between runs, and allow for restart of a proble should failure arise.
+    
+    It is noted here that a 'get' function is added for each of the attributes associated with the blackboard.
+    For the agent class, each agent is assigned a proxy, and as such, internal variables are hidden and not accessible.
+    The 'get' function allows other agents to access these attributes when necessary, wihtout using the `get_attr` function built into osBrain's Agent class.
     
     Attributes:
         lvl_1 (dict): Dictionary of entries for the level 1 abstract level.
@@ -34,8 +35,6 @@ class Blackboard(Agent):
     def on_init(self):
         self.agents = []
         self.trained_models = None
-        #db = tb.open_file("blackboard_db", "w")
-        #db.close()
         
         self.lvl_1 = {}
         self.lvl_2 = {}
