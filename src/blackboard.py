@@ -6,6 +6,9 @@ import pandas as pd
 def log_message(self, message):
   self.log_info('{}'.format(message))
 
+def writer(agent, message):
+    return 'Received ' + str(message)
+
 class Blackboard(Agent):
     """
     This is a class for holding all information regardng the solutions to the problem.
@@ -35,6 +38,7 @@ class Blackboard(Agent):
     def on_init(self):
         self.agents = []
         self.trained_models = None
+        self.agent_addrs = {}
         
         self.lvl_1 = {}
         self.lvl_2 = {}
@@ -92,3 +96,11 @@ class Blackboard(Agent):
         "Update an entry for abstract level 4"
         for k,v in updated_params.items():
             self.lvl_4[name][k] = v
+
+    def connect_REP_agent(self, agent_name):
+        """Connect the blackboard agent to a knolwedge agent"""
+        alias_name = 'write_{}'.format(len(self.agent_addrs))
+        rep_addr = self.bind('REP', alias=alias_name, handler=writer)
+        self.agent_addrs[agent_name] = (alias_name, rep_addr)
+        return self.agent_addrs[agent_name]
+
