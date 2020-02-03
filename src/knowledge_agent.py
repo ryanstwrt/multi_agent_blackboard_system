@@ -1,5 +1,6 @@
 import osbrain
 from osbrain import Agent
+import time
 
 def writer(agent, message):
     return 'Received ' + str(message)
@@ -14,7 +15,7 @@ class KaBase(Agent):
       
       bb     (Agent) - Reference to the blackboard agent
       entry  (dict)  - Dicitonary of knowledge agents parameters to be added to the blackbaord
-      rep_bb (addr)  - Address of the socket for the request-reply communication between the blackboard and the agent. The agent will request permission to write to the blackboard and wait until a reply has been given.
+      rep_addr (addr)  - Address of the socket for the request-reply communication between the blackboard and the agent. The agent will request permission to write to the blackboard and wait until a reply has been given.
     """
 
     def on_init(self):
@@ -29,6 +30,7 @@ class KaBase(Agent):
         self.bb = blackboard
 
     def connect_REP_blackboard(self):
+        """Create a line of communiction through the reply request format"""
         if self.bb:
             self.rep_alias, self.rep_addr = self.bb.connect_REP_agent(self.name)
             self.connect(self.rep_addr, alias=self.rep_alias)
@@ -36,9 +38,6 @@ class KaBase(Agent):
             print("Warning: Blackboard attribute not defined")
     
     def write_to_blackboard(self):
-        pass
-        
-    def _write_to_blackboard(self):
         """Basic function for writing to the blackboard"""
         raise NotImplementedError
         
@@ -63,9 +62,16 @@ class KaReactorPhysics(KaBase):
         self.rx_parameters = None
         self.surrogate_models = None
         
-    def _write_to_blackboard(self):
-        #self.bb.add_abstract_lvl_3()
-        pass
+    def write_to_blackboard(self):
+        self.send(self.rep_alias, 'message')
+        write = False
+        while write:
+            write = self.bb.write_to_blackboard()
+            time.sleep(0.5)
+        else:
+            self.recv(self.rep_alias)
+            self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, self.xs_set)
+            self.bb.finish_writing_to_blackboard()
     
     def run_dakota(self):
         pass

@@ -83,3 +83,25 @@ def test_update_abstract_lvl_3_agent():
         assert bb.get_abstract_lvl('level 3')['design_1']['reactor_parameters'][k][0] == v
     ns.shutdown()
     time.sleep(0.01)
+
+def test_connect_REP_agent():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.connect_REP_agent('test')
+    
+    assert bb.get_attr('agent_addrs')['test']['alias'] == 'write_0'
+    
+    ns.shutdown()
+    time.sleep(0.01)
+
+
+def test_write_to_blackboard():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.connect_REP_agent('test')
+    assert bb.get_attr('agent_writing') == False
+    bb.write_to_blackboard('test')
+    assert bb.get_attr('agent_writing') == True
+    
+    ns.shutdown()
+    time.sleep(0.01)

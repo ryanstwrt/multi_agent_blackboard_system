@@ -25,11 +25,11 @@ class Blackboard(Agent):
     
     Attributes:
         lvl_1 (dict): Dictionary of entries for the level 1 abstract level.
-                      Takes the form of nested dict: {name: {exp_num: (a,b,c), validated: Bool, Pareto: Bool}}
+                      Takes the form of nested dict: {core_name: {exp_num: (a,b,c), validated: Bool, Pareto: Bool}}
         lvl_2 (dict): Dictionary of entries for the level 2 abstract level.
-                      Takes the form of nested dict: {name: {exp_num: (a,b,c), valid_core: Bool}}
+                      Takes the form of nested dict: {core_name: {exp_num: (a,b,c), valid_core: Bool}}
         lvl_3 (dict): Dictionary of entries for the level 3 abstract level.
-                      Takes the form of nested dict: {name: {parameters: DataFrame, xc_set: str}}
+                      Takes the form of nested dict: {core_name: {reactor_parameters: DataFrame, xc_set: str}}
         lvl_4 (dict): Dictionary of entires for the level 4 abstract level.
                       Takes the form of a dict: {name: xc_set (file?)}
         trained_models (class): Reference to train_surrogate_model module, which contains multiple models to choose frome.
@@ -39,6 +39,7 @@ class Blackboard(Agent):
         self.agents = []
         self.trained_models = None
         self.agent_addrs = {}
+        self.agent_writing = False
         
         self.lvl_1 = {}
         self.lvl_2 = {}
@@ -100,7 +101,17 @@ class Blackboard(Agent):
     def connect_REP_agent(self, agent_name):
         """Connect the blackboard agent to a knolwedge agent"""
         alias_name = 'write_{}'.format(len(self.agent_addrs))
-        rep_addr = self.bind('REP', alias=alias_name, handler=writer)
-        self.agent_addrs[agent_name] = (alias_name, rep_addr)
-        return self.agent_addrs[agent_name]
+        rep_addr = self.bind('REP', alias=alias_name, handler=self.write_to_blackboard)
+        self.agent_addrs[agent_name] = {'alias': alias_name, 'addr': rep_addr}
+        return (alias_name, rep_addr)
 
+    def write_to_blackboard(self, message):
+        """Determine if it is acceptable to write to the blackboard"""
+        if not self.agent_writing:
+            self.agent_writing = True
+            return True
+        else:
+            return False
+    
+    def finish_writing_to_blackboard(self):
+        self.agent_writing = False

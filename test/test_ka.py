@@ -36,6 +36,3 @@ def test_ka_base_write_to_blackboard():
         ka_b.write_to_blackboard()
     except NotImplementedError:
         pass
-    ka_rp = ka.KaReactorPhysics()
-    ka_rp.add_blackboard(bb)
-    ka_rp.write_to_blackboard()
