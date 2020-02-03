@@ -20,13 +20,13 @@ class Blackboard(Agent):
     Abstract levels 3 and 4 are also stored in an H5 file to maintain data between runs, and allow for restart of a proble should failure arise.
     
     Attributes:
-        lvl_1 (dict): Dictionary of results for the level 1 abstract level.
+        lvl_1 (dict): Dictionary of entries for the level 1 abstract level.
                       Takes the form of nested dict: {name: {exp_num: (a,b,c), validated: Bool, Pareto: Bool}}
-        lvl_2 (dict): Dictionary of results for the level 2 abstract level.
+        lvl_2 (dict): Dictionary of entries for the level 2 abstract level.
                       Takes the form of nested dict: {name: {exp_num: (a,b,c), valid_core: Bool}}
-        lvl_3 (dict): Dictionary of results for the level 3 abstract level.
+        lvl_3 (dict): Dictionary of entries for the level 3 abstract level.
                       Takes the form of nested dict: {name: {parameters: DataFrame, xc_set: str}}
-        lvl_4 (dict): Dictionary of results for the level 4 abstract level.
+        lvl_4 (dict): Dictionary of entires for the level 4 abstract level.
                       Takes the form of a dict: {name: xc_set (file?)}
         trained_models (class): Reference to train_surrogate_model module, which contains multiple models to choose frome.
         agents (list): List of agents currently active in the multi-agent system.
