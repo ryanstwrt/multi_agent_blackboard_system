@@ -114,4 +114,12 @@ class Blackboard(Agent):
             return False
     
     def finish_writing_to_blackboard(self):
+        """Update agent_writing to False when agent is finished writing"""
         self.agent_writing = False
+    
+    def build_surrogate_models_proxy():
+        """
+        Proxy function for building surrogate models.
+        
+        Currently surrogate models are built off of H5 database of SFR core optimization. 
+        """

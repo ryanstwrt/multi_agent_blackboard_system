@@ -1,9 +1,6 @@
 import osbrain
 from osbrain import Agent
-import time
-
-def writer(agent, message):
-    return 'Received ' + str(message)
+import run_sfr_opt_mabs
 
 class KaBase(Agent):
     """
@@ -13,9 +10,10 @@ class KaBase(Agent):
     
     Attributes:
       
-      bb     (Agent) - Reference to the blackboard agent
-      entry  (dict)  - Dicitonary of knowledge agents parameters to be added to the blackbaord
-      rep_addr (addr)  - Address of the socket for the request-reply communication between the blackboard and the agent. The agent will request permission to write to the blackboard and wait until a reply has been given.
+      bb     (Agent)  - Reference to the blackboard agent
+      entry  (dict)   - Dicitonary of knowledge agents parameters to be added to the blackboard
+      rep_addr (addr) - Address of the socket for the request-reply communication between the blackboard and the agent. The agent will request permission to write to the blackboard and wait until a reply has been given.
+      rep_alias (str)   - Alias for the sockect address in the request-reply communication. Allows d
     """
 
     def on_init(self):
@@ -73,5 +71,7 @@ class KaReactorPhysics(KaBase):
             self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, self.xs_set)
             self.bb.finish_writing_to_blackboard()
     
-    def run_dakota(self):
+    def run_dakota_proxy(self):
+        run_sfr_opt_mabs.main(w_i, w_j, w_k, w_l)
+        
         pass
