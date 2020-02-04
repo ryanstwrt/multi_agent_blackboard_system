@@ -1,6 +1,8 @@
 import osbrain
 from osbrain import Agent
 import run_sfr_opt_mabs
+import pandas as pd
+import h5py
 
 class KaBase(Agent):
     """
@@ -60,6 +62,9 @@ class KaReactorPhysics(KaBase):
         self.rx_parameters = None
         self.surrogate_models = None
         
+        #For proxy app
+        self.weights = None
+        
     def write_to_blackboard(self):
         """Write to abstract level three of the blackboard when the blackboard is not being written to."""
         self.send(self.rep_alias, 'message')
@@ -72,6 +77,27 @@ class KaReactorPhysics(KaBase):
             self.bb.finish_writing_to_blackboard()
     
     def run_dakota_proxy(self):
-        run_sfr_opt_mabs.main(w_i, w_j, w_k, w_l)
+        """Run Dakota using a single objective genetic algorithm, with the given weights"""
+        self.weights = (0,0,0,0)
+        run_sfr_opt_mabs.main(self.weights[0], self.weights[1], self.weights[2], self.weights[3])
         
-        pass
+    def read_dakota_results(self):
+        """Read in the results from the Dakota H5 file, and turn this into the reactor paramters dataframe."""
+        weight_sequence = '{}_{}_{}_{}'.format(self.weights[0], self.weights[1], self.weights[2], self.weights[3])
+        self.core_name = 'core_{}'.format(weight_sequence)
+        file = h5py.File('/Users/ryanstewart/projects/Dakota_Interface/GA/results/soo_pareto_{}.h5'.format(weight_sequence), 'r+')
+        design_list = list(file['methods']['soga_{}'.format('0')]['results']['execution:1']['best_parameters']['discrete_real'])
+        obj_list = file['methods']['soga_{}'.format('0')]['results']['execution:1']['best_objective_functions']
+ 
+        keff = (1-obj_list[0]) * (1.29863-0.75794) + 0.75794
+        void = (1-obj_list[1]) * (-254.8-(-42.4)) - 42.4
+        dopp = (1-obj_list[2]) * (-1.192057-(-0.365144)) - 0.365144
+        
+        rx_params_dict = {self.core_name: {'height': design_list[0],
+                                                        'smear': design_list[1],
+                                                       'pu_content': design_list[2],
+                                                       'keff': keff,
+                                                       'void': void,
+                                                       'Doppler': dopp}}
+        self.rx_parameters = pd.DataFrame.from_dict(rx_params_dict, orient='index')
+        
