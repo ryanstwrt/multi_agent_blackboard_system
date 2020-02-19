@@ -6,6 +6,7 @@ import numpy as np
 import blackboard
 import knowledge_agent as ka
 import time
+import os
 
 def test_ka_init_agent():
     ns = run_nameserver()
@@ -104,9 +105,41 @@ def test_read_dakota_results():
     ka_rp.read_dakota_results()
     rx_parameters = {'height': 72.0, 'smear': 66.8, 'pu_content': 0.0025, 'keff': 0.965775, 'void': -128.43352, 'Doppler': -0.665306}
     mabs_rx_params = ka_rp.get_attr('rx_parameters')
-    #print(mabs_rx_params)
     for k,v in rx_parameters.items():
         np.allclose(mabs_rx_params[k]['core_0_0_0_0'], v, 1e-4)
 
     ns.shutdown()
     time.sleep(0.1)
+
+def test_proxy():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_Proxy)
+    ka_rp.add_blackboard(bb)
+    ka_rp.connect_REP_blackboard()
+    lists = {'a': [0,0,0,0]}
+    ka_rp.objectives = ['keff', 'void_coeff', 'doppler_coeff', 'pu_content']
+    ka_rp.design_variables = ['height', 'smear', 'pu_content']
+    ka_rp.results_path = '/Users/ryanstewart/projects/Dakota_Interface/GA/mabs_results/'
+    assert ka_rp.get_attr('results_path') == '/Users/ryanstewart/projects/Dakota_Interface/GA/mabs_results/'
+
+    for wl in lists.values():
+        ka_rp.set_attr(weights=wl)
+        ka_rp.run_dakota_proxy()
+        ka_rp.read_dakota_results()
+        ka_rp.write_to_blackboard()
+
+    assert os.path.isfile('/Users/ryanstewart/projects/Dakota_Interface/GA/mabs_results/soo_pareto_0000.h5') == True
+    bb_lvl_2 = bb.get_attr('lvl_3')
+    core = 'core_0000'
+    bb_lvl_2 = bb_lvl_2[core]['reactor_parameters']
+    assert bb_lvl_2['height'][core] == 76.5
+    assert bb_lvl_2['smear'][core] == 64.70
+    assert bb_lvl_2['pu_content'][core] == 0.9375
+    assert round(bb_lvl_2['keff'][core],4) == 1.2210
+    assert round(bb_lvl_2['void'][core],2) == -44.79
+    assert round(bb_lvl_2['Doppler'][core],4) == -0.4003
+    
+    ns.shutdown()
+    time.sleep(0.5)
+

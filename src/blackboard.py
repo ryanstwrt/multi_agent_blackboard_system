@@ -3,12 +3,6 @@ from osbrain import Agent
 import tables as tb
 import pandas as pd
 
-def log_message(self, message):
-  self.log_info('{}'.format(message))
-
-def writer(agent, message):
-    return 'Received ' + str(message)
-
 class Blackboard(Agent):
     """
     This is a class for holding all information regardng the solutions to the problem.
