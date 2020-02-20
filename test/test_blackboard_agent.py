@@ -89,7 +89,7 @@ def test_connect_REP_agent():
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.connect_REP_agent('test')
     
-    assert bb.get_attr('agent_addrs')['test']['alias'] == 'write_0'
+    assert bb.get_attr('agent_addrs')['test'][0] == 'write_test'
     
     ns.shutdown()
     time.sleep(0.1)

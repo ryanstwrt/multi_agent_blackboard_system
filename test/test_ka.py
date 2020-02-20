@@ -26,7 +26,7 @@ def test_ka_add_blackboard():
     assert ka_b.bb == bb
     ka_rp = ka.KaReactorPhysics()
     ka_rp.add_blackboard(bb)
-    assert ka_rp.bb == bb    
+    assert ka_rp.bb == bb
     
 def test_ka_base_write_to_blackboard():
     bb = blackboard.Blackboard()

@@ -2,6 +2,7 @@ import osbrain
 from osbrain import Agent
 import tables as tb
 import pandas as pd
+import train_surrogate_models as tm
 
 class Blackboard(Agent):
     """
@@ -40,64 +41,76 @@ class Blackboard(Agent):
         self.lvl_3 = {}
         self.lvl_4 = {}
         self.abstract_levels = {'level 1': self.lvl_1, 'level 2': self.lvl_2, 'level 3': self.lvl_3, 'level 4': self.lvl_4}
-        #pd.DataFrame(cols = ['Design ID', 'Exp A', 'Exp B', 'Exp C',  'k-eff', 'doppler', 'void', 'rod worth', 'LHGR', 'Assembly Map', 'Flux Map', 'Power Map'])
 
-    def get_agents(self):
-        return self.agents
-   
-    def get_trained_models(self):
-        return self.trained_models
+    def add_abstract_lvl_1(self, name, exp_nums, validated=False, pareto=False):
+        "Add an entry for abstract level 1"
+        self.lvl_1[name] = {'exp_num': exp_nums, 'validated': validated, 'pareto': pareto}
+
+    def add_abstract_lvl_2(self, name, exp_nums, valid):
+        "Add an entry for abstract level 2"
+        self.lvl_2[name] = {'exp_num': exp_nums, 'valid_core': valid}
     
+    def add_abstract_lvl_3(self, name, params, xs_set):
+        "Add an entry for abstract level 3"
+        self.lvl_3[name] = {'reactor_parameters': params, 'xs_set': xs_set}
+
+    def add_abstract_lvl_4(self, name, file):
+        "Add an entry for abstract level 4"
+        self.lvl_4[name] = {'xs_set': file}        
+        
+    def connect_REP_agent(self, agent_name):
+        """Connect the blackboard agent to a knolwedge agent for writing purposes"""
+        alias_name = 'write_{}'.format(agent_name)
+        rep_addr = self.bind('REP', alias=alias_name, handler=self.write_to_blackboard)
+        self.agent_addrs[agent_name] = (alias_name, rep_addr)
+        return (alias_name, rep_addr)
+
+    def connect_trigger_event(self, agent_name):
+        alias_name = 'trigger_event'
+        trigger_addr = self.bind('PUB', alias=alias_name, handler=self.trigger_event)
+        self.agent_addrs[agent_name]['trigger'] = (alias_name, trigger_addr)
+        return(alias_name, trigger_addr)
+    
+    def trigger_event(self):
+        pass
+    
+    def finish_writing_to_blackboard(self):
+        """Update agent_writing to False when agent is finished writing"""
+        self.agent_writing = False
+
     def get_abstract_lvl(self, level):
         if level in self.abstract_levels:
             return self.abstract_levels[level]
         else:
             print("Warning: Abstract {} does not exist.".format(level))
             return None
-        
-    def add_abstract_lvl_1(self, name, exp_nums, validated=False, pareto=False):
-        "Add an entry for abstract level 1"
-        self.lvl_1[name] = {'exp_num': exp_nums, 'validated': validated, 'pareto': pareto}
-    
+
+    def get_agents(self):
+        return self.agents
+   
+    def get_trained_models(self):
+        return self.trained_models
+                
     def update_abstract_lvl_1(self, name, updated_params):
         "Update an entry for abstract level 1"
         for k,v in updated_params.items():
             self.lvl_1[name][k] = v
 
-    def add_abstract_lvl_2(self, name, exp_nums, valid):
-        "Add an entry for abstract level 2"
-        self.lvl_2[name] = {'exp_num': exp_nums, 'valid_core': valid}
-    
     def update_abstract_lvl_2(self, name, updated_params):
         "Update an entry for abstract level 2 "
         #TODO: Make sure we update this level if Serpent tells us the core is not valid
         for k,v in updated_params.items():
             self.lvl_2[name][k] = v
-
-    def add_abstract_lvl_3(self, name, params, xs_set):
-        "Add an entry for abstract level 3"
-        self.lvl_3[name] = {'reactor_parameters': params, 'xs_set': xs_set}
     
     def update_abstract_lvl_3(self, name, updated_params):
         "Update an entry for abstract level 3 "
         for k,v in updated_params.items():
             self.lvl_3[name][k] = v
 
-    def add_abstract_lvl_4(self, name, file):
-        "Add an entry for abstract level 4"
-        self.lvl_4[name] = {'xs_set': file}
-        
     def update_abstract_lvl_4(self, name, updated_params):
         "Update an entry for abstract level 4"
         for k,v in updated_params.items():
             self.lvl_4[name][k] = v
-
-    def connect_REP_agent(self, agent_name):
-        """Connect the blackboard agent to a knolwedge agent"""
-        alias_name = 'write_{}'.format(len(self.agent_addrs))
-        rep_addr = self.bind('REP', alias=alias_name, handler=self.write_to_blackboard)
-        self.agent_addrs[agent_name] = {'alias': alias_name, 'addr': rep_addr}
-        return (alias_name, rep_addr)
 
     def write_to_blackboard(self, message):
         """Determine if it is acceptable to write to the blackboard"""
@@ -106,15 +119,20 @@ class Blackboard(Agent):
             return True
         else:
             return False
-    
-    def finish_writing_to_blackboard(self):
-        """Update agent_writing to False when agent is finished writing"""
-        self.agent_writing = False
-    
-    def build_surrogate_models_proxy():
+        
+    def build_surrogate_models_proxy(self):
         """
         Proxy function for building surrogate models.
         
         Currently surrogate models are built off of H5 database of SFR core optimization. 
         """
-        pass
+        sm = tm.Surrogate_Models()
+        sm.random = 0
+        des = []
+        obj = []
+        for k,v in self.lvl_3.items():
+            base = v['reactor_parameters']
+            des.append([base['w_keff'][k],base['w_void'][k],base['w_dopp'][k],base['w_pu'][k]])
+            obj.append([base['keff'][k],base['void'][k],base['Doppler'][k],base['pu_content'][k]])
+        sm.update_database(des, obj)
+        
