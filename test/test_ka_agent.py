@@ -58,7 +58,7 @@ def test_connect_REP_blackboard():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
-    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics)
+    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_Proxy)
     ka_rp.add_blackboard(bb)
 
     ka_b.add_blackboard(bb)
@@ -80,14 +80,31 @@ def test_connect_trigger_event():
     ka_rp.connect_trigger_event()
     assert ka_rp.get_attr('trigger_alias') == 'trigger_event'
     assert bb.get_attr('agent_addrs')['ka_rp']['trigger'] == ('trigger_event', ka_rp.get_attr('trigger_addr'))
+    
     ns.shutdown()
     time.sleep(0.1)
+    
+def test_trigger_event():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_Proxy)
+    ka_rp.add_blackboard(bb)
+    
+    ka_rp.connect_trigger_event()
+
+    assert ka_rp.get_attr('trigger_alias') == 'trigger_event'
+    assert bb.get_attr('agent_addrs')['ka_rp']['trigger'] == ('trigger_event', ka_rp.get_attr('trigger_addr'))
+    
+    bb.send('trigger_event', 'event')
+    ns.shutdown()
+    time.sleep(0.1)    
+    assert 1 > 22
     
 def test_write_to_blackboard():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics)
-    ka_rp2 = run_agent(name='ka_rp_2', base=ka.KaReactorPhysics)
+    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_Proxy)
+    ka_rp2 = run_agent(name='ka_rp_2', base=ka.KaReactorPhysics_Proxy)
     ka_rp.add_blackboard(bb)
     ka_rp.connect_REP_blackboard()
     ka_rp2.add_blackboard(bb)
@@ -100,8 +117,8 @@ def test_write_to_blackboard():
     ka_rp2.write_to_blackboard()
     lvl_3 = bb.get_attr('lvl_3')
     assert bb.get_attr('agent_writing') == False
-    assert lvl_3 == {'core_1': {'reactor_parameters': None, 'xs_set': None},
-                     'core_2': {'reactor_parameters': None, 'xs_set': None}}
+    assert lvl_3 == {'core_1': {'reactor_parameters': None, 'xs_set': 0},
+                     'core_2': {'reactor_parameters': None, 'xs_set': 0}}
 
     ns.shutdown()
     time.sleep(0.1)

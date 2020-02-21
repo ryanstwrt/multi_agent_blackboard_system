@@ -41,40 +41,50 @@ class Blackboard(Agent):
         self.lvl_3 = {}
         self.lvl_4 = {}
         self.abstract_levels = {'level 1': self.lvl_1, 'level 2': self.lvl_2, 'level 3': self.lvl_3, 'level 4': self.lvl_4}
+        
+        self.trigger_event_num = 0
+        self.trigger_events = {}
+        self.trigger_alias = 'trigger'
+        self.trigger_addr = self.bind('SYNC_PUB', alias=self.trigger_alias, handler=self.trigger_handler)
+
 
     def add_abstract_lvl_1(self, name, exp_nums, validated=False, pareto=False):
         "Add an entry for abstract level 1"
         self.lvl_1[name] = {'exp_num': exp_nums, 'validated': validated, 'pareto': pareto}
+        self.finish_writing_to_bb()
 
     def add_abstract_lvl_2(self, name, exp_nums, valid):
         "Add an entry for abstract level 2"
         self.lvl_2[name] = {'exp_num': exp_nums, 'valid_core': valid}
+        self.finish_writing_to_bb()
     
     def add_abstract_lvl_3(self, name, params, xs_set):
         "Add an entry for abstract level 3"
         self.lvl_3[name] = {'reactor_parameters': params, 'xs_set': xs_set}
+        self.finish_writing_to_bb()
 
     def add_abstract_lvl_4(self, name, file):
         "Add an entry for abstract level 4"
         self.lvl_4[name] = {'xs_set': file}        
-        
-    def connect_REP_agent(self, agent_name):
+        self.finish_writing_to_bb()
+
+    def connect_writer(self, agent_name):
         """Connect the blackboard agent to a knolwedge agent for writing purposes"""
         alias_name = 'write_{}'.format(agent_name)
-        rep_addr = self.bind('REP', alias=alias_name, handler=self.write_to_blackboard)
-        self.agent_addrs[agent_name] = (alias_name, rep_addr)
+        rep_addr = self.bind('REP', alias=alias_name, handler=self.writer_handler)
+        self.agent_addrs[agent_name].update({'writer': (alias_name, rep_addr)})
         return (alias_name, rep_addr)
 
     def connect_trigger_event(self, agent_name):
-        alias_name = 'trigger_event'
-        trigger_addr = self.bind('PUB', alias=alias_name, handler=self.trigger_event)
-        self.agent_addrs[agent_name]['trigger'] = (alias_name, trigger_addr)
-        return(alias_name, trigger_addr)
+\        self.agent_addrs[agent_name].update({'trigger': (self.trigger_alias, self.trigger_addr)})
+        return(self.trigger_alias, self.trigger_addr)
     
-    def trigger_event(self):
-        pass
+    def trigger_handler(self, message):
+        agent, trigger_val = message
+        self.log_info('Trigger Value: {} From Agent: {}'.format(trigger_val, agent))
+        self.trigger_events[self.trigger_event_num].update({agent: trigger_val})
     
-    def finish_writing_to_blackboard(self):
+    def finish_writing_to_bb(self):
         """Update agent_writing to False when agent is finished writing"""
         self.agent_writing = False
 
@@ -82,7 +92,7 @@ class Blackboard(Agent):
         if level in self.abstract_levels:
             return self.abstract_levels[level]
         else:
-            print("Warning: Abstract {} does not exist.".format(level))
+            self.log_warning("Warning: Abstract {} does not exist.".format(level))
             return None
 
     def get_agents(self):
@@ -112,12 +122,14 @@ class Blackboard(Agent):
         for k,v in updated_params.items():
             self.lvl_4[name][k] = v
 
-    def write_to_blackboard(self, message):
+    def writer_handler(self, agent_name):
         """Determine if it is acceptable to write to the blackboard"""
         if not self.agent_writing:
             self.agent_writing = True
+            self.log_info('Agent {} given permission to write'.format(agent_name))
             return True
         else:
+            self.log_info('Agent {} waiting to write'.format(agent_name))
             return False
         
     def build_surrogate_models_proxy(self):

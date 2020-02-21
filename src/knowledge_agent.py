@@ -3,6 +3,7 @@ from osbrain import Agent
 import run_sfr_opt_mabs
 import pandas as pd
 import h5py
+import time
 
 class KaBase(Agent):
     """
@@ -25,6 +26,8 @@ class KaBase(Agent):
         self.rep_addr = None
         self.rep_alias = None
         
+        self.trigger_val = 0
+        
     def add_blackboard(self, blackboard):
         """Add a blackboard to the knowledge agent"""
         self.bb = blackboard
@@ -32,21 +35,24 @@ class KaBase(Agent):
         bb_agent_adders[self.name] = {}
         self.bb.set_attr(agent_addrs=bb_agent_adders)
 
-
-    def connect_REP_blackboard(self):
+    def connect_writer(self):
         """Create a line of communiction through the reply request format to allow writing to the blackboard."""
         if self.bb:
-            self.rep_alias, self.rep_addr = self.bb.connect_REP_agent(self.name)
+            self.rep_alias, self.rep_addr = self.bb.connect_writer(self.name)
             self.connect(self.rep_addr, alias=self.rep_alias)
         else:
-            print("Warning: Blackboard attribute not defined")
+            self.log_info("Warning: Blackboard attribute not defined")
     
-    def write_to_blackboard(self):
+    def write_to_bb(self):
         """Basic function for writing to the blackboard"""
         raise NotImplementedError
     
     def connect_trigger_event(self):
         """Basic function to trigger an agent"""
+        raise NotImplementedError
+    
+    def trigger_event(self):
+        """Basic function for triggering"""
         raise NotImplementedError
 
 class KaBbReader_Proxy(KaBase):
@@ -82,6 +88,8 @@ class KaReactorPhysics_Proxy(KaBase):
 
     def on_init(self):
         super().on_init()
+        self.trigger_val = 1.0
+        
         self.core_name = None
         self.rx_parameters = None
         self.surrogate_models = None
@@ -94,25 +102,24 @@ class KaReactorPhysics_Proxy(KaBase):
         self.weights = None
             
     def write_to_blackboard(self):
-        """Write to abstract level three of the blackboard when the blackboard is not being written to."""
-        self.send(self.rep_alias, 'message')
+        """Write to abstract level three of the blackboard when the blackboard is not being written to.
+        Force the KA to wait 1 second between sending message"""
         write = False
-        while write:
-            write = self.bb.write_to_blackboard()
+        while not write:
+            time.sleep(1)
+            self.send(self.rep_alias, self.name)
+            write = self.recv(self.rep_alias)
         else:
-            self.recv(self.rep_alias)
             self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, 0)
-            self.bb.finish_writing_to_blackboard()
     
     def run_dakota_proxy(self):
         """Run Dakota using a single objective genetic algorithm, with the given weights"""
         try:
             assert len(self.weights) == len(self.objectives)
+            run_sfr_opt_mabs.run_dakota(self.weights, self.design_variables, self.objectives, self.function_evals)
         except AssertionError:
-            raise AssertionError('The number of weights ({}) does not match the number of objectives ({}). Make sure these match, as each objective must have a weight.'.format(len(self.weights), len(self.objectives)))
+            self.log_error('Error: The number of weights ({}) does not match the number of objectives ({}). Make sure these match, as each objective must have a weight.'.format(len(self.weights), len(self.objectives)))
             
-        run_sfr_opt_mabs.run_dakota(self.weights, self.design_variables, self.objectives, self.function_evals)
-        
     def read_dakota_results(self):
         """Read in the results from the Dakota H5 file, and turn this into the reactor paramters dataframe."""
         ws_int = '{}{}{}{}'.format(self.weights[0], self.weights[1], self.weights[2], self.weights[3])
@@ -143,12 +150,42 @@ class KaReactorPhysics_Proxy(KaBase):
         """Create a line of communiction through the publish-subscribe format to determine if it is triggered."""
         if self.bb:
             self.trigger_alias, self.trigger_addr = self.bb.connect_trigger_event(self.name)
-            self.connect(self.trigger_addr, alias=self.trigger_alias, handler=self.trigger_event)
+            self.connect(self.trigger_addr, alias=self.trigger_alias, handler=self.trigger_handler)
+        else:
+            self.log_warning('Warning: Agent {} not connected to blackbaord agent'.format(self.name))
     
-    def trigger_event(self):
+    def trigger_handler(self, message):
         """Inform the BB of it's trigger value."""
-        return 1.0
+        self.send(self.trigger_alias, (self.name, self.trigger_val), handler=self.log_trigger_handler)    
     
+    def log_trigger_handler(self, poxy_obj, unk):
+        "Mandatory handler for publication trigger event"
+        self.log_info('{} triggered'.format(self.name))
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
 class KaReactorPhysics(KaBase):
@@ -177,10 +214,9 @@ class KaReactorPhysics(KaBase):
         
     def write_to_blackboard(self):
         """Write to abstract level three of the blackboard when the blackboard is not being written to."""
-        self.send(self.rep_alias, 'message')
         write = False
         while write:
-            write = self.bb.write_to_blackboard()
+            write = self.send(self.rep_alias)
         else:
             self.recv(self.rep_alias)
             self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, self.xs_set)
