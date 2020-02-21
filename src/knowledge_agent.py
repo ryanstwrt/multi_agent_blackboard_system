@@ -101,11 +101,13 @@ class KaBbLvl2_Proxy(KaBbLvl2):
         self.ind_err = {}
 
     def read_bb_lvl_2(self):
+        """Read the information from the blackboard and determine if a new solution is better thatn the previous"""
         lvl_3 = self.bb.get_attr('lvl_3')
         best_core = None
         for k,v in lvl_3.items():
             ind_err = self.get_percent_errors(k, v['reactor_parameters'])
             tot_err = sum(ind_err.values())
+            self.log_info('Core {} Error: {}' .format(k,tot_err))
             if tot_err < self.err:
                 self.err = tot_err
                 self.ind_err = ind_err
