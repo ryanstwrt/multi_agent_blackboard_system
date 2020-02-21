@@ -32,25 +32,43 @@ def test_ka_reactor_physics_init():
     ns.shutdown()
     time.sleep(0.1)
 
+def test_ka_bb_lvl_2_init():
+    ns = run_nameserver()
+    ka_bb_lvl2 = run_agent(name='ka_bb_lvl2', base=ka.KaBbLvl2)
+    assert ka_bb_lvl2.get_attr('entry') == None
+    assert ka_bb_lvl2.get_attr('bb') == None
+    assert ka_bb_lvl2.get_attr('rep_addr') == None
+    assert ka_bb_lvl2.get_attr('rep_alias') == None
+    assert ka_bb_lvl2.get_attr('trigger_val') == 0      
+    ns.shutdown()
+    time.sleep(0.1)
+    
+    
 def test_add_blackboard():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics)
+    ka_bb_lvl2 = run_agent(name='ka_bb_lvl2', base=ka.KaBbLvl2)
     ka_b.add_blackboard(bb)
     ka_rp.add_blackboard(bb)
+    ka_bb_lvl2.add_blackboard(bb)
     
     ka_b_bb = ka_b.get_attr('bb')
     ka_b_rp = ka_rp.get_attr('bb')
+    ka_b_bb_lvl2 = ka_bb_lvl2.get_attr('bb')
     assert ka_b.get_attr('bb') == bb
     assert ka_b_bb.get_attr('trained_models') == None
     assert ka_rp.get_attr('bb') == bb
     assert ka_b_rp.get_attr('trained_models') == None
+    assert ka_bb_lvl2.get_attr('bb') == bb
+    assert ka_b_bb_lvl2.get_attr('trained_models') == None
     bb.set_attr(trained_models=10)
     assert ka_b_bb.get_attr('trained_models') == 10
     assert ka_b_rp.get_attr('trained_models') == 10
+    assert ka_b_bb_lvl2.get_attr('trained_models') == 10
 
-    assert bb.get_attr('agent_addrs') == {'ka_rp': {}, 'ka_base': {}}
+    assert bb.get_attr('agent_addrs') == {'ka_rp': {}, 'ka_base': {}, 'ka_bb_lvl2': {}}
     ns.shutdown()
     time.sleep(0.1)
 
@@ -144,6 +162,6 @@ def test_trigger_event():
     time.sleep(0.5)
     assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1}, 
                                              1: {'ka_base': 0, 'ka_rp': 1}}
-
     ns.shutdown()
     time.sleep(0.1)    
+

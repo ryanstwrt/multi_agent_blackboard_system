@@ -4,6 +4,7 @@ import run_sfr_opt_mabs
 import pandas as pd
 import h5py
 import time
+import math
 
 class KaBase(Agent):
     """
@@ -63,7 +64,7 @@ class KaBase(Agent):
         "Mandatory handler for publication trigger event"
         self.log_info('{} triggered'.format(self.name))
 
-class KaBbReader(KaBase):
+class KaBbLvl2(KaBase):
     """
     Knowledge agent who examines the blackboard and determines if a solution should be move from abastract level 3 to abstract level 2.
     
@@ -75,6 +76,53 @@ class KaBbReader(KaBase):
     
     def on_init(self):
         super().on_init()
+        
+    
+    def write_to_bb(self):
+        write = False
+        while not write:
+            time.sleep(1)
+            self.send(self.rep_alias, self.name)
+            write = self.recv(self.rep_alias)
+        else:
+            self.read_bb_lvl_2()
+    
+    def read_bb_lvl_2(self):
+        pass
+
+class KaBbLvl2_Proxy(KaBbLvl2):
+    """Proxy for KA to examine weights for a given blackboard entry."""
+
+    def on_init(self):
+        super().on_init()
+        self.desired_results = {'keff': 1.0303, 'void': -110.023, 'Doppler': -0.6926, 'pu_content': 0.5475}
+        self.best_weights = {}  
+        self.err = 100
+        self.ind_err = {}
+
+    def read_bb_lvl_2(self):
+        lvl_3 = self.bb.get_attr('lvl_3')
+        best_core = None
+        for k,v in lvl_3.items():
+            ind_err = self.get_percent_errors(k, v['reactor_parameters'])
+            tot_err = sum(ind_err.values())
+            if tot_err < self.err:
+                self.err = tot_err
+                self.ind_err = ind_err
+                self.best_weights = {'w_keff': v['reactor_parameters']['w_keff'][k],
+                                     'w_void': v['reactor_parameters']['w_void'][k],
+                                     'w_dopp': v['reactor_parameters']['w_dopp'][k],
+                                     'w_pu': v['reactor_parameters']['w_pu'][k]}
+                best_core = k
+        self.bb.add_abstract_lvl_2(best_core, self.best_weights, True)
+
+    def get_percent_errors(self, core, rx_params):
+        """Return the percent error for each objective function"""
+        ind_err = {}
+        for k,v in self.desired_results.items():
+            ind_err[k] = abs((v - rx_params[k][core])/v)
+        return ind_err
+            
         
 
 class KaReactorPhysics(KaBase):
