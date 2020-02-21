@@ -1,6 +1,5 @@
 import osbrain
 from osbrain import Agent
-import tables as tb
 import pandas as pd
 import train_surrogate_models as tm
 
@@ -76,7 +75,7 @@ class Blackboard(Agent):
         return (alias_name, rep_addr)
 
     def connect_trigger_event(self, agent_name):
-\        self.agent_addrs[agent_name].update({'trigger': (self.trigger_alias, self.trigger_addr)})
+        self.agent_addrs[agent_name].update({'trigger': (self.trigger_alias, self.trigger_addr)})
         return(self.trigger_alias, self.trigger_addr)
     
     def trigger_handler(self, message):

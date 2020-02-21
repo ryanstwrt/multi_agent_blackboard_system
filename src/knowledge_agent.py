@@ -48,14 +48,22 @@ class KaBase(Agent):
         raise NotImplementedError
     
     def connect_trigger_event(self):
-        """Basic function to trigger an agent"""
-        raise NotImplementedError
+        """Create a line of communiction through the publish-subscribe format to determine if it is triggered."""
+        if self.bb:
+            self.trigger_alias, self.trigger_addr = self.bb.connect_trigger_event(self.name)
+            self.connect(self.trigger_addr, alias=self.trigger_alias, handler=self.trigger_handler)
+        else:
+            self.log_warning('Warning: Agent {} not connected to blackbaord agent'.format(self.name))
     
-    def trigger_event(self):
-        """Basic function for triggering"""
-        raise NotImplementedError
+    def trigger_handler(self, message):
+        """Inform the BB of it's trigger value."""
+        self.send(self.trigger_alias, (self.name, self.trigger_val), handler=self.log_trigger_handler)    
+    
+    def log_trigger_handler(self, poxy_obj, unk):
+        "Mandatory handler for publication trigger event"
+        self.log_info('{} triggered'.format(self.name))
 
-class KaBbReader_Proxy(KaBase):
+class KaBbReader(KaBase):
     """
     Knowledge agent who examines the blackboard and determines if a solution should be move from abastract level 3 to abstract level 2.
     
@@ -68,8 +76,43 @@ class KaBbReader_Proxy(KaBase):
     def on_init(self):
         super().on_init()
         
-        
-class KaReactorPhysics_Proxy(KaBase):
+
+class KaReactorPhysics(KaBase):
+    """
+    Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
+    
+    Inherets from KaBase.
+    
+    Attibutes:
+    
+      core_name        (str)             - Name of the core
+      rx_parameters    (dataframe)       - Pandas dataframe containing reactor core parameters from Mammoth
+      surrogate_models (SurrogateModels) - SurrogateModels class from surrogate_modeling, containes a set of trained surogate mdoels
+      objectives       (list)            - List of the desired objective functions to be examined
+      design_variables (list)            - List of the design variables to be used
+      results_path     (str)             - Path to the desired location for printing results
+      weight           (tuple)           - Weights for the associated objectives, these will be optimized in an attempt to find a solution which resembles physical programming
+    """
+    def on_init(self):
+        super().on_init()
+        self.trigger_val = 1.0
+        self.core_name = None
+        self.xs_set = None
+        self.rx_parameters = None
+        self.surrogate_models = None
+
+    def write_to_bb(self):
+        """Write to abstract level three of the blackboard when the blackboard is not being written to.
+        Force the KA to wait 1 second between sending message"""
+        write = False
+        while not write:
+            time.sleep(1)
+            self.send(self.rep_alias, self.name)
+            write = self.recv(self.rep_alias)
+        else:
+            self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, self.xs_set)
+
+class KaReactorPhysics_Proxy(KaReactorPhysics):
     """
     Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
     
@@ -88,11 +131,6 @@ class KaReactorPhysics_Proxy(KaBase):
 
     def on_init(self):
         super().on_init()
-        self.trigger_val = 1.0
-        
-        self.core_name = None
-        self.rx_parameters = None
-        self.surrogate_models = None
         self.objectives = None
         self.design_variables = None
         self.results_path = None
@@ -100,17 +138,6 @@ class KaReactorPhysics_Proxy(KaBase):
         
         #For proxy app
         self.weights = None
-            
-    def write_to_blackboard(self):
-        """Write to abstract level three of the blackboard when the blackboard is not being written to.
-        Force the KA to wait 1 second between sending message"""
-        write = False
-        while not write:
-            time.sleep(1)
-            self.send(self.rep_alias, self.name)
-            write = self.recv(self.rep_alias)
-        else:
-            self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, 0)
     
     def run_dakota_proxy(self):
         """Run Dakota using a single objective genetic algorithm, with the given weights"""
@@ -144,105 +171,4 @@ class KaReactorPhysics_Proxy(KaBase):
                                            'w_void': self.weights[1],
                                            'w_dopp': self.weights[2],
                                            'w_pu': self.weights[3]}}
-        self.rx_parameters = pd.DataFrame.from_dict(rx_params_dict, orient='index')
-
-    def connect_trigger_event(self):
-        """Create a line of communiction through the publish-subscribe format to determine if it is triggered."""
-        if self.bb:
-            self.trigger_alias, self.trigger_addr = self.bb.connect_trigger_event(self.name)
-            self.connect(self.trigger_addr, alias=self.trigger_alias, handler=self.trigger_handler)
-        else:
-            self.log_warning('Warning: Agent {} not connected to blackbaord agent'.format(self.name))
-    
-    def trigger_handler(self, message):
-        """Inform the BB of it's trigger value."""
-        self.send(self.trigger_alias, (self.name, self.trigger_val), handler=self.log_trigger_handler)    
-    
-    def log_trigger_handler(self, poxy_obj, unk):
-        "Mandatory handler for publication trigger event"
-        self.log_info('{} triggered'.format(self.name))
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-class KaReactorPhysics(KaBase):
-    """
-    Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
-    
-    Inherets from KaBase.
-    
-    Attibutes:
-    
-      core_name       (str)            - Name of the core
-      xs_set          (str)            - File name of the xml cross-section set used
-      rx_parameters   (dataframe)      - Pandas dataframe containing reactor core parameters from Mammoth
-      surrogate_models (SurrogateModels) - SurrogateModels class from surrogate_modeling, containes a set of trained surogate mdoels 
-    """
-
-    def on_init(self):
-        super().on_init()
-        self.core_name = None
-        self.xs_set = None
-        self.rx_parameters = None
-        self.surrogate_models = None
-        
-        #For proxy app
-        self.weights = None
-        
-    def write_to_blackboard(self):
-        """Write to abstract level three of the blackboard when the blackboard is not being written to."""
-        write = False
-        while write:
-            write = self.send(self.rep_alias)
-        else:
-            self.recv(self.rep_alias)
-            self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, self.xs_set)
-            self.bb.finish_writing_to_blackboard()
-    
-    def run_dakota_proxy(self):
-        """Run Dakota using a single objective genetic algorithm, with the given weights"""
-        self.weights = (0,0,0,0)
-        run_sfr_opt_mabs.main(self.weights[0], self.weights[1], self.weights[2], self.weights[3])
-        
-    def read_dakota_results(self):
-        """Read in the results from the Dakota H5 file, and turn this into the reactor paramters dataframe."""
-        weight_sequence = '{}_{}_{}_{}'.format(self.weights[0], self.weights[1], self.weights[2], self.weights[3])
-        self.core_name = 'core_{}'.format(weight_sequence)
-        file = h5py.File('/Users/ryanstewart/projects/Dakota_Interface/GA/results/soo_pareto_{}.h5'.format(weight_sequence), 'r+')
-        design_list = list(file['methods']['soga_{}'.format('0')]['results']['execution:1']['best_parameters']['discrete_real'])
-        obj_list = file['methods']['soga_{}'.format('0')]['results']['execution:1']['best_objective_functions']
- 
-        keff = (1-obj_list[0]) * (1.29863-0.75794) + 0.75794
-        void = (1-obj_list[1]) * (-254.8-(-42.4)) - 42.4
-        dopp = (1-obj_list[2]) * (-1.192057-(-0.365144)) - 0.365144
-        
-        rx_params_dict = {self.core_name: {'height': design_list[0],
-                                                        'smear': design_list[1],
-                                                       'pu_content': design_list[2],
-                                                       'keff': keff,
-                                                       'void': void,
-                                                       'Doppler': dopp}}
-        self.rx_parameters = pd.DataFrame.from_dict(rx_params_dict, orient='index')
+        self.rx_parameters = pd.DataFrame.from_dict(rx_params_dict, orient='index')        
