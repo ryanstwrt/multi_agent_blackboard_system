@@ -24,8 +24,12 @@ class KaBase(Agent):
         """Initialize the knowledge agent"""
         self.bb = None
         self.entry = None
-        self.rep_addr = None
-        self.rep_alias = None
+        self.writer_addr = None
+        self.writer_alias = None
+        self.execute_addr = None
+        self.execute_alias = None
+        self.trigger_addr = None
+        self.trigger_alias = None
         
         self.trigger_val = 0
         
@@ -39,10 +43,23 @@ class KaBase(Agent):
     def connect_writer(self):
         """Create a line of communiction through the reply request format to allow writing to the blackboard."""
         if self.bb:
-            self.rep_alias, self.rep_addr = self.bb.connect_writer(self.name)
-            self.connect(self.rep_addr, alias=self.rep_alias)
+            self.writer_alias, self.writer_addr = self.bb.connect_writer(self.name)
+            self.connect(self.writer_addr, alias=self.writer_alias)
+            self.log_info('Agent {} connected writer to BB'.format(self.name))
         else:
             self.log_info("Warning: Blackboard attribute not defined")
+
+    def connect_execute(self):
+        """Create a line of communication through the reply request format to allow writing to the blackboard."""
+        if self.bb:
+            self.execute_alias, self.execute_addr = self.bb.connect_execute(self.name)
+            self.connect(self.execute_addr, alias=self.execute_alias, handler=self.execute_handler)
+            self.log_info('Agent {} connected execute to BB'.format(self.name))
+        else:
+            self.log_info("Warning: Blackboard attribute not defined")
+            
+    def execute_handler(self, message):
+        raise NotImplementedError   
     
     def write_to_bb(self):
         """Basic function for writing to the blackboard"""
@@ -53,6 +70,7 @@ class KaBase(Agent):
         if self.bb:
             self.trigger_alias, self.trigger_addr = self.bb.connect_trigger_event(self.name)
             self.connect(self.trigger_addr, alias=self.trigger_alias, handler=self.trigger_handler)
+            self.log_info('Agent {} connected trigger to BB'.format(self.name))
         else:
             self.log_warning('Warning: Agent {} not connected to blackbaord agent'.format(self.name))
     
@@ -82,8 +100,8 @@ class KaBbLvl2(KaBase):
         write = False
         while not write:
             time.sleep(1)
-            self.send(self.rep_alias, self.name)
-            write = self.recv(self.rep_alias)
+            self.send(self.writer_alias, self.name)
+            write = self.recv(self.writer_alias)
         else:
             self.read_bb_lvl_2()
     
@@ -99,6 +117,9 @@ class KaBbLvl2_Proxy(KaBbLvl2):
         self.best_weights = {}  
         self.err = 100
         self.ind_err = {}
+
+    def execute_handler(self, message):
+        pass
 
     def read_bb_lvl_2(self):
         """Read the information from the blackboard and determine if a new solution is better thatn the previous"""
@@ -151,14 +172,17 @@ class KaReactorPhysics(KaBase):
         self.rx_parameters = None
         self.surrogate_models = None
 
+    def execute_handler(self, message):
+        pass
+    
     def write_to_bb(self):
         """Write to abstract level three of the blackboard when the blackboard is not being written to.
         Force the KA to wait 1 second between sending message"""
         write = False
         while not write:
             time.sleep(1)
-            self.send(self.rep_alias, self.name)
-            write = self.recv(self.rep_alias)
+            self.send(self.writer_alias, self.name)
+            write = self.recv(self.writer_alias)
         else:
             self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, self.xs_set)
 
@@ -188,14 +212,21 @@ class KaReactorPhysics_Proxy(KaReactorPhysics):
         
         #For proxy app
         self.weights = None
-    
-    def run_dakota_proxy(self):
-        """Run Dakota using a single objective genetic algorithm, with the given weights"""
+
+    def execute_handler(self, message):
+        self.log_info('Connecting {} for execution'.format(self.name))
         try:
             assert len(self.weights) == len(self.objectives)
-            run_sfr_opt_mabs.run_dakota(self.weights, self.design_variables, self.objectives, self.function_evals)
+            self.run_dakota_proxy()
+            self.read_dakota_results()
+            self.write_to_bb()
         except AssertionError:
             self.log_error('Error: The number of weights ({}) does not match the number of objectives ({}). Make sure these match, as each objective must have a weight.'.format(len(self.weights), len(self.objectives)))
+            
+    def run_dakota_proxy(self):
+        """Run Dakota using a single objective genetic algorithm, with the given weights"""
+        run_sfr_opt_mabs.run_dakota(self.weights, self.design_variables, self.objectives, self.function_evals)
+
             
     def read_dakota_results(self):
         """Read in the results from the Dakota H5 file, and turn this into the reactor paramters dataframe."""

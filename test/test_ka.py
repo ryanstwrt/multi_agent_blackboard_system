@@ -11,18 +11,18 @@ def test_ka_init_agent():
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     assert ka_b.get_attr('entry') == None
     assert ka_b.get_attr('bb') == None
-    assert ka_b.get_attr('rep_addr') == None
-    assert ka_b.get_attr('rep_alias') == None
+    assert ka_b.get_attr('writer_addr') == None
+    assert ka_b.get_attr('writer_alias') == None
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.2)
     
 def test_ka_reactor_physics_init():
     ns = run_nameserver()
     ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics)
     assert ka_rp.get_attr('entry') == None
     assert ka_rp.get_attr('bb') == None
-    assert ka_rp.get_attr('rep_addr') == None
-    assert ka_rp.get_attr('rep_alias') == None
+    assert ka_rp.get_attr('writer_addr') == None
+    assert ka_rp.get_attr('writer_alias') == None
     
     assert ka_rp.get_attr('trigger_val') == 1   
     assert ka_rp.get_attr('core_name') == None
@@ -30,18 +30,18 @@ def test_ka_reactor_physics_init():
     assert ka_rp.get_attr('rx_parameters') == None
     assert ka_rp.get_attr('surrogate_models') == None
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.2)
 
 def test_ka_bb_lvl_2_init():
     ns = run_nameserver()
     ka_bb_lvl2 = run_agent(name='ka_bb_lvl2', base=ka.KaBbLvl2)
     assert ka_bb_lvl2.get_attr('entry') == None
     assert ka_bb_lvl2.get_attr('bb') == None
-    assert ka_bb_lvl2.get_attr('rep_addr') == None
-    assert ka_bb_lvl2.get_attr('rep_alias') == None
+    assert ka_bb_lvl2.get_attr('writer_addr') == None
+    assert ka_bb_lvl2.get_attr('writer_alias') == None
     assert ka_bb_lvl2.get_attr('trigger_val') == 0      
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.2)
     
     
 def test_add_blackboard():
@@ -70,7 +70,7 @@ def test_add_blackboard():
 
     assert bb.get_attr('agent_addrs') == {'ka_rp': {}, 'ka_base': {}, 'ka_bb_lvl2': {}}
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.2)
 
 def test_connect_writer():
     ns = run_nameserver()
@@ -81,12 +81,12 @@ def test_connect_writer():
     ka_b.add_blackboard(bb)
     ka_b.connect_writer()
     ka_rp.connect_writer()
-    assert ka_b.get_attr('rep_alias') == 'write_ka_base'
-    assert ka_rp.get_attr('rep_alias') == 'write_ka_rp'
-    assert bb.get_attr('agent_addrs')['ka_base']['writer'] == (ka_b.get_attr('rep_alias'), ka_b.get_attr('rep_addr'))
-    assert bb.get_attr('agent_addrs')['ka_rp']['writer'] == (ka_rp.get_attr('rep_alias'), ka_rp.get_attr('rep_addr'))
+    assert ka_b.get_attr('writer_alias') == 'write_ka_base'
+    assert ka_rp.get_attr('writer_alias') == 'write_ka_rp'
+    assert bb.get_attr('agent_addrs')['ka_base']['writer'] == (ka_b.get_attr('writer_alias'), ka_b.get_attr('writer_addr'))
+    assert bb.get_attr('agent_addrs')['ka_rp']['writer'] == (ka_rp.get_attr('writer_alias'), ka_rp.get_attr('writer_addr'))
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.2)
 
 def test_write_to_blackboard():
     ns = run_nameserver()
@@ -124,7 +124,7 @@ def test_write_to_blackboard():
                      'core_4': {'reactor_parameters': None, 'xs_set': None}}
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.2)
     
 def test_connect_trigger_event():
     ns = run_nameserver()
@@ -163,5 +163,22 @@ def test_trigger_event():
     assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1}, 
                                              1: {'ka_base': 0, 'ka_rp': 1}}
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.2)    
 
+def test_connect_execute():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_b = run_agent(name='ka_base', base=ka.KaBase)
+    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics)
+    ka_rp.add_blackboard(bb)
+    ka_b.add_blackboard(bb)
+    try:
+        ka_b.connect_execute()
+    except NotImplementedError:
+        pass
+    ka_rp.connect_execute()
+    assert ka_rp.get_attr('execute_alias') == 'execute_ka_rp'
+    assert bb.get_attr('agent_addrs')['ka_rp']['execute'] == (ka_rp.get_attr('execute_alias'), ka_rp.get_attr('execute_addr'))
+    ns.shutdown()
+    time.sleep(0.2)
+    

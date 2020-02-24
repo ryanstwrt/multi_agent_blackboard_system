@@ -40,7 +40,8 @@ class Blackboard(Agent):
         self.lvl_3 = {}
         self.lvl_4 = {}
         self.abstract_levels = {'level 1': self.lvl_1, 'level 2': self.lvl_2, 'level 3': self.lvl_3, 'level 4': self.lvl_4}
-        
+
+        self.ka_to_execute = (None, 0)
         self.trigger_event_num = 0
         self.trigger_events = {}
         self.trigger_alias = 'trigger'
@@ -70,18 +71,27 @@ class Blackboard(Agent):
     def connect_writer(self, agent_name):
         """Connect the blackboard agent to a knolwedge agent for writing purposes"""
         alias_name = 'write_{}'.format(agent_name)
-        rep_addr = self.bind('REP', alias=alias_name, handler=self.writer_handler)
-        self.agent_addrs[agent_name].update({'writer': (alias_name, rep_addr)})
-        return (alias_name, rep_addr)
+        write_addr = self.bind('REP', alias=alias_name, handler=self.writer_handler)
+        self.agent_addrs[agent_name].update({'writer': (alias_name, write_addr)})
+        return (alias_name, write_addr)
 
     def connect_trigger_event(self, agent_name):
         self.agent_addrs[agent_name].update({'trigger': (self.trigger_alias, self.trigger_addr)})
-        return(self.trigger_alias, self.trigger_addr)
+        return (self.trigger_alias, self.trigger_addr)
     
     def trigger_handler(self, message):
         agent, trigger_val = message
         self.log_info('Trigger Value: {} From Agent: {}'.format(trigger_val, agent))
         self.trigger_events[self.trigger_event_num].update({agent: trigger_val})
+
+    def connect_execute(self, agent_name):
+        alias_name = 'execute_{}'.format(agent_name)
+        execute_addr = self.bind('PUSH', alias=alias_name, handler=self.execute_handler)
+        self.agent_addrs[agent_name].update({'execute': (alias_name, execute_addr)})
+        return (alias_name, execute_addr)
+
+    def execute_handler(self, message):
+        self.log('Executing agent {}'.format(agent))
     
     def finish_writing_to_bb(self):
         """Update agent_writing to False when agent is finished writing"""
@@ -146,4 +156,38 @@ class Blackboard(Agent):
             des.append([base['w_keff'][k],base['w_void'][k],base['w_dopp'][k],base['w_pu'][k]])
             obj.append([base['keff'][k],base['void'][k],base['Doppler'][k],base['pu_content'][k]])
         sm.update_database(des, obj)
+        for model in sm.models.keys():
+            sm.update_model(model)
+            sm.optimize_model(model)
+        
+    def controller(self):
+        """
+        Controls the flow of the problem and dictates when knowledge agents should act.
+        
+        While problem not complete:
+            Publish trigger event
+            Wait for response
+            Decide KA to trigger - is this just the controller?
+            Trigger KA
+            Update SM
+            Allow KA to write to BB
+            Check if problem complete
+        """
+        for k,v in self.tigger_events[self.trigger_event].items():
+            if v > self.ka_to_execute[1]:
+                self.ka_to_execute = (k,v)
+    
+    def solve_SFR_Optimization(self):
+        self.complete = False
+        while not self.complete:
+            self.send('trigger')
+            time.sleep(5)
+            self.controller()
+            self.log('Agent {} selected for triggering with trigger value of {}'.format(self.ka_to_execute[0], self.ka_to_execute[1]))
+            self.send('execute_{}'.format(self.ka_to_execute[0]), self.ka_to_execute)
+            self.build_surrogate_models_proxy()
+            #wait for KA to write to BB
+            #check if problem is complete
+            self.trigger_event_num += 1
+            
         
