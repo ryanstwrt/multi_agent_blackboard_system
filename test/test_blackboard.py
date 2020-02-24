@@ -218,3 +218,28 @@ def test_connect_writer_agent():
     
     ns.shutdown()
     time.sleep(0.1)
+
+def test_controller():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics)
+    ka_rp2 = run_agent(name='ka_rp1', base=ka.KaReactorPhysics)
+    bb.set_attr(trigger_events={0: {}})
+    
+    ka_rp.add_blackboard(bb)
+    ka_rp.connect_writer()
+    ka_rp.connect_trigger_event()
+    ka_rp.connect_execute()
+    ka_rp2.add_blackboard(bb)
+    ka_rp2.connect_trigger_event()
+    ka_rp2.set_attr(trigger_val=2)
+    
+    bb.send('trigger', 'message')
+    time.sleep(1)
+    
+    bb.controller()
+    assert bb.get_attr('trigger_events') == {0: {'ka_rp': 1, 'ka_rp1': 2}}
+    assert bb.get_attr('ka_to_execute') == ('ka_rp1', 2)
+    
+    ns.shutdown()
+    time.sleep(0.1)    

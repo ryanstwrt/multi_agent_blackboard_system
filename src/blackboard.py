@@ -173,7 +173,7 @@ class Blackboard(Agent):
             Allow KA to write to BB
             Check if problem complete
         """
-        for k,v in self.tigger_events[self.trigger_event].items():
+        for k,v in self.trigger_events[self.trigger_event_num].items():
             if v > self.ka_to_execute[1]:
                 self.ka_to_execute = (k,v)
     
@@ -181,7 +181,7 @@ class Blackboard(Agent):
         self.complete = False
         while not self.complete:
             self.send('trigger')
-            time.sleep(5)
+            time.sleep(2)
             self.controller()
             self.log('Agent {} selected for triggering with trigger value of {}'.format(self.ka_to_execute[0], self.ka_to_execute[1]))
             self.send('execute_{}'.format(self.ka_to_execute[0]), self.ka_to_execute)
