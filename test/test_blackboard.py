@@ -14,11 +14,10 @@ def test_blackboard_init_agent():
     assert bb.get_attr('agent_addrs') == {}
     for lvl_val, x in zip([{},{},{},{},None],['level 1', 'level 2', 'level 3', 'level 4', 'level 5']):
         assert bb.get_abstract_lvl(x) == lvl_val
-        
+    assert bb.get_attr('ka_to_execute') == (None, 0) 
     assert bb.get_attr('trigger_event_num') == 0
     assert bb.get_attr('trigger_events') == {}
-    assert bb.get_attr('trigger_alias') == 'trigger'
-    assert bb.get_attr('trigger_addr') 
+    assert bb.get_attr('pub_trigger_alias') == 'trigger'
     
     ns.shutdown()
     time.sleep(0.1)
@@ -228,18 +227,18 @@ def test_controller():
     
     ka_rp.add_blackboard(bb)
     ka_rp.connect_writer()
-    ka_rp.connect_trigger_event()
+    ka_rp.connect_trigger()
     ka_rp.connect_execute()
     ka_rp2.add_blackboard(bb)
-    ka_rp2.connect_trigger_event()
+    ka_rp2.connect_trigger()
     ka_rp2.set_attr(trigger_val=2)
     
-    bb.send('trigger', 'message')
-    time.sleep(1)
+    bb.publish_trigger()
+    time.sleep(0.25)
     
     bb.controller()
     assert bb.get_attr('trigger_events') == {0: {'ka_rp': 1, 'ka_rp1': 2}}
     assert bb.get_attr('ka_to_execute') == ('ka_rp1', 2)
     
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.1)

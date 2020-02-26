@@ -2,6 +2,7 @@ import osbrain
 from osbrain import Agent
 import pandas as pd
 import train_surrogate_models as tm
+import time
 
 class Blackboard(Agent):
     """
@@ -44,9 +45,8 @@ class Blackboard(Agent):
         self.ka_to_execute = (None, 0)
         self.trigger_event_num = 0
         self.trigger_events = {}
-        self.trigger_alias = 'trigger'
-        self.trigger_addr = self.bind('SYNC_PUB', alias=self.trigger_alias, handler=self.trigger_handler)
-
+        self.pub_trigger_alias = 'trigger'
+        self.pub_trigger_addr = self.bind('PUB', alias=self.pub_trigger_alias)
 
     def add_abstract_lvl_1(self, name, exp_nums, validated=False, pareto=False):
         "Add an entry for abstract level 1"
@@ -67,42 +67,60 @@ class Blackboard(Agent):
         "Add an entry for abstract level 4"
         self.lvl_4[name] = {'xs_set': file}        
         self.finish_writing_to_bb()
-
-    def connect_writer(self, agent_name):
-        """Connect the blackboard agent to a knolwedge agent for writing purposes"""
-        alias_name = 'write_{}'.format(agent_name)
-        write_addr = self.bind('REP', alias=alias_name, handler=self.writer_handler)
-        self.agent_addrs[agent_name].update({'writer': (alias_name, write_addr)})
-        return (alias_name, write_addr)
-
-    def connect_trigger_event(self, agent_name):
-        self.agent_addrs[agent_name].update({'trigger': (self.trigger_alias, self.trigger_addr)})
-        return (self.trigger_alias, self.trigger_addr)
     
-    def trigger_handler(self, message):
-        agent, trigger_val = message
-        self.log_info('Trigger Value: {} From Agent: {}'.format(trigger_val, agent))
-        self.trigger_events[self.trigger_event_num].update({agent: trigger_val})
-
-    def connect_execute(self, agent_name):
-        alias_name = 'execute_{}'.format(agent_name)
-        execute_addr = self.bind('PUSH', alias=alias_name, handler=self.execute_handler)
-        self.agent_addrs[agent_name].update({'execute': (alias_name, execute_addr)})
-        return (alias_name, execute_addr)
-
-    def execute_handler(self, message):
-        self.log('Executing agent {}'.format(agent))
-    
-    def finish_writing_to_bb(self):
-        """Update agent_writing to False when agent is finished writing"""
-        self.agent_writing = False
-
     def get_abstract_lvl(self, level):
         if level in self.abstract_levels:
             return self.abstract_levels[level]
         else:
             self.log_warning("Warning: Abstract {} does not exist.".format(level))
             return None
+    
+    def connect_writer(self, agent_name):
+        """Connect the blackboard agent to a knolwedge agent for writing purposes"""
+        alias_name = 'write_{}'.format(agent_name)
+        write_addr = self.bind('REP', alias=alias_name, handler=self.handler_writer)
+        self.agent_addrs[agent_name].update({'writer': (alias_name, write_addr)})
+        self.log_info('BB connected writer to {}'.format(agent_name))
+        return (alias_name, write_addr)
+
+    def handler_writer(self, agent_name):
+        """Determine if it is acceptable to write to the blackboard"""
+        if not self.agent_writing:
+            self.agent_writing = True
+            self.log_info('Agent {} given permission to write'.format(agent_name))
+            return True
+        else:
+            self.log_info('Agent {} waiting to write'.format(agent_name))
+            return False
+
+    def connect_trigger(self, message):
+        agent_name, response_addr, response_alias = message
+        self.agent_addrs[agent_name].update({'trigger_response': (response_alias, response_addr)})
+        self.connect(response_addr, alias=response_alias, handler=self.handler_trigger_response)
+        return (self.pub_trigger_alias, self.pub_trigger_addr)
+
+    def publish_trigger(self):
+        self.trigger_events[self.trigger_event_num] = {}
+        self.send(self.pub_trigger_alias, 'publishing trigger')
+
+    def handler_trigger_response(self, message):
+        agent, trig_val = message
+        self.log_debug('Logging trigger response ({}) for agent {}'.format(trig_val, agent))
+        self.trigger_events[self.trigger_event_num].update({agent: trig_val})
+
+    def connect_execute(self, agent_name):
+        alias_name = 'execute_{}'.format(agent_name)
+        execute_addr = self.bind('PUSH', alias=alias_name)
+        self.agent_addrs[agent_name].update({'execute': (alias_name, execute_addr)})
+        return (alias_name, execute_addr)
+
+    def send_execute(self):
+        self.log_info('Selecting agent {} (trigger value: {}) to execute'.format(self.ka_to_execute[0], self.ka_to_execute[1]))
+        self.send('execute_{}'.format(self.ka_to_execute[0]), self.ka_to_execute)
+            
+    def finish_writing_to_bb(self):
+        """Update agent_writing to False when agent is finished writing"""
+        self.agent_writing = False
 
     def get_agents(self):
         return self.agents
@@ -130,16 +148,6 @@ class Blackboard(Agent):
         "Update an entry for abstract level 4"
         for k,v in updated_params.items():
             self.lvl_4[name][k] = v
-
-    def writer_handler(self, agent_name):
-        """Determine if it is acceptable to write to the blackboard"""
-        if not self.agent_writing:
-            self.agent_writing = True
-            self.log_info('Agent {} given permission to write'.format(agent_name))
-            return True
-        else:
-            self.log_info('Agent {} waiting to write'.format(agent_name))
-            return False
         
     def build_surrogate_models_proxy(self):
         """
@@ -147,6 +155,7 @@ class Blackboard(Agent):
         
         Currently surrogate models are built off of H5 database of SFR core optimization. 
         """
+        self.log_info('BB building surrogate models')
         sm = tm.Surrogate_Models()
         sm.random = 0
         des = []
@@ -159,6 +168,7 @@ class Blackboard(Agent):
         for model in sm.models.keys():
             sm.update_model(model)
             sm.optimize_model(model)
+        self.log_info('BB finished building surrogate models')
         
     def controller(self):
         """
@@ -173,21 +183,7 @@ class Blackboard(Agent):
             Allow KA to write to BB
             Check if problem complete
         """
+        self.log_info('Determining which KA to execute')
         for k,v in self.trigger_events[self.trigger_event_num].items():
             if v > self.ka_to_execute[1]:
                 self.ka_to_execute = (k,v)
-    
-    def solve_SFR_Optimization(self):
-        self.complete = False
-        while not self.complete:
-            self.send('trigger')
-            time.sleep(2)
-            self.controller()
-            self.log('Agent {} selected for triggering with trigger value of {}'.format(self.ka_to_execute[0], self.ka_to_execute[1]))
-            self.send('execute_{}'.format(self.ka_to_execute[0]), self.ka_to_execute)
-            self.build_surrogate_models_proxy()
-            #wait for KA to write to BB
-            #check if problem is complete
-            self.trigger_event_num += 1
-            
-        

@@ -13,6 +13,14 @@ def test_ka_init_agent():
     assert ka_b.get_attr('bb') == None
     assert ka_b.get_attr('writer_addr') == None
     assert ka_b.get_attr('writer_alias') == None
+    assert ka_b.get_attr('execute_addr') == None
+    assert ka_b.get_attr('execute_alias') == None
+    assert ka_b.get_attr('trigger_response_addr') == None
+    assert ka_b.get_attr('trigger_response_alias') == 'trigger_response_ka_base'
+    assert ka_b.get_attr('trigger_publish_addr') == None
+    assert ka_b.get_attr('trigger_publish_alias') == None
+    assert ka_b.get_attr('trigger_val') == 0
+
     ns.shutdown()
     time.sleep(0.2)
     
@@ -23,6 +31,12 @@ def test_ka_reactor_physics_init():
     assert ka_rp.get_attr('bb') == None
     assert ka_rp.get_attr('writer_addr') == None
     assert ka_rp.get_attr('writer_alias') == None
+    assert ka_rp.get_attr('execute_addr') == None
+    assert ka_rp.get_attr('execute_alias') == None
+    assert ka_rp.get_attr('trigger_response_addr') == None
+    assert ka_rp.get_attr('trigger_response_alias') == 'trigger_response_ka_rp'
+    assert ka_rp.get_attr('trigger_publish_addr') == None
+    assert ka_rp.get_attr('trigger_publish_alias') == None
     
     assert ka_rp.get_attr('trigger_val') == 1   
     assert ka_rp.get_attr('core_name') == None
@@ -39,7 +53,14 @@ def test_ka_bb_lvl_2_init():
     assert ka_bb_lvl2.get_attr('bb') == None
     assert ka_bb_lvl2.get_attr('writer_addr') == None
     assert ka_bb_lvl2.get_attr('writer_alias') == None
-    assert ka_bb_lvl2.get_attr('trigger_val') == 0      
+    assert ka_bb_lvl2.get_attr('trigger_val') == 0
+    assert ka_bb_lvl2.get_attr('execute_addr') == None
+    assert ka_bb_lvl2.get_attr('execute_alias') == None
+    assert ka_bb_lvl2.get_attr('trigger_response_addr') == None
+    assert ka_bb_lvl2.get_attr('trigger_response_alias') == 'trigger_response_ka_bb_lvl2'
+    assert ka_bb_lvl2.get_attr('trigger_publish_addr') == None
+    assert ka_bb_lvl2.get_attr('trigger_publish_alias') == None
+    assert ka_bb_lvl2.get_attr('trigger_val') == 0
     ns.shutdown()
     time.sleep(0.2)
     
@@ -133,12 +154,12 @@ def test_connect_trigger_event():
     ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics)
     ka_rp.add_blackboard(bb)
     ka_b.add_blackboard(bb)
-    ka_b.connect_trigger_event()
-    ka_rp.connect_trigger_event()
-    assert ka_rp.get_attr('trigger_alias') == 'trigger'
-    assert ka_b.get_attr('trigger_alias') == 'trigger'
-    assert bb.get_attr('agent_addrs')['ka_rp']['trigger'] == ('trigger', ka_rp.get_attr('trigger_addr'))
-    assert bb.get_attr('agent_addrs')['ka_base']['trigger'] == ('trigger', ka_rp.get_attr('trigger_addr'))
+    ka_b.connect_trigger()
+    ka_rp.connect_trigger()
+    assert ka_rp.get_attr('trigger_publish_alias') == 'trigger'
+    assert ka_b.get_attr('trigger_publish_alias') == 'trigger'
+    assert bb.get_attr('agent_addrs')['ka_rp']['trigger_response'] == (ka_rp.get_attr('trigger_response_alias'), ka_rp.get_attr('trigger_response_addr'))
+    assert bb.get_attr('agent_addrs')['ka_base']['trigger_response'] == (ka_b.get_attr('trigger_response_alias'), ka_b.get_attr('trigger_response_addr'))
     
     ns.shutdown()
     time.sleep(0.2)
@@ -148,20 +169,31 @@ def test_trigger_event():
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics)
+    ka_lvl2 = run_agent(name='ka_lvl2', base=ka.KaBbLvl2)
     ka_rp.add_blackboard(bb)
     ka_b.add_blackboard(bb)
-    ka_b.connect_trigger_event()
-    ka_rp.connect_trigger_event()
-    bb.set_attr(trigger_events={0: {}, 1: {}})
+    ka_lvl2.add_blackboard(bb)
+    ka_b.connect_trigger()
+    ka_rp.connect_trigger()
+    ka_lvl2.connect_trigger()
+    bb.set_attr(trigger_events={0: {}, 1: {}, 10: {}})
     
-    bb.send('trigger', 'event')
-    time.sleep(0.5)
-    assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1}, 1: {}}
+    bb.publish_trigger()
+    time.sleep(0.2)
+    assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0}, 1: {}, 10: {}}
     bb.set_attr(trigger_event_num=1)
-    bb.send('trigger', 'event')
-    time.sleep(0.5)
-    assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1}, 
-                                             1: {'ka_base': 0, 'ka_rp': 1}}
+    bb.publish_trigger()
+    time.sleep(0.2)
+    assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0}, 
+                                             1: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0},
+                                             10: {}}
+    
+    bb.set_attr(trigger_event_num=10)
+    bb.publish_trigger()
+    time.sleep(0.2)
+    assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0}, 
+                                             1: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0},
+                                             10: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 2}}   
     ns.shutdown()
     time.sleep(0.2)    
 
@@ -181,4 +213,19 @@ def test_connect_execute():
     assert bb.get_attr('agent_addrs')['ka_rp']['execute'] == (ka_rp.get_attr('execute_alias'), ka_rp.get_attr('execute_addr'))
     ns.shutdown()
     time.sleep(0.2)
+
+def test_execute_bb_lvl2():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_lvl2 = run_agent(name='ka_lvl2', base=ka.KaBbLvl2)
+    ka_lvl2.add_blackboard(bb)
+    ka_lvl2.connect_execute()
     
+    bb.set_attr(ka_to_execute=('ka_lvl2', 1.0))
+    
+    bb.send_execute()
+    
+    assert bb.get_attr('lvl_2') == {}
+
+    ns.shutdown()
+    time.sleep(0.2)
