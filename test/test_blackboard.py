@@ -237,7 +237,7 @@ def test_controller():
     time.sleep(0.25)
     
     bb.controller()
-    assert bb.get_attr('trigger_events') == {0: {'ka_rp': 1, 'ka_rp1': 2}}
+    assert bb.get_attr('trigger_events') == {0: {}, 1: {'ka_rp': 1, 'ka_rp1': 2}}
     assert bb.get_attr('ka_to_execute') == ('ka_rp1', 2)
     
     ns.shutdown()

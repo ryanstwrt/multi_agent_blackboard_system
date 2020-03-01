@@ -71,7 +71,7 @@ class KaBase(Agent):
             self.connect(self.execute_addr, alias=self.execute_alias, handler=self.handler_execute)
             self.log_debug('Agent {} connected execute to BB'.format(self.name))
         else:
-            self.log_warning('Warning: Agent {} not connected to blackbaord agent'.format(self.name))
+            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
 
     def connect_trigger(self):
         if self.bb:
@@ -80,7 +80,7 @@ class KaBase(Agent):
             self.connect(self.trigger_publish_addr, alias=self.trigger_publish_alias, handler=self.handler_trigger_publish)
     
     def handler_trigger_publish(self, message):
-        self.log_debug('Responding to trigger')
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self.trigger_val))
         self.send(self.trigger_response_alias, (self.name, self.trigger_val))
     
     def write_to_bb(self):
@@ -101,9 +101,11 @@ class KaBbLvl2(KaBase):
     
     def on_init(self):
         super().on_init()
-        self.best_core = None        
+        self.best_core = None 
+        self.desired_error = 0.10
     
     def write_to_bb(self):
+        self.log_debug('Attempting to write to blackboard')
         write = False
         while not write:
             time.sleep(1)
@@ -117,6 +119,7 @@ class KaBbLvl2(KaBase):
 
     def handler_trigger_publish(self, message):
         """Inform the BB of it's trigger value."""
+        self.log_info((self.bb.get_attr('trigger_event_num') % 10 == 0, self.bb.get_attr('trigger_event_num') != 0))
         if self.bb.get_attr('trigger_event_num') % 10 == 0 and self.bb.get_attr('trigger_event_num') != 0:
             self.trigger_val = 2
         else:
@@ -147,7 +150,7 @@ class KaBbLvl2_Proxy(KaBbLvl2):
         for k,v in lvl_3.items():
             ind_err = self.get_percent_errors(k, v['reactor_parameters'])
             tot_err = sum(ind_err.values())
-            if tot_err < self.err:
+            if tot_err < self.err and tot_err < self.desired_error:
                 self.err = tot_err
                 self.ind_err = ind_err
                 self.best_weights = {'w_keff': v['reactor_parameters']['w_keff'][k],
@@ -191,6 +194,7 @@ class KaReactorPhysics(KaBase):
     def write_to_bb(self):
         """Write to abstract level three of the blackboard when the blackboard is not being written to.
         Force the KA to wait 1 second between sending message"""
+        self.log_debug('Attempting to write to blackboard')
         write = False
         while not write:
             time.sleep(1)

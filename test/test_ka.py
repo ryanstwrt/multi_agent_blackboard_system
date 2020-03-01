@@ -176,23 +176,23 @@ def test_trigger_event():
     ka_b.connect_trigger()
     ka_rp.connect_trigger()
     ka_lvl2.connect_trigger()
-    bb.set_attr(trigger_events={0: {}, 1: {}, 10: {}})
+    bb.set_attr(trigger_events={1: {}, 2: {}, 10: {}})
     
     bb.publish_trigger()
     time.sleep(0.2)
-    assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0}, 1: {}, 10: {}}
+    assert bb.get_attr('trigger_events') == {1: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0}, 2: {}, 10: {}}
     bb.set_attr(trigger_event_num=1)
     bb.publish_trigger()
     time.sleep(0.2)
-    assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0}, 
-                                             1: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0},
+    assert bb.get_attr('trigger_events') == {1: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0}, 
+                                             2: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0},
                                              10: {}}
     
-    bb.set_attr(trigger_event_num=10)
+    bb.set_attr(trigger_event_num=9)
     bb.publish_trigger()
     time.sleep(0.2)
-    assert bb.get_attr('trigger_events') == {0: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0}, 
-                                             1: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0},
+    assert bb.get_attr('trigger_events') == {1: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0}, 
+                                             2: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 0},
                                              10: {'ka_base': 0, 'ka_rp': 1, 'ka_lvl2': 2}}   
     ns.shutdown()
     time.sleep(0.2)    

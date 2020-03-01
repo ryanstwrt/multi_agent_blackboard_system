@@ -35,6 +35,7 @@ class Blackboard(Agent):
         self.trained_models = None
         self.agent_addrs = {}
         self.agent_writing = False
+        self.new_entry = False
         
         self.lvl_1 = {}
         self.lvl_2 = {}
@@ -87,6 +88,7 @@ class Blackboard(Agent):
         """Determine if it is acceptable to write to the blackboard"""
         if not self.agent_writing:
             self.agent_writing = True
+            self.new_entry = True
             self.log_info('Agent {} given permission to write'.format(agent_name))
             return True
         else:
@@ -100,6 +102,7 @@ class Blackboard(Agent):
         return (self.pub_trigger_alias, self.pub_trigger_addr)
 
     def publish_trigger(self):
+        self.trigger_event_num += 1
         self.trigger_events[self.trigger_event_num] = {}
         self.send(self.pub_trigger_alias, 'publishing trigger')
 
@@ -107,7 +110,7 @@ class Blackboard(Agent):
         agent, trig_val = message
         self.log_debug('Logging trigger response ({}) for agent {}'.format(trig_val, agent))
         self.trigger_events[self.trigger_event_num].update({agent: trig_val})
-
+        
     def connect_execute(self, agent_name):
         alias_name = 'execute_{}'.format(agent_name)
         execute_addr = self.bind('PUSH', alias=alias_name)
@@ -164,26 +167,19 @@ class Blackboard(Agent):
             base = v['reactor_parameters']
             des.append([base['w_keff'][k],base['w_void'][k],base['w_dopp'][k],base['w_pu'][k]])
             obj.append([base['keff'][k],base['void'][k],base['Doppler'][k],base['pu_content'][k]])
-        sm.update_database(des, obj)
-        for model in sm.models.keys():
-            sm.update_model(model)
-            sm.optimize_model(model)
+        sm.update_database(obj, des)
+        model = 'lr'
+        sm.update_model(model)
+#        sm.optimize_model(model)
+        self.trained_models = sm
         self.log_info('BB finished building surrogate models')
-        
+    
     def controller(self):
         """
-        Controls the flow of the problem and dictates when knowledge agents should act.
-        
-        While problem not complete:
-            Publish trigger event
-            Wait for response
-            Decide KA to trigger - is this just the controller?
-            Trigger KA
-            Update SM
-            Allow KA to write to BB
-            Check if problem complete
+        Controls the which knowledge agent will be excuted for each trigger event.
         """
         self.log_info('Determining which KA to execute')
+        self.ka_to_execute = (None, 0)
         for k,v in self.trigger_events[self.trigger_event_num].items():
             if v > self.ka_to_execute[1]:
                 self.ka_to_execute = (k,v)
