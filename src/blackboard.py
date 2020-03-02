@@ -119,7 +119,10 @@ class Blackboard(Agent):
 
     def send_execute(self):
         self.log_info('Selecting agent {} (trigger value: {}) to execute'.format(self.ka_to_execute[0], self.ka_to_execute[1]))
-        self.send('execute_{}'.format(self.ka_to_execute[0]), self.ka_to_execute)
+        if 'rp' in self.ka_to_execute[0]:
+            self.send('execute_{}'.format(self.ka_to_execute[0]), self.trained_models)
+        else:
+            self.send('execute_{}'.format(self.ka_to_execute[0]), self.ka_to_execute)
             
     def finish_writing_to_bb(self):
         """Update agent_writing to False when agent is finished writing"""
@@ -172,6 +175,7 @@ class Blackboard(Agent):
         sm.update_model(model)
 #        sm.optimize_model(model)
         self.trained_models = sm
+        self.log_debug('Trained SM: {} wtih MSE: {}'.format(model, sm.models[model]['mse_score']))
         self.log_info('BB finished building surrogate models')
     
     def controller(self):

@@ -3,6 +3,7 @@ from osbrain import run_nameserver
 from osbrain import run_agent
 import blackboard
 import knowledge_agent as ka
+import pandas as pd
 import time
 import os
 
@@ -83,41 +84,37 @@ def test_add_second_entry():
 def test_bb_lvl2_proxy():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_Proxy)
     ka_bb_lvl2 = run_agent(name='ka_bb_lvl2', base=ka.KaBbLvl2_Proxy)
-    ka_rp.add_blackboard(bb)
-    ka_rp.connect_writer()
     ka_bb_lvl2.add_blackboard(bb)
     ka_bb_lvl2.connect_writer()    
-    
-    ka_rp.objectives = ['keff', 'void_coeff', 'doppler_coeff', 'pu_content']
-    ka_rp.design_variables = ['height', 'smear', 'pu_content']
-    ka_rp.set_attr(function_evals=10)
-    ka_rp.results_path = '/Users/ryanstewart/projects/Dakota_Interface/GA/mabs_results/'
 
-    ka_rp.set_attr(weights=[0,0,0,0])
-    ka_rp.read_dakota_results()
-    ka_rp.write_to_bb()
+    rx_params_dict = {'core_0000': {'height': 55.00,
+                                       'smear': 65.76,
+                                       'pu_content': 0.5477,
+                                       'keff': 1.0302,
+                                       'void': -110.023,
+                                       'Doppler': -0.6923,
+                                       'w_keff': 0.6,
+                                       'w_void': 0.15,
+                                       'w_dopp': 0.15,
+                                       'w_pu': 0.1}}
+    rx_params = pd.DataFrame.from_dict(rx_params_dict, orient='index')
+    
+    lvl3_test = {'core_0000': {'reactor_parameters': rx_params, 'xs_Set': None}}
+    
+    bb.set_attr(lvl_3=lvl3_test)
+    
     ka_bb_lvl2.read_bb_lvl_2()
     ka_bb_lvl2.write_to_bb()
     
     bb_lvl_2 = bb.get_attr('lvl_2')
     core = 'core_0000'
-    #bb_lvl_2 = bb_lvl_2[core]['exp_num']
+    bb_lvl_2 = bb_lvl_2[core]['exp_num']
     
-    #assert bb_lvl_2['w_keff'] == 0
-    #assert bb_lvl_2['w_void'] == 0
-    #assert bb_lvl_2['w_dopp'] == 0
-    #assert bb_lvl_2['w_pu'] == 0
-
-    ka_rp.set_attr(weights=[1,1,1,1])
-    ka_rp.read_dakota_results()
-    ka_rp.write_to_bb()
-    ka_bb_lvl2.read_bb_lvl_2()
-    ka_bb_lvl2.write_to_bb()
-
-    #assert 'core_1111' not in bb.get_attr('lvl_2')
-    #assert 'core_0000' in bb.get_attr('lvl_2')    
+    assert bb_lvl_2['w_keff'] == 0.6
+    assert bb_lvl_2['w_void'] == 0.15
+    assert bb_lvl_2['w_dopp'] == 0.15
+    assert bb_lvl_2['w_pu'] == 0.1
     
     ns.shutdown()
     time.sleep(0.1)

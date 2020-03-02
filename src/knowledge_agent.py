@@ -119,7 +119,6 @@ class KaBbLvl2(KaBase):
 
     def handler_trigger_publish(self, message):
         """Inform the BB of it's trigger value."""
-        self.log_info((self.bb.get_attr('trigger_event_num') % 10 == 0, self.bb.get_attr('trigger_event_num') != 0))
         if self.bb.get_attr('trigger_event_num') % 10 == 0 and self.bb.get_attr('trigger_event_num') != 0:
             self.trigger_val = 2
         else:
@@ -231,7 +230,9 @@ class KaReactorPhysics_Proxy(KaReactorPhysics):
         #For proxy app
         self.weights = None
 
-    def handler_execute(self, message):
+    def handler_execute(self, sm):
+        """Handler for when blackboard sends an execution signal to reactor physics knowledge agent. Requires agent to run Dakota, read the results, and write the results to the blackboard."""
+        self.surrogate_models = sm
         self.log_info('Executing agent {}'.format(self.name))
         self.calc_weights()
         try:
@@ -248,10 +249,11 @@ class KaReactorPhysics_Proxy(KaReactorPhysics):
         if self.surrogate_models:
             self.info_debug('Calculating weights via surrogate model')
         else:
-            self.weights = [round(10*random.random(),4) for i in range(len(self.objectives))]
+            self.weights = [round(random.random(),2) for i in range(len(self.objectives))]
             self.log_debug('Calculated weights via random assignment, weights are {}'.format(self.weights))
     
     def run_dakota_proxy(self):
+        """Run Dakota using the SFR optimzation scheme"""
         self.log_debug('Running Dakota for SFR Optimization')
         """Run Dakota using a single objective genetic algorithm, with the given weights"""
         run_sfr_opt_mabs.run_dakota(self.weights, self.design_variables, self.objectives, self.function_evals)
