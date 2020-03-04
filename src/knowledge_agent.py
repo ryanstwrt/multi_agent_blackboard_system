@@ -112,7 +112,10 @@ class KaBbLvl2(KaBase):
             self.send(self.writer_alias, self.name)
             write = self.recv(self.writer_alias)
         else:
-            self.bb.add_abstract_lvl_2(self.best_core, self.best_weights, True)
+            if self.best_core != None:
+                self.bb.add_abstract_lvl_2(self.best_core, self.best_weights, True)
+            else:
+                self.bb.finish_writing_to_bb()
     
     def read_bb_lvl_2(self):
         pass
@@ -148,7 +151,15 @@ class KaBbLvl2_Proxy(KaBbLvl2):
         best_core = None
         for k,v in lvl_3.items():
             ind_err = self.get_percent_errors(k, v['reactor_parameters'])
-            tot_err = sum(ind_err.values())
+            tot_err = round(sum(ind_err.values()),2)
+            self.log_debug(k)
+            self.log_debug('Height: {}, smear: {}'.format(round(v['reactor_parameters']['height'][k],2),
+                                                         round(v['reactor_parameters']['smear'][k],2)))
+            self.log_debug('keff: {}, void: {}, doppler: {}, pu: {}'.format(round(v['reactor_parameters']['keff'][k],5),
+                                                                           round(v['reactor_parameters']['void'][k],2),
+                                                                           round(v['reactor_parameters']['Doppler'][k],5),
+                                                                           round(v['reactor_parameters']['pu_content'][k],4)))
+            self.log_info('Core: {}, Solutions Errors: {}, Total Error: {}'.format(k, ind_err, tot_err))
             if tot_err < self.err and tot_err < self.desired_error:
                 self.err = tot_err
                 self.ind_err = ind_err
@@ -156,14 +167,13 @@ class KaBbLvl2_Proxy(KaBbLvl2):
                                      'w_void': v['reactor_parameters']['w_void'][k],
                                      'w_dopp': v['reactor_parameters']['w_dopp'][k],
                                      'w_pu':   v['reactor_parameters']['w_pu'][k]}
-                best_core = k
-        self.best_core = best_core
+                self.best_core = k
 
     def get_percent_errors(self, core, rx_params):
         """Return the percent error for each objective function"""
         ind_err = {}
         for k,v in self.desired_results.items():
-            ind_err[k] = abs((v - rx_params[k][core])/v)
+            ind_err[k] = round(abs((v - rx_params[k][core])/v),2)
         return ind_err
 
 class KaReactorPhysics(KaBase):
@@ -189,6 +199,7 @@ class KaReactorPhysics(KaBase):
         self.xs_set = None
         self.rx_parameters = None
         self.surrogate_models = None
+
 
     def write_to_bb(self):
         """Write to abstract level three of the blackboard when the blackboard is not being written to.
@@ -229,6 +240,7 @@ class KaReactorPhysics_Proxy(KaReactorPhysics):
         
         #For proxy app
         self.weights = None
+        self.desired_results = {'keff': 1.0303, 'void': -110.023, 'Doppler': -0.6926, 'pu_content': 0.5475}
 
     def handler_execute(self, sm):
         """Handler for when blackboard sends an execution signal to reactor physics knowledge agent. Requires agent to run Dakota, read the results, and write the results to the blackboard."""
@@ -247,10 +259,21 @@ class KaReactorPhysics_Proxy(KaReactorPhysics):
     def calc_weights(self):
         """Calculate the weights for the next Dakota run"""
         if self.surrogate_models:
-            self.info_debug('Calculating weights via surrogate model')
+            self.log_debug('Calculating weights via surrogate model')
+            model = 'lr'
+            des = [[x for x in self.desired_results.values()]]
+            test_weights = self.surrogate_models.predict(model, des)
+            test_weights = [abs(round(x,2)) for x in test_weights[0]]
+            self.log_info('Guessed Weights: {}'.format(test_weights))
+            if sum(test_weights) < 4:
+                self.weights = test_weights
+            else:
+                self.weights = [round(random.random(),2) for i in range(len(self.objectives))]
+                self.log_info('Test weights too high ({}), using random weights instead ({})'.format(test_weights, self.weights))
         else:
             self.weights = [round(random.random(),2) for i in range(len(self.objectives))]
             self.log_debug('Calculated weights via random assignment, weights are {}'.format(self.weights))
+
     
     def run_dakota_proxy(self):
         """Run Dakota using the SFR optimzation scheme"""

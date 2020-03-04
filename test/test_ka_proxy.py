@@ -29,12 +29,12 @@ def test_rp_proxy():
     bb_lvl_2 = bb.get_attr('lvl_3')
     core = 'core_0000'
     bb_lvl_2 = bb_lvl_2[core]['reactor_parameters']
-    assert bb_lvl_2['height'][core] == 50.85
-    assert bb_lvl_2['smear'][core] == 69.10
-    assert bb_lvl_2['pu_content'][core] == 0.3050
-    assert round(bb_lvl_2['keff'][core],4) == 0.9786
-    assert round(bb_lvl_2['void'][core],2) == -132.31
-    assert round(bb_lvl_2['Doppler'][core],4) == -0.637
+    assert bb_lvl_2['height'][core] == 57.95
+    assert bb_lvl_2['smear'][core] == 54.00
+    assert bb_lvl_2['pu_content'][core] == 0.0575
+    assert round(bb_lvl_2['keff'][core],4) == -539.3914
+    assert round(bb_lvl_2['void'][core],2) == -198.81
+    assert round(bb_lvl_2['Doppler'][core],4) == -0.981
     assert bb_lvl_2['w_keff'][core] == 0
     assert bb_lvl_2['w_void'][core] == 0
     assert bb_lvl_2['w_dopp'][core] == 0
@@ -70,9 +70,9 @@ def test_add_second_entry():
     assert bb_lvl_3['height'][core] == 57.95
     assert bb_lvl_3['smear'][core] == 54.00
     assert bb_lvl_3['pu_content'][core] == 0.05750
-    assert round(bb_lvl_3['keff'][core],4) == 0.8288
-    assert round(bb_lvl_3['void'][core],2) == -185.5
-    assert round(bb_lvl_3['Doppler'][core],4) == -0.9269
+    assert round(bb_lvl_3['keff'][core],4) == -539.3914
+    assert round(bb_lvl_3['void'][core],2) == -198.81
+    assert round(bb_lvl_3['Doppler'][core],4) == -0.981
     assert bb_lvl_3['w_keff'][core] == 1
     assert bb_lvl_3['w_void'][core] == 1
     assert bb_lvl_3['w_dopp'][core] == 1

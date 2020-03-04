@@ -3,6 +3,8 @@ from osbrain import Agent
 import pandas as pd
 import train_surrogate_models as tm
 import time
+import h5py
+import os
 
 class Blackboard(Agent):
     """
@@ -36,6 +38,7 @@ class Blackboard(Agent):
         self.agent_addrs = {}
         self.agent_writing = False
         self.new_entry = False
+        self.blackboard_name = None
         
         self.lvl_1 = {}
         self.lvl_2 = {}
@@ -48,7 +51,9 @@ class Blackboard(Agent):
         self.trigger_events = {}
         self.pub_trigger_alias = 'trigger'
         self.pub_trigger_addr = self.bind('PUB', alias=self.pub_trigger_alias)
-
+        
+        self.initialize_h5_file()
+        
     def add_abstract_lvl_1(self, name, exp_nums, validated=False, pareto=False):
         "Add an entry for abstract level 1"
         self.lvl_1[name] = {'exp_num': exp_nums, 'validated': validated, 'pareto': pareto}
@@ -118,7 +123,7 @@ class Blackboard(Agent):
         return (alias_name, execute_addr)
 
     def send_execute(self):
-        self.log_info('Selecting agent {} (trigger value: {}) to execute'.format(self.ka_to_execute[0], self.ka_to_execute[1]))
+        self.log_info('Selecting agent {} (trigger value: {}) to execute (Trigger Event: {})'.format(self.ka_to_execute[0], self.ka_to_execute[1], self.trigger_event_num))
         if 'rp' in self.ka_to_execute[0]:
             self.send('execute_{}'.format(self.ka_to_execute[0]), self.trained_models)
         else:
@@ -175,7 +180,7 @@ class Blackboard(Agent):
         sm.update_model(model)
 #        sm.optimize_model(model)
         self.trained_models = sm
-        self.log_debug('Trained SM: {} wtih MSE: {}'.format(model, sm.models[model]['mse_score']))
+        self.log_info('Trained SM: {} wtih MSE: {}'.format(model, sm.models[model]['mse_score']))
         self.log_info('BB finished building surrogate models')
     
     def controller(self):
@@ -187,3 +192,36 @@ class Blackboard(Agent):
         for k,v in self.trigger_events[self.trigger_event_num].items():
             if v > self.ka_to_execute[1]:
                 self.ka_to_execute = (k,v)
+
+
+    def initialize_h5_file(self):
+        """Initilize and begin filling the H5 file"""
+        if not os.path.isfile('{}_archive.h5'.format(self.name)):
+            h5 = h5py.File('{}_archive.h5'.format(self.name), 'w')
+            for level in self.abstract_levels.keys():
+                h5.create_group(level)
+            h5.close()
+            return
+
+                
+    def write_to_h5(self):
+        """BB will convert data from abstract to H5 file.
+        
+        Root directory will have four sub dicrectories, one for each abstract level.
+        Each abstract level will then have a number of subdirectories, bsed on what results are written to them.
+        Each abstract is exampled below
+        - Lvl_1
+          - exp_num
+          - validated
+          - pareto
+        - Lvl_2
+          - exp_num
+          - valid_core
+        - Lvl_3
+          - core_000
+            - rx_parameters
+            - xs_set
+        """
+        pass
+        
+        

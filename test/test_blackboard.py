@@ -5,6 +5,8 @@ import pandas as pd
 import blackboard
 import knowledge_agent as ka
 import time
+import os
+import h5py
     
 def test_blackboard_init_agent():
     ns = run_nameserver()
@@ -18,10 +20,18 @@ def test_blackboard_init_agent():
     assert bb.get_attr('trigger_event_num') == 0
     assert bb.get_attr('trigger_events') == {}
     assert bb.get_attr('pub_trigger_alias') == 'trigger'
+        
+    assert os.path.isfile('blackboard_archive.h5') == True
+    bb_archive = h5py.File('blackboard_archive.h5', 'r+')
     
+    levels = ['level 1', 'level 2', 'level 3', 'level 4']
+    for lvl, bb in zip(levels, bb_archive.keys()):
+        assert lvl == bb
+    os.remove('blackboard_archive.h5')
+
     ns.shutdown()
     time.sleep(0.1)
-    
+
 def test_add_abstract_lvl_1():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
