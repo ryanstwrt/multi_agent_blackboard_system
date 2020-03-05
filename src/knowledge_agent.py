@@ -140,6 +140,17 @@ class KaBbLvl2_Proxy(KaBbLvl2):
         self.best_core = None
         self.ind_err = {}
 
+    def handler_trigger_publish(self, message):
+        """Inform the BB of it's trigger value, determined if there is a value that should be transfered to Level 2"""
+        self.read_bb_lvl_2()
+        if self.best_core:
+            self.trigger_val = 10
+        else:
+            self.trigger_val = 0
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self.trigger_val))
+        self.send(self.trigger_response_alias, (self.name, self.trigger_val)) 
+        
+        
     def handler_execute(self, message):
         self.log_info('Executing agent {}'.format(self.name))
         self.read_bb_lvl_2()
@@ -159,7 +170,7 @@ class KaBbLvl2_Proxy(KaBbLvl2):
                                                                            round(v['reactor_parameters']['void'][k],2),
                                                                            round(v['reactor_parameters']['Doppler'][k],5),
                                                                            round(v['reactor_parameters']['pu_content'][k],4)))
-            self.log_info('Core: {}, Solutions Errors: {}, Total Error: {}'.format(k, ind_err, tot_err))
+            self.log_debug('Core: {}, Solutions Errors: {}, Total Error: {}'.format(k, ind_err, tot_err))
             if tot_err < self.err and tot_err < self.desired_error:
                 self.err = tot_err
                 self.ind_err = ind_err
@@ -173,7 +184,7 @@ class KaBbLvl2_Proxy(KaBbLvl2):
         """Return the percent error for each objective function"""
         ind_err = {}
         for k,v in self.desired_results.items():
-            ind_err[k] = round(abs((v - rx_params[k][core])/v),2)
+            ind_err[k] = round(abs((v - rx_params[k][core])/v),4)
         return ind_err
 
 class KaReactorPhysics(KaBase):

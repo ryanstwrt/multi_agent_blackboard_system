@@ -5,6 +5,8 @@ import train_surrogate_models as tm
 import time
 import h5py
 import os
+import numpy as np
+import csv
 
 class Blackboard(Agent):
     """
@@ -180,9 +182,23 @@ class Blackboard(Agent):
         sm.update_model(model)
 #        sm.optimize_model(model)
         self.trained_models = sm
+        self.write_to_csv()
         self.log_info('Trained SM: {} wtih MSE: {}'.format(model, sm.models[model]['mse_score']))
-        self.log_info('BB finished building surrogate models')
-    
+        self.log_debug('BB finished building surrogate models')
+
+    def write_to_csv(self):
+        """Write surrogate model MSE to blackboard"""
+        if not os.path.isfile('sm.csv'):    
+            with open('sm.csv', 'w+', newline='') as file:
+                writer = csv.writer(file, delimiter=',')
+                writer.writerow(['trigger number', 'MSE Score'])
+                writer.writerow([self.trigger_event_num, self.trained_models.models['lr']['mse_score']])
+        else:
+            with open('sm.csv', 'a') as file:
+                writer = csv.writer(file, delimiter=',')
+                writer.writerow([self.trigger_event_num, self.trained_models.models['lr']['mse_score']])
+            
+        
     def controller(self):
         """
         Controls the which knowledge agent will be excuted for each trigger event.
@@ -193,6 +209,15 @@ class Blackboard(Agent):
             if v > self.ka_to_execute[1]:
                 self.ka_to_execute = (k,v)
 
+    def wait_for_ka(self):
+        """Function to performe while waiting for KAs to write to the blackboard."""
+        if self.new_entry == False:
+            self.write_to_h5()
+        if len(self.lvl_3.keys()) > 10:
+            self.build_surrogate_models_proxy()
+        while not self.new_entry:
+            time.sleep(1)
+        self.new_entry = False
 
     def initialize_h5_file(self):
         """Initilize and begin filling the H5 file"""
@@ -201,8 +226,6 @@ class Blackboard(Agent):
             for level in self.abstract_levels.keys():
                 h5.create_group(level)
             h5.close()
-            return
-
                 
     def write_to_h5(self):
         """BB will convert data from abstract to H5 file.
@@ -211,17 +234,37 @@ class Blackboard(Agent):
         Each abstract level will then have a number of subdirectories, bsed on what results are written to them.
         Each abstract is exampled below
         - Lvl_1
-          - exp_num
-          - validated
-          - pareto
+          - core_name
+            - exp_num
+            - validated
+            - pareto
         - Lvl_2
-          - exp_num
-          - valid_core
+          - core_name
+            - exp_num
+            - valid_core
         - Lvl_3
-          - core_000
+          - core_name
             - rx_parameters
             - xs_set
         """
-        pass
-        
-        
+        self.log_info("Writing blackboard to archive")
+        h5 = h5py.File('{}_archive.h5'.format(self.name), 'r+')
+        for level, entry in self.abstract_levels.items():
+            group_level = h5[level]
+            for name, data in entry.items():
+                if name in group_level.keys():
+                    pass
+                else:
+                    group_level.create_group(name)
+                    for data_name, data_val in data.items():
+                        if type(data_val) == str:
+                            group_level[name][data_name] = [np.string_(data_val)]
+                        elif type(data_val) == bool:
+                            group_level[name][data_name] = [data_val]
+                        elif type(data_val) == tuple:
+                            group_level[name][data_name] = data_val
+                        else:
+                            group_level[name].create_group(data_name)
+                            for k,v in data_val.items():
+                                group_level[name][data_name][k] = v
+        h5.close()

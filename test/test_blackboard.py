@@ -32,6 +32,82 @@ def test_blackboard_init_agent():
     ns.shutdown()
     time.sleep(0.1)
 
+def test_write_to_h5():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    
+    raw_data = {'design_1':{'exp_a': 0, 'exp_b': 0, 'exp_c': 0, 'k-eff': 1.0}}
+    data = pd.DataFrame.from_dict(raw_data, orient='index')
+    #Test writing to the H5 file once
+    bb.add_abstract_lvl_1('design_1', (0,0,1), True, True)
+    bb.add_abstract_lvl_2('design_1', (0,0,1), False)
+    bb.add_abstract_lvl_3('design_1', data, 'xs_set_1')
+    bb.write_to_h5()
+    
+    bb_archive = h5py.File('blackboard_archive.h5', 'r+')
+
+    levels = ['level 1', 'level 2', 'level 3', 'level 4']
+    for lvl, bb_lvl in zip(levels, bb_archive.keys()):
+        assert lvl == bb_lvl
+    lvl1 = bb_archive['level 1']
+    lvl2 = bb_archive['level 2']
+    lvl3 = bb_archive['level 3']
+
+    assert lvl1['design_1']['exp_num'][0] == 0
+    assert lvl1['design_1']['exp_num'][1] == 0
+    assert lvl1['design_1']['exp_num'][2] == 1
+    assert lvl1['design_1']['validated'][0] == True
+    assert lvl1['design_1']['pareto'][0] == True
+
+    assert lvl2['design_1']['exp_num'][0] == 0
+    assert lvl2['design_1']['exp_num'][1] == 0
+    assert lvl2['design_1']['exp_num'][2] == 1
+    assert lvl2['design_1']['valid_core'][0] == False
+
+    for k,v in raw_data['design_1'].items():
+        lvl3['design_1']['reactor_parameters'][k][0] == v
+    assert lvl3['design_1']['xs_set'][0] == b'xs_set_1'
+ 
+    bb_archive.close()
+
+    #Test writing to the H5 file after it has already been written to
+    raw_data = {'design_2':{'exp_a': 1, 'exp_b': 1, 'exp_c': 2, 'k-eff': 1.03}}
+    data = pd.DataFrame.from_dict(raw_data, orient='index')    
+    bb.add_abstract_lvl_1('design_2', (1,1,2), False, True)
+    bb.add_abstract_lvl_2('design_2', (1,1,2), False)
+    bb.add_abstract_lvl_3('design_2', data, 'xs_set_2')
+    bb.write_to_h5()
+    
+    bb_archive = h5py.File('blackboard_archive.h5', 'r+')
+    
+    levels = ['level 1', 'level 2', 'level 3', 'level 4']
+    for lvl, bb_lvl in zip(levels, bb_archive.keys()):
+        assert lvl == bb_lvl
+    lvl1 = bb_archive['level 1']
+    lvl2 = bb_archive['level 2']
+    lvl3 = bb_archive['level 3']
+
+    assert lvl1['design_2']['exp_num'][0] == 1
+    assert lvl1['design_2']['exp_num'][1] == 1
+    assert lvl1['design_2']['exp_num'][2] == 2
+    assert lvl1['design_2']['validated'][0] == False
+    assert lvl1['design_2']['pareto'][0] == True
+
+    assert lvl2['design_2']['exp_num'][0] == 1
+    assert lvl2['design_2']['exp_num'][1] == 1
+    assert lvl2['design_2']['exp_num'][2] == 2
+    assert lvl2['design_2']['valid_core'][0] == False
+
+    for k,v in raw_data['design_2'].items():
+        lvl3['design_2']['reactor_parameters'][k][0] == v
+    assert lvl3['design_2']['xs_set'][0] == b'xs_set_2'
+    
+    bb_archive.close()
+    os.remove('blackboard_archive.h5')
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
 def test_add_abstract_lvl_1():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
@@ -249,6 +325,7 @@ def test_controller():
     bb.controller()
     assert bb.get_attr('trigger_events') == {0: {}, 1: {'ka_rp': 1, 'ka_rp1': 2}}
     assert bb.get_attr('ka_to_execute') == ('ka_rp1', 2)
-    
+    os.remove('blackboard_archive.h5')
+
     ns.shutdown()
     time.sleep(0.1)
