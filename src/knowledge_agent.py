@@ -6,6 +6,9 @@ import h5py
 import time
 import math
 import random
+import os
+import csv
+from collections import OrderedDict
 
 class KaBase(Agent):
     """
@@ -47,6 +50,12 @@ class KaBase(Agent):
         self.trigger_publish_alias = None
         self.trigger_publish_addr = None
         self.trigger_val = 0
+        
+        try:
+            if self.debug:
+                self._DEBUG = True
+        except AttributeError:
+            pass
         
     def add_blackboard(self, blackboard):
         """Add a blackboard to the knowledge agent"""
@@ -129,8 +138,8 @@ class KaBbLvl2(KaBase):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self.trigger_val))
         self.send(self.trigger_response_alias, (self.name, self.trigger_val)) 
 
-class KaBbLvl2_Proxy(KaBbLvl2):
-    """Proxy for KA to examine weights for a given blackboard entry."""
+class KaBbLvl2_verify(KaBbLvl2):
+    """verify for KA to examine weights for a given blackboard entry."""
 
     def on_init(self):
         super().on_init()
@@ -153,16 +162,16 @@ class KaBbLvl2_Proxy(KaBbLvl2):
         
     def handler_execute(self, message):
         self.log_info('Executing agent {}'.format(self.name))
-        self.read_bb_lvl_2()
+        self.read_bb_lvl_2(ideal=True)
         self.write_to_bb()
 
-    def read_bb_lvl_2(self):
+    def read_bb_lvl_2(self, ideal=False):
         """Read the information from the blackboard and determine if a new solution is better thatn the previous"""
         lvl_3 = self.bb.get_attr('lvl_3')
         best_core = None
         for k,v in lvl_3.items():
             ind_err = self.get_percent_errors(k, v['reactor_parameters'])
-            tot_err = round(sum(ind_err.values()),2)
+            tot_err = round(sum(ind_err),3)
             self.log_debug(k)
             self.log_debug('Height: {}, smear: {}'.format(round(v['reactor_parameters']['height'][k],2),
                                                          round(v['reactor_parameters']['smear'][k],2)))
@@ -170,7 +179,9 @@ class KaBbLvl2_Proxy(KaBbLvl2):
                                                                            round(v['reactor_parameters']['void'][k],2),
                                                                            round(v['reactor_parameters']['Doppler'][k],5),
                                                                            round(v['reactor_parameters']['pu_content'][k],4)))
-            self.log_debug('Core: {}, Solutions Errors: {}, Total Error: {}'.format(k, ind_err, tot_err))
+            self.log_info('Core: {}, Solutions Errors: {}, Total Error: {}'.format(k, ind_err, tot_err))
+            if ideal:
+                self.write_to_csv(k, ind_err, tot_err, v['reactor_parameters'])
             if tot_err < self.err and tot_err < self.desired_error:
                 self.err = tot_err
                 self.ind_err = ind_err
@@ -182,10 +193,32 @@ class KaBbLvl2_Proxy(KaBbLvl2):
 
     def get_percent_errors(self, core, rx_params):
         """Return the percent error for each objective function"""
-        ind_err = {}
-        for k,v in self.desired_results.items():
-            ind_err[k] = round(abs((v - rx_params[k][core])/v),4)
-        return ind_err
+        pcm_core = (rx_params['keff'][core]-1.0)/(rx_params['keff'][core])*10E5
+        pcm_given = (self.desired_results['keff']-1.0)/self.desired_results['keff']*10E5
+        keff_error = abs(round((pcm_core-pcm_given)/pcm_given,4))
+        void_error = abs(round((rx_params['void'][core]-self.desired_results['void'])/self.desired_results['void'],4))
+        dopp_error = abs(round((rx_params['Doppler'][core]-self.desired_results['Doppler'])/self.desired_results['Doppler'],4))
+        pu_error = abs(round((rx_params['pu_content'][core]-self.desired_results['pu_content'])/self.desired_results['pu_content'],4))
+
+        return [keff_error, void_error, dopp_error, pu_error]
+
+    def write_to_csv(self, core, ind_err, tot_err, rx_params):
+        """Write Error to CSV"""
+        if not os.path.isfile('core_error.csv'):    
+            with open('core_error.csv', 'w+', newline='') as file:
+                writer = csv.writer(file, delimiter=',')
+                writer.writerow(['core_name', 'total', 'keff', 'void', 'doppler', 'pu', 'keff', 'void', 'doppler', 'pu'])
+                writer.writerow([core, tot_err, ind_err[0], ind_err[1], ind_err[2], ind_err[3], round(rx_params['keff'][core],5),
+                                                                           round(rx_params['void'][core],2),
+                                                                           round(rx_params['Doppler'][core],5),
+                                                                           round(rx_params['pu_content'][core],4)])
+        else:
+            with open('core_error.csv', 'a') as file:
+                writer = csv.writer(file, delimiter=',')
+                writer.writerow([core, tot_err, ind_err[0], ind_err[1], ind_err[2], ind_err[3], round(rx_params['keff'][core],5),
+                                                                           round(rx_params['void'][core],2),
+                                                                           round(rx_params['Doppler'][core],5),
+                                                                           round(rx_params['pu_content'][core],4)])
 
 class KaReactorPhysics(KaBase):
     """
@@ -225,7 +258,7 @@ class KaReactorPhysics(KaBase):
             self.log_debug('Writing to blackboard')
             self.bb.add_abstract_lvl_3(self.core_name, self.rx_parameters, self.xs_set)
 
-class KaReactorPhysics_Proxy(KaReactorPhysics):
+class KaReactorPhysics_verify(KaReactorPhysics):
     """
     Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
     
@@ -249,9 +282,9 @@ class KaReactorPhysics_Proxy(KaReactorPhysics):
         self.results_path = None
         self.function_evals = 500
         
-        #For proxy app
+        #For verify app
         self.weights = None
-        self.desired_results = {'keff': 1.0303, 'void': -110.023, 'Doppler': -0.6926, 'pu_content': 0.5475}
+        self.desired_results = OrderedDict({'keff': 1.0303, 'void': -110.023, 'Doppler': -0.6926, 'pu_content': 0.5475})
 
     def handler_execute(self, sm):
         """Handler for when blackboard sends an execution signal to reactor physics knowledge agent. Requires agent to run Dakota, read the results, and write the results to the blackboard."""
@@ -260,7 +293,7 @@ class KaReactorPhysics_Proxy(KaReactorPhysics):
         self.calc_weights()
         try:
             assert len(self.weights) == len(self.objectives)
-            self.run_dakota_proxy()
+            self.run_dakota_verify()
             self.read_dakota_results()
             self.write_to_bb()
             
@@ -271,11 +304,11 @@ class KaReactorPhysics_Proxy(KaReactorPhysics):
         """Calculate the weights for the next Dakota run"""
         if self.surrogate_models:
             self.log_debug('Calculating weights via surrogate model')
-            model = 'lr'
+            model = 'ann'
             des = [[x for x in self.desired_results.values()]]
             test_weights = self.surrogate_models.predict(model, des)
             test_weights = [abs(round(x,2)) for x in test_weights[0]]
-            self.log_info('Guessed Weights: {}'.format(test_weights))
+            self.log_debug('Guessed Weights: {}'.format(test_weights))
             if sum(test_weights) < 4:
                 self.weights = test_weights
             else:
@@ -286,7 +319,7 @@ class KaReactorPhysics_Proxy(KaReactorPhysics):
             self.log_debug('Calculated weights via random assignment, weights are {}'.format(self.weights))
 
     
-    def run_dakota_proxy(self):
+    def run_dakota_verify(self):
         """Run Dakota using the SFR optimzation scheme"""
         self.log_debug('Running Dakota for SFR Optimization')
         """Run Dakota using a single objective genetic algorithm, with the given weights"""

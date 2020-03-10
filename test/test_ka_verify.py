@@ -7,10 +7,10 @@ import pandas as pd
 import time
 import os
 
-def test_rp_proxy():
+def test_rp_verify():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_Proxy)
+    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_verify)
     ka_rp.add_blackboard(bb)
     ka_rp.connect_writer()
     ka_rp.objectives = ['keff', 'void_coeff', 'doppler_coeff', 'pu_content']
@@ -21,7 +21,7 @@ def test_rp_proxy():
     assert ka_rp.get_attr('results_path') == '/Users/ryanstewart/projects/Dakota_Interface/GA/mabs_results/'
     
     ka_rp.set_attr(weights=[0,0,0,0])
-    ka_rp.run_dakota_proxy()
+    ka_rp.run_dakota_verify()
     ka_rp.read_dakota_results()
     ka_rp.write_to_bb()
 
@@ -47,7 +47,7 @@ def test_rp_proxy():
 def test_add_second_entry():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_Proxy)
+    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_verify)
     ka_rp.add_blackboard(bb)
     ka_rp.connect_writer()
     ka_rp.objectives = ['keff', 'void_coeff', 'doppler_coeff', 'pu_content']
@@ -56,12 +56,12 @@ def test_add_second_entry():
     ka_rp.results_path = '/Users/ryanstewart/projects/Dakota_Interface/GA/mabs_results/'
 
     ka_rp.set_attr(weights=[0,0,0,0])
-    ka_rp.run_dakota_proxy()
+    ka_rp.run_dakota_verify()
     ka_rp.read_dakota_results()
     ka_rp.write_to_bb()
     
     ka_rp.set_attr(weights=[1,1,1,1])
-    ka_rp.run_dakota_proxy()
+    ka_rp.run_dakota_verify()
     ka_rp.read_dakota_results()
     ka_rp.write_to_bb()
     bb_lvl_3 = bb.get_attr('lvl_3')
@@ -81,10 +81,10 @@ def test_add_second_entry():
     ns.shutdown()
     time.sleep(0.1)
 
-def test_bb_lvl2_proxy():
+def test_bb_lvl2_verify():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_bb_lvl2 = run_agent(name='ka_bb_lvl2', base=ka.KaBbLvl2_Proxy)
+    ka_bb_lvl2 = run_agent(name='ka_bb_lvl2', base=ka.KaBbLvl2_verify)
     ka_bb_lvl2.add_blackboard(bb)
     ka_bb_lvl2.connect_writer()    
 
@@ -136,9 +136,9 @@ def connect_agent(agent,bb):
 def test_execute():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_rp0 = run_agent(name='ka_rp0', base=ka.KaReactorPhysics_Proxy)
-    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_Proxy)
-    ka_rp1 = run_agent(name='ka_rp1', base=ka.KaReactorPhysics_Proxy)
+    ka_rp0 = run_agent(name='ka_rp0', base=ka.KaReactorPhysics_verify)
+    ka_rp = run_agent(name='ka_rp', base=ka.KaReactorPhysics_verify)
+    ka_rp1 = run_agent(name='ka_rp1', base=ka.KaReactorPhysics_verify)
 
     connect_agent(ka_rp0, bb)
     connect_agent(ka_rp, bb)

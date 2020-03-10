@@ -40,8 +40,14 @@ class Blackboard(Agent):
         self.agent_addrs = {}
         self.agent_writing = False
         self.new_entry = False
-        self.blackboard_name = None
+        self.blackboard_name = None            
         
+        try:
+            if self.debug:
+                self._DEBUG = True
+        except AttributeError:
+            pass
+            
         self.lvl_1 = {}
         self.lvl_2 = {}
         self.lvl_3 = {}
@@ -162,9 +168,9 @@ class Blackboard(Agent):
         for k,v in updated_params.items():
             self.lvl_4[name][k] = v
         
-    def build_surrogate_models_proxy(self):
+    def build_surrogate_models_verify(self):
         """
-        Proxy function for building surrogate models.
+        verify function for building surrogate models.
         
         Currently surrogate models are built off of H5 database of SFR core optimization. 
         """
@@ -178,9 +184,9 @@ class Blackboard(Agent):
             des.append([base['w_keff'][k],base['w_void'][k],base['w_dopp'][k],base['w_pu'][k]])
             obj.append([base['keff'][k],base['void'][k],base['Doppler'][k],base['pu_content'][k]])
         sm.update_database(obj, des)
-        model = 'lr'
+        model = 'ann'
         sm.update_model(model)
-#        sm.optimize_model(model)
+        sm.optimize_model(model)
         self.trained_models = sm
         self.write_to_csv()
         self.log_info('Trained SM: {} wtih MSE: {}'.format(model, sm.models[model]['mse_score']))
@@ -192,11 +198,11 @@ class Blackboard(Agent):
             with open('sm.csv', 'w+', newline='') as file:
                 writer = csv.writer(file, delimiter=',')
                 writer.writerow(['trigger number', 'MSE Score'])
-                writer.writerow([self.trigger_event_num, self.trained_models.models['lr']['mse_score']])
+                writer.writerow([self.trigger_event_num, self.trained_models.models['ann']['mse_score']])
         else:
             with open('sm.csv', 'a') as file:
                 writer = csv.writer(file, delimiter=',')
-                writer.writerow([self.trigger_event_num, self.trained_models.models['lr']['mse_score']])
+                writer.writerow([self.trigger_event_num, self.trained_models.models['ann']['mse_score']])
             
         
     def controller(self):
@@ -214,7 +220,7 @@ class Blackboard(Agent):
         if self.new_entry == False:
             self.write_to_h5()
         if len(self.lvl_3.keys()) > 10:
-            self.build_surrogate_models_proxy()
+            self.build_surrogate_models_verify()
         while not self.new_entry:
             time.sleep(1)
         self.new_entry = False
