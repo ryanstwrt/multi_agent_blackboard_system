@@ -2,12 +2,16 @@ import osbrain
 from osbrain import Agent
 import run_sfr_opt_mabs
 import pandas as pd
+import numpy as np
 import h5py
 import time
 import math
 import random
 import os
 import csv
+import scipy.interpolate
+import db_reshape as dbr
+
 from collections import OrderedDict
 
 class KaBase(Agent):
@@ -122,7 +126,7 @@ class KaBbLvl2(KaBase):
             write = self.recv(self.writer_alias)
         else:
             if self.best_core != None:
-                self.bb.add_abstract_lvl_2(self.best_core, self.best_weights, True)
+                self.bb.add_abstract_lvl_2(self.best_core, self.best_params, True)
             else:
                 self.bb.finish_writing_to_bb()
     
@@ -143,11 +147,9 @@ class KaBbLvl2_verify(KaBbLvl2):
 
     def on_init(self):
         super().on_init()
-        self.desired_results = {'keff': 1.0303, 'void': -110.023, 'Doppler': -0.6926, 'pu_content': 0.5475}
-        self.best_weights = {}  
-        self.err = 100
+        self.desired_results = {'keff': (1.02, 1.07), 'void_coeff': (-150, -75), 'doppler_coeff': (-0.8,-0.6), 'pu_content': (0, 0.6)}
         self.best_core = None
-        self.ind_err = {}
+        self.best_params = {}
 
     def handler_trigger_publish(self, message):
         """Inform the BB of it's trigger value, determined if there is a value that should be transfered to Level 2"""
@@ -170,55 +172,20 @@ class KaBbLvl2_verify(KaBbLvl2):
         lvl_3 = self.bb.get_attr('lvl_3')
         best_core = None
         for k,v in lvl_3.items():
-            ind_err = self.get_percent_errors(k, v['reactor_parameters'])
-            tot_err = round(sum(ind_err),3)
-            self.log_debug(k)
-            self.log_debug('Height: {}, smear: {}'.format(round(v['reactor_parameters']['height'][k],2),
-                                                         round(v['reactor_parameters']['smear'][k],2)))
-            self.log_debug('keff: {}, void: {}, doppler: {}, pu: {}'.format(round(v['reactor_parameters']['keff'][k],5),
-                                                                           round(v['reactor_parameters']['void'][k],2),
-                                                                           round(v['reactor_parameters']['Doppler'][k],5),
-                                                                           round(v['reactor_parameters']['pu_content'][k],4)))
-            self.log_info('Core: {}, Solutions Errors: {}, Total Error: {}'.format(k, ind_err, tot_err))
-            if ideal:
-                self.write_to_csv(k, ind_err, tot_err, v['reactor_parameters'])
-            if tot_err < self.err and tot_err < self.desired_error:
-                self.err = tot_err
-                self.ind_err = ind_err
-                self.best_weights = {'w_keff': v['reactor_parameters']['w_keff'][k],
-                                     'w_void': v['reactor_parameters']['w_void'][k],
-                                     'w_dopp': v['reactor_parameters']['w_dopp'][k],
-                                     'w_pu':   v['reactor_parameters']['w_pu'][k]}
+            valid = self.determine_valid_core(k, v['reactor_parameters'])
+            if valid:
                 self.best_core = k
+                for k in self.desired_results.keys():
+                    self.best_params[k] = v['reactor_parameters'][k]
 
-    def get_percent_errors(self, core, rx_params):
-        """Return the percent error for each objective function"""
-        pcm_core = (rx_params['keff'][core]-1.0)/(rx_params['keff'][core])*10E5
-        pcm_given = (self.desired_results['keff']-1.0)/self.desired_results['keff']*10E5
-        keff_error = abs(round((pcm_core-pcm_given)/pcm_given,4))
-        void_error = abs(round((rx_params['void'][core]-self.desired_results['void'])/self.desired_results['void'],4))
-        dopp_error = abs(round((rx_params['Doppler'][core]-self.desired_results['Doppler'])/self.desired_results['Doppler'],4))
-        pu_error = abs(round((rx_params['pu_content'][core]-self.desired_results['pu_content'])/self.desired_results['pu_content'],4))
-
-        return [keff_error, void_error, dopp_error, pu_error]
-
-    def write_to_csv(self, core, ind_err, tot_err, rx_params):
-        """Write Error to CSV"""
-        if not os.path.isfile('core_error.csv'):    
-            with open('core_error.csv', 'w+', newline='') as file:
-                writer = csv.writer(file, delimiter=',')
-                writer.writerow(['core_name', 'total', 'keff', 'void', 'doppler', 'pu', 'keff', 'void', 'doppler', 'pu'])
-                writer.writerow([core, tot_err, ind_err[0], ind_err[1], ind_err[2], ind_err[3], round(rx_params['keff'][core],5),
-                                                                           round(rx_params['void'][core],2),
-                                                                           round(rx_params['Doppler'][core],5),
-                                                                           round(rx_params['pu_content'][core],4)])
-        else:
-            with open('core_error.csv', 'a') as file:
-                writer = csv.writer(file, delimiter=',')
-                writer.writerow([core, tot_err, ind_err[0], ind_err[1], ind_err[2], ind_err[3], round(rx_params['keff'][core],5),
-                                                                           round(rx_params['void'][core],2),
-                                                                           round(rx_params['Doppler'][core],5),
-                                                                           round(rx_params['pu_content'][core],4)])
+    def determine_valid_core(self, core, rx_params):
+        """Determine if the core falls in the desired results range"""
+        
+        for k, ranges in self.desired_results.items():
+            param = rx_params[k][core]
+            if param < ranges[0] or param > ranges[1]:
+                return False
+        return True
 
 class KaReactorPhysics(KaBase):
     """
@@ -277,6 +244,74 @@ class KaReactorPhysics_verify(KaReactorPhysics):
 
     def on_init(self):
         super().on_init()
+        self.design_variables = {}
+        self.objective_functions = {}
+        self.results_path = None
+        self.function_evals = 500
+        self.interpolator_dict = {}
+        
+        #For verify app
+        self.weights = None
+        self.desired_results = OrderedDict({'keff': 1.0303, 'void_coeff': -110.023, 'doppler_coeff': -0.6926})
+        self.core_param_ranges = OrderedDict({'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
+        self.create_interpolator()
+
+    def handler_execute(self, sm):
+        """Execution handler for KA-RP.
+        KA-RP determines a core design and runs a physics simulation using a surrogate model.
+        Upon completion, KA-RP sends the BB a writer message to write to the BB."""
+        self.surrogate_models = sm
+        self.log_info('Executing agent {}'.format(self.name))
+        self.determine_design_variables()
+        self.calc_core_params()
+        self.write_to_bb()
+    
+    def determine_design_variables(self, recursions=1):
+        """Determine the core design variables using either a surrogate model, or random assignment."""
+        for param, ranges in self.core_param_ranges.items():
+            self.design_variables[param] = round(random.random() * (ranges[1] - ranges[0]) + ranges[0],2)
+        self.core_name = 'core_{}'.format(self.design_variables.values())
+        self.log_info('Core design variables determined: {}'.format(self.design_variables))
+
+    def calc_core_params(self):
+        """Calculate the objective functions based on the core design variables."""
+        self.log_debug('Determining core parameters based on SM')
+        for obj_name, interpolator in self.interpolator_dict.items():
+            self.objective_functions[obj_name] = float(interpolator(tuple([x for x in self.design_variables.values()])))
+        
+        a = self.design_variables.copy()
+        a.update(self.objective_functions)
+        a = {self.core_name: a}
+        self.rx_parameters=pd.DataFrame.from_dict(a, orient='index')
+    
+    def create_interpolator(self):
+        """Build the linear interpolator for estimating between known datapoints.
+        This uses scipy's LinearNDInterpolator, where we create a unique interpolator for each objective function"""
+        design_var, objective_func = dbr.reshape_database(r'/Users/ryanstewart/projects/Dakota_Interface/sfr_db_new.h5', [x for x in self.core_param_ranges.keys()], [x for x in self.desired_results.keys()])
+        design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
+        for num, objective in enumerate(self.desired_results.keys()):
+            self.interpolator_dict[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
+    
+            
+class KaReactorPhysics_sfr_opt(KaReactorPhysics):
+    """
+    Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
+    
+    Inherets from KaBase.
+    
+    Attibutes:
+    
+      core_name        (str)             - Name of the core
+      rx_parameters    (dataframe)       - Pandas dataframe containing reactor core parameters from Mammoth
+      surrogate_models (SurrogateModels) - SurrogateModels class from surrogate_modeling, containes a set of trained surogate mdoels
+      objectives       (list)            - List of the desired objective functions to be examined
+      design_variables (list)            - List of the design variables to be used
+      results_path     (str)             - Path to the desired location for printing results
+      weight           (tuple)           - Weights for the associated objectives, these will be optimized in an attempt to find a solution which resembles physical programming
+    """
+
+    def on_init(self):
+        super().on_init()
         self.objectives = None
         self.design_variables = None
         self.results_path = None
@@ -284,10 +319,12 @@ class KaReactorPhysics_verify(KaReactorPhysics):
         
         #For verify app
         self.weights = None
-        self.desired_results = OrderedDict({'keff': 1.0303, 'void': -110.023, 'Doppler': -0.6926, 'pu_content': 0.5475})
+        self.desired_results = OrderedDict({'keff': 1.0303, 'void': -110.023, 'Doppler': -0.6926})
 
     def handler_execute(self, sm):
-        """Handler for when blackboard sends an execution signal to reactor physics knowledge agent. Requires agent to run Dakota, read the results, and write the results to the blackboard."""
+        """Execution handler for KA-RP.
+        KA-RP determines a core design and runs a physics simulation using a surrogate model.
+        Upon completion, KA-RP sends the BB a writer message to write to the BB."""
         self.surrogate_models = sm
         self.log_info('Executing agent {}'.format(self.name))
         self.calc_weights()
@@ -300,24 +337,31 @@ class KaReactorPhysics_verify(KaReactorPhysics):
         except AssertionError:
             self.log_error('Error: The number of weights ({}) does not match the number of objectives ({}). Make sure these match, as each objective must have a weight.'.format(len(self.weights), len(self.objectives)))
     
-    def calc_weights(self):
+    def calc_weights(self, recursions=1):
         """Calculate the weights for the next Dakota run"""
         if self.surrogate_models:
             self.log_debug('Calculating weights via surrogate model')
             model = 'ann'
             des = [[x for x in self.desired_results.values()]]
-            test_weights = self.surrogate_models.predict(model, des)
-            test_weights = [abs(round(x,2)) for x in test_weights[0]]
-            self.log_debug('Guessed Weights: {}'.format(test_weights))
-            if sum(test_weights) < 4:
+            test_weights = [round(x,2) for x in self.surrogate_models.predict(model, des)[0]]
+            self.log_info('Guessed Weights: {}'.format(test_weights))
+            if sum(test_weights) < 3:
                 self.weights = test_weights
             else:
                 self.weights = [round(random.random(),2) for i in range(len(self.objectives))]
-                self.log_info('Test weights too high ({}), using random weights instead ({})'.format(test_weights, self.weights))
+                self.log_info('SM weights to high ({}), using random weights instead ({})'.format(test_weights, self.weights))
         else:
             self.weights = [round(random.random(),2) for i in range(len(self.objectives))]
             self.log_debug('Calculated weights via random assignment, weights are {}'.format(self.weights))
-
+        ws_int = '{}{}{}'.format(self.weights[0], self.weights[1], self.weights[2])
+        self.core_name = 'core_{}'.format(ws_int)
+        if recursions > 9:
+            return
+        elif self.core_name in bb.get_attr('lvl3').keys():
+            recursions += 1
+            self.log_info('Weight set {} is a repeat, calculating new weights')
+            self.calc_weights(recursions=recursions)
+            
     
     def run_dakota_verify(self):
         """Run Dakota using the SFR optimzation scheme"""
@@ -329,9 +373,6 @@ class KaReactorPhysics_verify(KaReactorPhysics):
     def read_dakota_results(self):
         """Read in the results from the Dakota H5 file, and turn this into the reactor paramters dataframe."""
         self.log_debug('Reading Dakota H5 output.')
-        ws_int = '{}{}{}{}'.format(self.weights[0], self.weights[1], self.weights[2], self.weights[3])
-
-        self.core_name = 'core_{}'.format(ws_int)
         file = h5py.File('{}/soo_pareto_{}.h5'.format(self.results_path,ws_int), 'r+')
         results_dir = file['methods']['soga_{}'.format(ws_int)]['results']['execution:1']
         design_list = list(results_dir['best_parameters']['discrete_real'])
@@ -349,6 +390,87 @@ class KaReactorPhysics_verify(KaReactorPhysics):
                                            'Doppler': dopp,
                                            'w_keff': self.weights[0],
                                            'w_void': self.weights[1],
-                                           'w_dopp': self.weights[2],
-                                           'w_pu': self.weights[3]}}
+                                           'w_dopp': self.weights[2]}}
         self.rx_parameters = pd.DataFrame.from_dict(rx_params_dict, orient='index')        
+        
+class KaBbLvl2_sfr_opt(KaBbLvl2):
+    """verify for KA to examine weights for a given blackboard entry."""
+
+    def on_init(self):
+        super().on_init()
+        self.desired_results = {'keff': 1.0303, 'void': -110.023, 'Doppler': -0.6926}
+        self.best_weights = {}  
+        self.err = 100
+        self.best_core = None
+        self.ind_err = {}
+
+    def handler_trigger_publish(self, message):
+        """Inform the BB of it's trigger value, determined if there is a value that should be transfered to Level 2"""
+        self.read_bb_lvl_2()
+        if self.best_core:
+            self.trigger_val = 10
+        else:
+            self.trigger_val = 0
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self.trigger_val))
+        self.send(self.trigger_response_alias, (self.name, self.trigger_val)) 
+        
+        
+    def handler_execute(self, message):
+        self.log_info('Executing agent {}'.format(self.name))
+        self.read_bb_lvl_2(ideal=True)
+        self.write_to_bb()
+
+    def read_bb_lvl_2(self, ideal=False):
+        """Read the information from the blackboard and determine if a new solution is better thatn the previous"""
+        lvl_3 = self.bb.get_attr('lvl_3')
+        best_core = None
+        for k,v in lvl_3.items():
+            ind_err = self.get_percent_errors(k, v['reactor_parameters'])
+            abs_ind_err = [abs(x) for x in ind_err]
+            tot_err = round(sum(ind_err),3)
+            self.log_debug(k)
+            self.log_debug('Height: {}, smear: {}'.format(round(v['reactor_parameters']['height'][k],2),
+                                                         round(v['reactor_parameters']['smear'][k],2)))
+            self.log_debug('keff: {}, void: {}, doppler: {}, pu: {}'.format(round(v['reactor_parameters']['keff'][k],5),
+                                                                           round(v['reactor_parameters']['void'][k],2),
+                                                                           round(v['reactor_parameters']['Doppler'][k],5),
+                                                                           round(v['reactor_parameters']['pu_content'][k],4)))
+            self.log_info('Core: {}, Soln Errors: {}, Total Error: {}'.format(k, ind_err, tot_err))
+            if ideal:
+                self.write_to_csv(k, ind_err, tot_err, v['reactor_parameters'])
+            if abs(tot_err) < self.err and abs(tot_err) < self.desired_error:
+                self.err = tot_err
+                self.ind_err = ind_err
+                self.best_weights = {'w_keff': v['reactor_parameters']['w_keff'][k],
+                                     'w_void': v['reactor_parameters']['w_void'][k],
+                                     'w_dopp': v['reactor_parameters']['w_dopp'][k]}
+                self.best_core = k
+
+    def get_percent_errors(self, core, rx_params):
+        """Return the percent error for each objective function"""
+        pcm_core = (rx_params['keff'][core]-1.0)/(rx_params['keff'][core])*10E5
+        pcm_given = (self.desired_results['keff']-1.0)/self.desired_results['keff']*10E5
+        keff_error = round((pcm_core-pcm_given)/pcm_given,4)
+        void_error = round((rx_params['void'][core]-self.desired_results['void'])/self.desired_results['void'],4)
+        dopp_error = round((rx_params['Doppler'][core]-self.desired_results['Doppler'])/self.desired_results['Doppler'],4)
+        #pu_error = abs(round((rx_params['pu_content'][core]-self.desired_results['pu_content'])/self.desired_results['pu_content'],4))
+
+        return [keff_error, void_error, dopp_error]
+
+    def write_to_csv(self, core, ind_err, tot_err, rx_params):
+        """Write Error to CSV"""
+        if not os.path.isfile('core_error.csv'):    
+            with open('core_error.csv', 'w+', newline='') as file:
+                writer = csv.writer(file, delimiter=',')
+                writer.writerow(['core_name', 'total', 'keff', 'void', 'doppler', 'pu', 'keff', 'void', 'doppler', 'pu'])
+                writer.writerow([core, tot_err, ind_err[0], ind_err[1], ind_err[2], ind_err[3], round(rx_params['keff'][core],5),
+                                                                           round(rx_params['void'][core],2),
+                                                                           round(rx_params['Doppler'][core],5),
+                                                                           round(rx_params['pu_content'][core],4)])
+        else:
+            with open('core_error.csv', 'a') as file:
+                writer = csv.writer(file, delimiter=',')
+                writer.writerow([core, tot_err, ind_err[0], ind_err[1], ind_err[2], ind_err[3], round(rx_params['keff'][core],5),
+                                                                           round(rx_params['void'][core],2),
+                                                                           round(rx_params['Doppler'][core],5),
+                                                                           round(rx_params['pu_content'][core],4)])

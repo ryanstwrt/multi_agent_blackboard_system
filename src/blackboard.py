@@ -131,7 +131,7 @@ class Blackboard(Agent):
         return (alias_name, execute_addr)
 
     def send_execute(self):
-        self.log_info('Selecting agent {} (trigger value: {}) to execute (Trigger Event: {})'.format(self.ka_to_execute[0], self.ka_to_execute[1], self.trigger_event_num))
+        self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self.ka_to_execute[0], self.ka_to_execute[1], self.trigger_event_num))
         if 'rp' in self.ka_to_execute[0]:
             self.send('execute_{}'.format(self.ka_to_execute[0]), self.trained_models)
         else:
@@ -177,13 +177,17 @@ class Blackboard(Agent):
         self.log_info('BB building surrogate models')
         sm = tm.Surrogate_Models()
         sm.random = 0
-        des = []
+        var = []
         obj = []
         for k,v in self.lvl_3.items():
             base = v['reactor_parameters']
-            des.append([base['w_keff'][k],base['w_void'][k],base['w_dopp'][k],base['w_pu'][k]])
-            obj.append([base['keff'][k],base['void'][k],base['Doppler'][k],base['pu_content'][k]])
-        sm.update_database(obj, des)
+            var.append([base['keff'][k],base['void'][k],base['Doppler'][k]])
+            obj.append([base['w_keff'][k],base['w_void'][k],base['w_dopp'][k]])
+#            var.append([base['keff'][k],base['void'][k],base['Doppler'][k],base['pu_content'][k]])
+#            obj.append([base['w_keff'][k],base['w_void'][k],base['w_dopp'][k],base['w_pu'][k]])
+        self.log_info(var[0])
+        self.log_info(obj[0])
+        sm.update_database(var, obj)
         model = 'ann'
         sm.update_model(model)
         sm.optimize_model(model)
@@ -219,8 +223,8 @@ class Blackboard(Agent):
         """Function to performe while waiting for KAs to write to the blackboard."""
         if self.new_entry == False:
             self.write_to_h5()
-        if len(self.lvl_3.keys()) > 10:
-            self.build_surrogate_models_verify()
+        #if len(self.lvl_3.keys()) > 49:
+        #    self.build_surrogate_models_verify()
         while not self.new_entry:
             time.sleep(1)
         self.new_entry = False
@@ -273,4 +277,22 @@ class Blackboard(Agent):
                             group_level[name].create_group(data_name)
                             for k,v in data_val.items():
                                 group_level[name][data_name][k] = v
+        h5.close()
+    
+    def load_h5(self):
+        """Load an H5 archive of the blackboard. 
+        Currently, we only load the raw data (level 3) of the BB."""
+        self.log_info("Loading H5 archive: {}_archive.h5".format(self.name))
+        h5 = h5py.File('{}_archive.h5'.format(self.name), 'r')
+        for core_name, core_dict in h5['level 3'].items():
+            if not self.lvl_3.get(core_name, False):
+                self.lvl_3[core_name] = {}
+            for data_name, data_dict in core_dict.items():
+                if data_name == 'reactor_parameters':
+                    rx_params = {core_name: [x[0] for x in data_dict.values()]}
+                    colms = [x for x in data_dict.keys()]
+                    df = pd.DataFrame.from_dict(rx_params, orient='index', columns = colms)
+                    self.lvl_3[core_name][data_name] = df
+                else:
+                    self.lvl_3[core_name][data_name] = data_dict[0].decode('UTF-8')
         h5.close()
