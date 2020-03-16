@@ -7,6 +7,7 @@ import h5py
 import os
 import numpy as np
 import csv
+import sys
 
 class Blackboard(Agent):
     """
@@ -53,7 +54,9 @@ class Blackboard(Agent):
         self.lvl_3 = {}
         self.lvl_4 = {}
         self.abstract_levels = {'level 1': self.lvl_1, 'level 2': self.lvl_2, 'level 3': self.lvl_3, 'level 4': self.lvl_4}
-
+        self.abstract_lvls = {}
+        self.abstract_lvls_format = {}
+        
         self.ka_to_execute = (None, 0)
         self.trigger_event_num = 0
         self.trigger_events = {}
@@ -61,6 +64,34 @@ class Blackboard(Agent):
         self.pub_trigger_addr = self.bind('PUB', alias=self.pub_trigger_alias)
         
         self.initialize_h5_file()
+
+    def add_abstract_lvl(self, level, entry):
+        """Add an abstract level for the blackboard.
+        
+        This creates a blank dictionary for the abstract level and a format requirement for the abstract level entry.
+        entry is a dictionary whose keys are the names for items on the BB and values are the types of data that will be stored there. For example: {'entry 1': str, 'entry 2': int}.
+        """
+        self.abstract_lvls['level {}'.format(level)] = {}
+        self.abstract_lvls_format['level {}'.format(level)] = entry
+    
+    def update_abstract_lvl(self, level, name, entry):
+        """Update an abstract level with new information from an entry"""
+        lvl_name = 'level {}'.format(level)
+        abstract_lvl = self.abstract_lvls[lvl_name]
+        for entry_name, entry_type in entry.items():
+            try:
+                assert entry_name in self.abstract_lvls_format[lvl_name].keys()
+                assert type(entry_type) == self.abstract_lvls_format[lvl_name][entry_name]
+            except AssertionError:
+                self.log_warning('Entry {} is inconsistent with level {}. Entry keys are: {} with value types: {}. Abstract level expected keys {} with value types {}. Entry was not added.'.format(name, level, entry.keys(), [type(x) for x in entry.values()], self.abstract_lvls_format[lvl_name].keys(),self.abstract_lvls_format[lvl_name].values()))
+                return
+        abstract_lvl[name] = entry
+                    
+    def remove_bb_entry(self, level, name):
+        """Remove a BB entry on a given abstract level"""
+        del self.abstract_lvls[level][name]
+        self.log_debug('Removing entry {} from BB abstract level {}.'.format(entry, level))
+        
         
     def add_abstract_lvl_1(self, name, exp_nums, validated=False, pareto=False):
         "Add an entry for abstract level 1"
@@ -296,3 +327,46 @@ class Blackboard(Agent):
                 else:
                     self.lvl_3[core_name][data_name] = data_dict[0].decode('UTF-8')
         h5.close()
+        
+    def write_to_h5_2(self):
+        """BB will convert data from abstract to H5 file.
+        """
+        if not os.path.isfile('{}_archive.h5'.format(self.name)):
+            h5 = h5py.File('{}_archive.h5'.format(self.name), 'w')
+            for level in self.abstract_lvls.keys():
+                h5.create_group(level)
+            h5.close()
+        self.log_info("Writing blackboard to archive")
+        h5 = h5py.File('{}_archive.h5'.format(self.name), 'r+')
+        for level, entry in self.abstract_lvls.items():
+            group_level = h5[level]
+            for name, data in entry.items():
+                if name in group_level.keys():
+                    pass
+                else:
+                    group_level.create_group(name)
+                    for data_name, data_val in data.items():
+                        data_type = type(data_val)
+                        if data_type == dict:
+                            group_level[name].create_group(data_name)
+                            group_level[name][data_name].attrs['type'] = str(data_type)
+                            for k,v in data_val.items():
+                                group_level[name][data_name][k] = self.determine_h5_type(type(v), v)
+                        elif None:
+                            pass
+                        else:
+                            group_level[name][data_name] = self.determine_h5_type(data_type, data_val)
+                            group_level[name][data_name].attrs['type'] = str(data_type)
+
+    def determine_h5_type(self, data_type, data_val):
+        if data_type == str:
+            return [np.string_(data_val)]
+        elif data_type in (bool, int, float, tuple):
+            return [data_val]
+        elif data_type == list:
+            return data_val
+        elif data_type == dict:
+            return data_val
+        else:
+            self.log_warning('Data {} was not a recongnized data type ({}), please add statment requiring how to store.'.format(data_name, data_type))
+            return None

@@ -2,6 +2,7 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import pandas as pd
+import numpy as np
 import blackboard
 import knowledge_agent as ka
 import time
@@ -32,6 +33,110 @@ def test_blackboard_init_agent():
     ns.shutdown()
     time.sleep(0.1)
 
+def test_add_abstract_lvl():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    assert bb.get_attr('abstract_lvls') == {}
+    assert bb.get_attr('abstract_lvls_format') == {}
+    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
+    assert bb.get_attr('abstract_lvls') == {'level 1': {}}
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'entry 1': str, 'entry 2': bool, 'entry 3': int}}
+
+    ns.shutdown()
+    time.sleep(0.1)
+
+def test_update_abstract_lvl():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
+
+    bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1' : {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
+    
+    bb.update_abstract_lvl(1, 'core_2', {'entry 1': 'test', 'entry 2': False, 'entry 4': 2})    
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1' : {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
+
+    bb.update_abstract_lvl(1, 'core_2', {'entry 1': 'test', 'entry 2': False, 'entry 3': False})
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1' : {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
+
+    bb.update_abstract_lvl(1, 'core_2', {'entry 1': 'test_2', 'entry 2': True, 'entry 3': 6})
+    assert bb.get_attr('abstract_lvls') == {'level 1': 
+                                            {'core_1' : {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}, 
+                                             'core_2':  {'entry 1': 'test_2', 'entry 2': True, 'entry 3': 6}}}
+    
+    ns.shutdown()
+    time.sleep(0.1)
+
+def test_update_abstract_lvl_overwrite():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
+    bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
+
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1' : {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
+    bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'testing', 'entry 2': True, 'entry 3': 5})
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1' : {'entry 1': 'testing', 'entry 2': True, 'entry 3': 5}}}
+
+    ns.shutdown()
+    time.sleep(0.1)   
+    
+def test_update_abstract_lvl_mult():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
+    bb.add_abstract_lvl(2, {'entry 1': float, 'entry 2': str})
+    bb.add_abstract_lvl(3, {'entry 3': dict})
+
+    bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
+    bb.update_abstract_lvl(1, 'core_2', {'entry 1': 'test_2', 'entry 2': True, 'entry 3': 6})
+    bb.update_abstract_lvl(2, 'core_2', {'entry 1': 1.2, 'entry 2': 'testing'})
+    bb.update_abstract_lvl(3, 'core_2', {'entry 3': {'foo': 1.1, 'spam': 3.2}})
+
+    
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}, 
+                                                        'core_2': {'entry 1': 'test_2', 'entry 2': True, 'entry 3': 6}},
+                                            'level 2': {'core_2': {'entry 1': 1.2, 'entry 2': 'testing'}},
+                                            'level 3': {'core_2': {'entry 3': {'foo': 1.1, 'spam': 3.2}}}}
+    ns.shutdown()
+    time.sleep(0.1)
+
+def test_write_to_h5_2():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    os.remove('blackboard_archive.h5')
+    
+    raw_data = {'exp_a': 0, 'exp_b': 0, 'exp_c': 0, 'k-eff': 1.0}
+    bb.add_abstract_lvl(1, {'entry 1': tuple, 'entry 2': bool})
+    bb.add_abstract_lvl(2, {'entry 1': int, 'entry 2': float})
+    bb.add_abstract_lvl(3, {'entry 1': dict, 'entry 2': str, 'entry 3': list})
+    bb.update_abstract_lvl(1, 'core_2', {'entry 1': (1,1,0), 'entry 2': True})
+    bb.update_abstract_lvl(2, 'core_2', {'entry 1': 1, 'entry 2': 1.2})
+    bb.update_abstract_lvl(3, 'core_2', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1,2,3]})
+    time.sleep(0.5)
+    bb.write_to_h5_2()
+    
+    abs_lvls = bb.get_attr('abstract_lvls')
+    bb_archive = h5py.File('blackboard_archive.h5', 'r+')
+    
+    for k,v in bb_archive.items():
+        assert k in abs_lvls.keys()
+        for k1,v1 in v.items():
+            assert k1 in abs_lvls[k].keys()
+            for k2,v2 in v1.items():
+                assert k2 in abs_lvls[k][k1].keys()
+                if type(v2) == h5py.Group:
+                    for k3,v3 in v2.items():
+                        assert abs_lvls[k][k1][k2][k3] == v3[0]
+                elif type(v2[0]) == np.bytes_:
+                    assert abs_lvls[k][k1][k2] == v2[0].decode('UTF-8')
+                else:
+                    assert np.array(abs_lvls[k][k1][k2]).all() == v2[0].all()
+
+    bb_archive.close()
+    os.remove('blackboard_archive.h5')
+    ns.shutdown()    
+    time.sleep(0.1)
+    
 def test_write_to_h5():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
