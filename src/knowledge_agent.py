@@ -90,7 +90,7 @@ class KaBase(Agent):
         else:
             self.log_warning('Warning: Agent {} not connected to blackbaord agent'.format(self.name))
 
-    def handler_executor(self):
+    def handler_executor(self, message):
         raise NotImplementedError
 
     def handler_trigger_publish(self, message):
