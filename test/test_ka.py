@@ -2,7 +2,7 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import blackboard
-import knowledge_agent as ka
+import ka
 import time
 import os
 

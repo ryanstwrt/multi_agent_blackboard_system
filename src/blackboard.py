@@ -1,5 +1,6 @@
 import osbrain
 from osbrain import Agent
+import numpy as np
 import time
 import h5py
 import os

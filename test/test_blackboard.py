@@ -3,7 +3,7 @@ from osbrain import run_nameserver
 from osbrain import run_agent
 import numpy as np
 import blackboard
-import knowledge_agent as ka
+import ka
 import time
 import os
 import h5py
