@@ -9,6 +9,7 @@ import numpy as np
 import csv
 import sys
 import re
+import copy
 
 class Blackboard(Agent):
     """
@@ -164,7 +165,14 @@ class Blackboard(Agent):
                 temp_dict = {}
                 if not self.abstract_lvls.get(level, False):
                     data_dict = self.get_data_types(entry)
-                    self.add_abstract_lvl(int(level.split(' ')[1]), data_dict)
+                    dict_dict = {}
+                    level_data_dict = copy.copy(data_dict)
+                    for k,v in data_dict.items():
+                        if v == dict:
+                            level_data_dict[k] = self.get_data_types(entry[k])
+
+                    self.add_abstract_lvl(int(level.split(' ')[1]), level_data_dict)
+                    
                 for data_name, data in entry.items():
                     temp_dict[data_name] = self.load_dataset(data_name, data, data_dict)
                 self.update_abstract_lvl(int(level.split(' ')[1]), entry_name, temp_dict)
@@ -183,9 +191,15 @@ class Blackboard(Agent):
         for entry_name, entry_type in entry.items():
             try:
                 assert entry_name in self.abstract_lvls_format[lvl_name].keys()
-                assert type(entry_type) == self.abstract_lvls_format[lvl_name][entry_name]
+                if type(entry_type) == dict:
+                    a = {x: type(y) for x,y in entry_type.items()}
+                    assert a  == self.abstract_lvls_format[lvl_name][entry_name]
+                else:
+                    assert type(entry_type) == self.abstract_lvls_format[lvl_name][entry_name]
             except AssertionError:
-                self.log_warning('Entry {} is inconsistent with level {}. Entry keys are: {} with value types: {}. Abstract level expected keys {} with value types {}. Entry was not added.'.format(name, level, entry.keys(), [type(x) for x in entry.values()], self.abstract_lvls_format[lvl_name].keys(),self.abstract_lvls_format[lvl_name].values()))
+                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} with value types: {}.\n Abstract level expected keys {} with value types {}.\n Entry was not added.'.format(name, level, entry.keys(), entry.values(), 
+                self.abstract_lvls_format[lvl_name].keys(),
+                self.abstract_lvls_format[lvl_name].values()))
                 self.finish_writing_to_bb()
                 return
         abstract_lvl[name] = entry

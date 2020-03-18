@@ -5,8 +5,6 @@ import pandas as pd
 import numpy as np
 import h5py
 import time
-import math
-import random
 import os
 import csv
 import scipy.interpolate
@@ -107,5 +105,5 @@ class KaBase(Agent):
             self.send(self.writer_alias, self.name)
             write = self.recv(self.writer_alias)
         else:
-            self.log_debug('Writing to BB Level {}'.format(self.bb_level))
-            self.bb.update_abstract_lvl(self.bb_level, self.entry_name, self.entry)
+            self.log_debug('Writing to BB Level {}'.format(self.bb_lvl))
+            self.bb.update_abstract_lvl(self.bb_lvl, self.entry_name, self.entry)
