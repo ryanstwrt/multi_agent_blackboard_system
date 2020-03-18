@@ -146,11 +146,9 @@ class Blackboard(Agent):
         if data_dict[data_name] == list:
             return data_dict[data_name](data)
         elif data_dict[data_name] == dict:
-            temp_dict = {}
-            data_dict_2 = self.get_data_types(data)
-            for d_names, d in data.items():
-                temp_dict[d_names] = self.load_dataset(d_names, d, data_dict_2)
-            return temp_dict
+            sub_data_dict = self.get_data_types(data)
+            sub_dataset = {d_names: self.load_dataset(d_names, d, sub_data_dict) for d_names, d in data.items()}
+            return sub_dataset
         elif data_dict[data_name] == str:
             return data[0].decode('UTF-8')
         else:
@@ -160,21 +158,16 @@ class Blackboard(Agent):
         """Load an H5 archive of the blackboard"""
         self.log_info("Loading H5 archive: {}".format(self.archive_name))
         h5 = h5py.File(self.archive_name, 'r')
-        for level, v in h5.items():
-            for entry_name, entry in v.items():
-                temp_dict = {}
+        for level, entries in h5.items():
+            for entry_name, entry in entries.items():  
+                data_dict = self.get_data_types(entry)
+                
                 if not self.abstract_lvls.get(level, False):
-                    data_dict = self.get_data_types(entry)
-                    dict_dict = {}
-                    level_data_dict = copy.copy(data_dict)
-                    for k,v in data_dict.items():
-                        if v == dict:
-                            level_data_dict[k] = self.get_data_types(entry[k])
-
-                    self.add_abstract_lvl(int(level.split(' ')[1]), level_data_dict)
-                    
-                for data_name, data in entry.items():
-                    temp_dict[data_name] = self.load_dataset(data_name, data, data_dict)
+                    sub_data_dict = {}
+                    for data_name, data_type in data_dict.items():
+                        sub_data_dict[data_name] = self.get_data_types(entry[data_name]) if data_type == dict else data_dict[data_name]
+                    self.add_abstract_lvl(int(level.split(' ')[1]), sub_data_dict)
+                temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}    
                 self.update_abstract_lvl(int(level.split(' ')[1]), entry_name, temp_dict)
         h5.close()
 
@@ -193,11 +186,11 @@ class Blackboard(Agent):
                 assert entry_name in self.abstract_lvls_format[lvl_name].keys()
                 if type(entry_type) == dict:
                     a = {x: type(y) for x,y in entry_type.items()}
-                    assert a  == self.abstract_lvls_format[lvl_name][entry_name]
+                    assert a == self.abstract_lvls_format[lvl_name][entry_name]
                 else:
                     assert type(entry_type) == self.abstract_lvls_format[lvl_name][entry_name]
             except AssertionError:
-                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} with value types: {}.\n Abstract level expected keys {} with value types {}.\n Entry was not added.'.format(name, level, entry.keys(), entry.values(), 
+                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys {}\n with value types {}.\n Entry was not added.'.format(name, level, entry.keys(), entry.values(), 
                 self.abstract_lvls_format[lvl_name].keys(),
                 self.abstract_lvls_format[lvl_name].values()))
                 self.finish_writing_to_bb()
