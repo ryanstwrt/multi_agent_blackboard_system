@@ -1,15 +1,10 @@
 import osbrain
 from osbrain import Agent
-import pandas as pd
-import train_surrogate_models as tm
 import time
 import h5py
 import os
-import numpy as np
-import csv
 import sys
 import re
-import copy
 
 class Blackboard(Agent):
     """
