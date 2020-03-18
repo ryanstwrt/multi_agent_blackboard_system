@@ -8,6 +8,7 @@ import os
 import numpy as np
 import csv
 import sys
+import re
 
 class Blackboard(Agent):
     """
@@ -32,6 +33,7 @@ class Blackboard(Agent):
         self.agent_writing = False
         self.new_entry = False
         self.archive_name = '{}_archive.h5'.format(self.name)
+        self.sleep_limit = 10
             
         self.abstract_lvls = {}
         self.abstract_lvls_format = {}
@@ -92,7 +94,8 @@ class Blackboard(Agent):
             return data_val
         else:
             self.log_warning('Data {} was not a recongnized data type ({}), please add statment requiring how to store.'.format(data_name, data_type))
-            return None   
+            return None
+    
     def finish_writing_to_bb(self):
         """Update agent_writing to False when agent is finished writing"""
         self.agent_writing = False
@@ -117,27 +120,54 @@ class Blackboard(Agent):
         self.trigger_event_num += 1
         self.trigger_events[self.trigger_event_num] = {}
         self.send(self.pub_trigger_alias, 'publishing trigger')
-
+        
     def send_executor(self):
         self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self.ka_to_execute[0], self.ka_to_execute[1], self.trigger_event_num))
         self.send('executor_{}'.format(self.ka_to_execute[0]), self.ka_to_execute)
 
+    def str_to_data_types(self, string):
+        """Convert a string to the appropriate data type class"""
+        split_str = string.split(' ')
+        re_str = re.findall('[a-z]', split_str[1])
+        join_str = ''.join(re_str)
+        return eval(join_str)
+    
+    def get_data_types(self, entry_data):
+        """Determine the data types required for each H5 dataset.
+        This is done by checking the attributes for each dataset and converting the string to a class via the str_to_data_types"""
+        data_names = [x for x in entry_data.keys()]
+        data_types = [self.str_to_data_types(x.attrs.get('type')) for x in entry_data.values()]
+        data_dict = {data_names[i]: data_types[i] for i in range(len(data_names))}
+        return data_dict
+         
+    def load_dataset(self, data_name, data, data_dict):
+        """Load the H5 data sets to their appropriate format for the blackboard"""
+        if data_dict[data_name] == list:
+            return data_dict[data_name](data)
+        elif data_dict[data_name] == dict:
+            temp_dict = {}
+            data_dict_2 = self.get_data_types(data)
+            for d_names, d in data.items():
+                temp_dict[d_names] = self.load_dataset(d_names, d, data_dict_2)
+            return temp_dict
+        elif data_dict[data_name] == str:
+            return data[0].decode('UTF-8')
+        else:
+            return data_dict[data_name](data[0])
+        
     def load_h5(self):
-        """Load an H5 archive of the blackboard. 
-        Currently, we only load the raw data (level 3) of the BB."""
-        self.log_info("Loading H5 archive: {}_archive.h5".format(self.name))
-        h5 = h5py.File('{}_archive.h5'.format(self.name), 'r')
-        for core_name, core_dict in h5['level 3'].items():
-            if not self.lvl_3.get(core_name, False):
-                self.lvl_3[core_name] = {}
-            for data_name, data_dict in core_dict.items():
-                if data_name == 'reactor_parameters':
-                    rx_params = {core_name: [x[0] for x in data_dict.values()]}
-                    colms = [x for x in data_dict.keys()]
-                    df = pd.DataFrame.from_dict(rx_params, orient='index', columns = colms)
-                    self.lvl_3[core_name][data_name] = df
-                else:
-                    self.lvl_3[core_name][data_name] = data_dict[0].decode('UTF-8')
+        """Load an H5 archive of the blackboard"""
+        self.log_info("Loading H5 archive: {}".format(self.archive_name))
+        h5 = h5py.File(self.archive_name, 'r')
+        for level, v in h5.items():
+            for entry_name, entry in v.items():
+                temp_dict = {}
+                if not self.abstract_lvls.get(level, False):
+                    data_dict = self.get_data_types(entry)
+                    self.add_abstract_lvl(int(level.split(' ')[1]), data_dict)
+                for data_name, data in entry.items():
+                    temp_dict[data_name] = self.load_dataset(data_name, data, data_dict)
+                self.update_abstract_lvl(int(level.split(' ')[1]), entry_name, temp_dict)
         h5.close()
 
     def remove_bb_entry(self, level, name):
@@ -163,10 +193,14 @@ class Blackboard(Agent):
         
     def wait_for_ka(self):
         """Function to performe while waiting for KAs to write to the blackboard."""
+        sleep_time = 0
         if self.new_entry == False:
             self.write_to_h5()
         while not self.new_entry:
             time.sleep(1)
+            sleep_time += 1
+            if sleep_time > self.sleep_limit:
+                break
         self.new_entry = False
                             
     def write_to_h5(self):
@@ -204,12 +238,13 @@ class Blackboard(Agent):
                         data_type = type(data_val)
                         if data_type == dict:
                             group_level[name].create_group(data_name)
-                            group_level[name][data_name].attrs['type'] = str(data_type)
+                            group_level[name][data_name].attrs['type'] = repr(data_type)
                             for k,v in data_val.items():
                                 group_level[name][data_name][k] = self.determine_h5_type(type(v), v)
+                                group_level[name][data_name][k].attrs['type'] = repr(type(v))
                         elif None:
                             pass
                         else:
                             group_level[name][data_name] = self.determine_h5_type(data_type, data_val)
-                            group_level[name][data_name].attrs['type'] = str(data_type)
+                            group_level[name][data_name].attrs['type'] = repr(data_type)
         h5.close()
