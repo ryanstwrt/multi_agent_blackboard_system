@@ -13,17 +13,34 @@ class Blackboard(Agent):
     The blackboard class inherets from osBrain's agent class.
     This allows for communication between the blackbaord and the other varous knowledge agents.
     
-    The blackboard holds information on four different abstract levels (described below).
-    All information for abstract levels are stored in memory.
-    Abstract levels 3 and 4 are also stored in an H5 file to maintain data between runs, and allow for restart of a proble should failure arise.
+    The blackboard  (BB) holds information from knowledge agents (KAs) on muultiple abstract levels.
+    All information for abstract levels are stored in memory, in the form of nested dictionaries.
+    Abstract levels must be created via the `add_abstract_lvl` method, and can be updated using the `update_abstract_lvl` or `remove_bb_entry`.
     
-    It is noted here that a 'get' function is added for each of the attributes associated with the blackboard.
-    For the agent class, each agent is assigned a proxy, and as such, internal variables are hidden and not accessible.
-    The 'get' function allows other agents to access these attributes when necessary, wihtout using the `get_attr` function built into osBrain's Agent class.
     
     Attributes:
-        abstract_lvls(nested dict): Dictionary of abstract levels on the blackboard. Each level will have their own corresponding data.
-        agents (list): List of agents currently active in the multi-agent system.
+        agent_addrs : list
+            List of agents currently active in the multi-agent system, along with each line of communication that is currently set up.
+        new_entry : bool
+            Toggle to determine if BB should be write to archive while it is waiting.
+        archive_name : str
+            Name of the hdf5 file that will store abstract levels long term.
+        sleep_limit : int
+            Number of seconds to wait if it doesn't hear from an agent before it sends another trigger event.
+        abstract_lvls : dict 
+            Dictionary of abstract levels on the blackboard, which stores all data from KA.
+        abstract_lvl_format : dict
+            Dictionary of the abstract levels entry formt.
+        ka_to_execute : tuple (agent_name, trigger_value)
+            Tuple containing the KA to trigger, and its associated trigger value.
+        trigger_event_num : int
+            Counter for the number of trigger events that have occured.
+        trigger_events : dictionary
+            Dictionary of trigger events, along with the agent `ka_to_execute` for that trigger event to hold as a log.
+        pub_trigger_alias : str
+            Alias to be used for the publish-subscribe channel of communication with agents.
+        pub_trigger_alias : str
+            Address for the publish-subscribe channel to send to an agent when it connects.
     """
     def on_init(self):
         self.agent_addrs = {}
@@ -42,28 +59,83 @@ class Blackboard(Agent):
         self.pub_trigger_addr = self.bind('PUB', alias=self.pub_trigger_alias)
         
     def add_abstract_lvl(self, level, entry):
-        """Add an abstract level for the blackboard.
+        """
+        Add an abstract level to the blackboard.
         
-        This creates a blank dictionary for the abstract level and a format requirement for the abstract level entry.
-        entry is a dictionary whose keys are the names for items on the BB and values are the types of data that will be stored there. For example: {'entry 1': str, 'entry 2': int}.
+        Parameters
+        -----------
+        level : int
+            Abstract level to be added
+        entry : dict
+            Dictionary whose keys are the names of the items for the abstract level and values are the data types that will be stored there. 
+            For example: {'entry 1': str, 'entry 2': int}.
         """
         self.abstract_lvls['level {}'.format(level)] = {}
         self.abstract_lvls_format['level {}'.format(level)] = entry
 
     def connect_executor(self, agent_name):
+        """
+        Connects the BB's executor communication with the KA.
+        
+        Parameters
+        -----------
+        agent_name : str
+            Alias of the agent to connect.
+        
+        Returns
+        -------
+        alias_name : str
+            Alias of the executor line of communication.
+        alias_addr : str
+            Address for the KA to connect to for communication.
+        """
         alias_name = 'executor_{}'.format(agent_name)
         executor_addr = self.bind('PUSH', alias=alias_name)
         self.agent_addrs[agent_name].update({'executor': (alias_name, executor_addr)})
         return (alias_name, executor_addr)
         
     def connect_trigger(self, message):
+        """
+        Connects teh BB's trigger communication with the KA.
+        
+        Parameters
+        ----------
+        message : tupple (agent_name, response_addr, response_alias)
+            agent_name : str
+                Alias of the agent to connect.
+            response_addr : str
+                Address of the KA's trigger response line of communication tor BB to connect with.
+            response_alias : str
+                Alias of the KA's trigger response line of communication.
+                
+        Returns
+        -------
+        alias_name : str
+            Alias of the executor line of communication.
+        alias_addr : str
+            Address for the KA to connect to for communication.        
+        """
         agent_name, response_addr, response_alias = message
         self.agent_addrs[agent_name].update({'trigger_response': (response_alias, response_addr)})
         self.connect(response_addr, alias=response_alias, handler=self.handler_trigger_response)
         return (self.pub_trigger_alias, self.pub_trigger_addr)
     
     def connect_writer(self, agent_name):
-        """Connect the blackboard agent to a knolwedge agent for writing purposes"""
+        """
+        Connects the KA's writter communication with the BB.
+        
+        Parameters
+        -----------
+        agent_name : str
+            Alias of the agent to connect.
+        
+        Returns
+        -------
+        alias_name : str
+            Alias of the writer line of communication.
+        alias_addr : str
+            Address for the KA to connect to for communication.
+        """
         alias_name = 'writer_{}'.format(agent_name)
         write_addr = self.bind('REP', alias=alias_name, handler=self.handler_writer)
         self.agent_addrs[agent_name].update({'writer': (alias_name, write_addr)})
@@ -71,9 +143,7 @@ class Blackboard(Agent):
         return (alias_name, write_addr)
 
     def controller(self):
-        """
-        Controls the which knowledge agent will be excuted for each trigger event.
-        """
+        """Determines which KA to select after a trigger event."""
         self.log_info('Determining which KA to execute')
         self.ka_to_execute = (None, 0)
         for k,v in self.trigger_events[self.trigger_event_num].items():
@@ -81,6 +151,16 @@ class Blackboard(Agent):
                 self.ka_to_execute = (k,v)
 
     def determine_h5_type(self, data_type, data_val):
+        """
+        Determines how to place a datatype in an h5 file.
+        
+        Parameters
+        ----------
+        data_type : class
+            Class of data type.
+        data_val : data_type
+            Data in the form of data_type, get's manipulated to enter H5 file.
+        """
         if data_type == str:
             return [np.string_(data_val)]
         elif data_type in (bool, int, float, tuple):
@@ -90,7 +170,7 @@ class Blackboard(Agent):
         elif data_type == dict:
             return data_val
         else:
-            self.log_warning('Data {} was not a recongnized data type ({}), please add statment requiring how to store.'.format(data_name, data_type))
+            self.log_warning('Data {} was not a recongnized data type ({}), please add statment requiring how to store it.'.format(data_name, data_type))
             return None
     
     def finish_writing_to_bb(self):
@@ -98,12 +178,31 @@ class Blackboard(Agent):
         self.agent_writing = False
         
     def handler_trigger_response(self, message):
-        agent, trig_val = message
-        self.log_debug('Logging trigger response ({}) for agent {}'.format(trig_val, agent))
-        self.trigger_events[self.trigger_event_num].update({agent: trig_val})
+        """
+        Handler for KAs trigger response, stores all responses in `trigger_evemts`.
         
-    def handler_writer(self, agent_name):
-        """Determine if it is acceptable to write to the blackboard"""
+        Parameters
+        ----------
+        message: tuple (agent_name, trigger_val)
+            agent_name : str
+                Alias for the KA
+            trigger_val : int
+                Trigger value for the agent
+        """
+        agent_name, trig_val = message
+        self.log_debug('Logging trigger response ({}) for agent {}'.format(trig_val, agent_name))
+        self.trigger_events[self.trigger_event_num].update({agent_name: trig_val})
+        
+    def handler_writer(self, message):
+        """
+        Handler to determine if it is acceptable for a KA to write to the blackboard
+        
+        Parameters
+        ----------
+        message : str
+            Alias for the KA sending request
+        """
+        agent_name = message
         if not self.agent_writing:
             self.agent_writing = True
             self.new_entry = True
@@ -114,11 +213,13 @@ class Blackboard(Agent):
             return False
 
     def publish_trigger(self):
+        """Send a trigger event to all KAs."""
         self.trigger_event_num += 1
         self.trigger_events[self.trigger_event_num] = {}
         self.send(self.pub_trigger_alias, 'publishing trigger')
         
     def send_executor(self):
+        """Send an executor message to the triggered KA."""
         self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self.ka_to_execute[0], self.ka_to_execute[1], self.trigger_event_num))
         self.send('executor_{}'.format(self.ka_to_execute[0]), self.ka_to_execute)
 
@@ -130,8 +231,10 @@ class Blackboard(Agent):
         return eval(join_str)
     
     def get_data_types(self, entry_data):
-        """Determine the data types required for each H5 dataset.
-        This is done by checking the attributes for each dataset and converting the string to a class via the str_to_data_types"""
+        """
+        Determine the data types required for each H5 dataset.
+        This is done by checking the attributes for each dataset and converting the string to a class via the str_to_data_types
+        """
         data_names = [x for x in entry_data.keys()]
         data_types = [self.str_to_data_types(x.attrs.get('type')) for x in entry_data.values()]
         data_dict = {data_names[i]: data_types[i] for i in range(len(data_names))}
@@ -168,13 +271,32 @@ class Blackboard(Agent):
         h5.close()
 
     def remove_bb_entry(self, level, name):
-        """Remove a BB entry on a given abstract level"""
+        """
+        Remove a BB entry on a given abstract level.
+        
+        Parameters
+        ----------
+        level : int
+            Abstract level to access.
+        name : str
+            BB entry to remove from the abstract level.
+        """
         del self.abstract_lvls['level {}'.format(level)][name]
         self.log_debug('Removing entry {} from BB abstract level {}.'.format(name, level))
         self.finish_writing_to_bb()
         
     def update_abstract_lvl(self, level, name, entry):
-        """Update an abstract level with new information from an entry"""
+        """
+        Update an abstract level with a new entry
+        
+        Parameters:
+        level : int
+            Abstract level to access.
+        name : str
+            Name of the entry
+        entry : dict
+            Data to be added to the abstract level (must be in format associated with `level`)
+        """
         lvl_name = 'level {}'.format(level)
         abstract_lvl = self.abstract_lvls[lvl_name]
         for entry_name, entry_type in entry.items():
@@ -195,7 +317,7 @@ class Blackboard(Agent):
         self.finish_writing_to_bb()
         
     def wait_for_ka(self):
-        """Function to performe while waiting for KAs to write to the blackboard."""
+        """Write to H5 file and sleep while waiting for agents."""
         sleep_time = 0
         if self.new_entry == False:
             self.write_to_h5()
@@ -207,11 +329,11 @@ class Blackboard(Agent):
         self.new_entry = False
                             
     def write_to_h5(self):
-        """BB will convert data from abstract to H5 file.
+        """BB will convert data from abstract levels to H5 file.
         
-        Root directory will have four sub dicrectories, one for each abstract level.
-        Each abstract level will then have a number of subdirectories, bsed on what results are written to them.
-        Each abstract is exampled below
+        Root directory will have a sub dicrectory for each abstract level.
+        Each abstract level will then have a number of subdirectories, based on what results are written to them.
+        Below is an exampled.
         - level 1
           - entry 1
             - [1, 2 ,3]

@@ -7,11 +7,9 @@ import ka
 
 class KaBr(ka.KaBase):
     """
-    Knowledge agent who examines the blackboard and determines if a solution should be move from abastract level 3 to abstract level 2.
+    Base function for reading a BB level and performing some type of action.
     
     Inherits from KaBase
-    
-    Attributes:
     
     """
     
@@ -22,14 +20,17 @@ class KaBr(ka.KaBase):
         raise NotImplementedError
 
     def handler_trigger_publish(self, message):
-        """Inform the BB of it's trigger value, determined if there is a value that should be transfered to Level 2"""
+        """Read the BB level that it is qualified to read and determine if an entry is available."""
         self.read_bb_lvl()
         self.trigger_val = 10 if self.entry_name else 0
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self.trigger_val))
         self.send(self.trigger_response_alias, (self.name, self.trigger_val)) 
 
 class KaBr_lvl2(KaBr):
-    """BB_lvl2 to verify the components of the MABS are working correctly.."""
+    """Reads  to verify the components of the MABS are working correctly.
+    
+    Inherets from KaBr
+    """
 
     def on_init(self):
         super().on_init()

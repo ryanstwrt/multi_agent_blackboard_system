@@ -30,7 +30,6 @@ class KaBase(Agent):
       trigger_alias (str) - Alias for the sockect address in the pull-push communication for writting to the blackboard. Given in the form `executor <name>`.
       trigger_val (float) - value for the trigger to determine if it will be selected for execution.
                             The higher the trigger value, the higher the probability of being executed.
-
 """
 
     def on_init(self):
@@ -54,7 +53,8 @@ class KaBase(Agent):
         
         
     def add_blackboard(self, blackboard):
-        """Add a BB to the KA, and add the KA to the BB list"""
+        """Add a BB to to the KA, and update the BB's agent address dict.
+        Ensures that updating the communication lines have a key to reference."""
         self.bb = blackboard
         bb_agent_addr = self.bb.get_attr('agent_addrs')
         bb_agent_addr[self.name] = {}
@@ -70,6 +70,9 @@ class KaBase(Agent):
             self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
 
     def connect_trigger(self):
+        """Create two lines of communication for the trigger.
+        1. Create a push-pull for the KA to inform the BB of it's triger value (if it is available)
+        2. Connect to the BB's publish-subscribe to be informed when trigger events are occuring."""
         if self.bb:
             self.trigger_response_addr = self.bind('PUSH', alias=self.trigger_response_alias)
             self.trigger_publish_alias, self.trigger_publish_addr = self.bb.connect_trigger((self.name, self.trigger_response_addr, self.trigger_response_alias))
@@ -89,10 +92,12 @@ class KaBase(Agent):
         raise NotImplementedError
 
     def handler_trigger_publish(self, message):
+        """Send a message to the BB indiciating it's trigger value."""
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self.trigger_val))
         self.send(self.trigger_response_alias, (self.name, self.trigger_val))
     
     def write_to_bb(self):
+        """Write the KA's entry to the BB on the specified level."""
         self.log_debug('Sending writer trigger to BB.')
         write = False
         while not write:
