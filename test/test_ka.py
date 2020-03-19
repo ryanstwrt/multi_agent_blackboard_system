@@ -19,9 +19,9 @@ def test_ka_init_agent():
     assert ka_b.get_attr('executor_alias') == None
     assert ka_b.get_attr('_trigger_response_addr') == None
     assert ka_b.get_attr('_trigger_response_alias') == 'trigger_response_ka_base'
-    assert ka_b.get_attr('trigger_publish_addr') == None
-    assert ka_b.get_attr('trigger_publish_alias') == None
-    assert ka_b.get_attr('trigger_val') == 0
+    assert ka_b.get_attr('_trigger_publish_addr') == None
+    assert ka_b.get_attr('_trigger_publish_alias') == None
+    assert ka_b.get_attr('_trigger_val') == 0
     
     ns.shutdown()
     time.sleep(0.2)
@@ -59,10 +59,10 @@ def test_connect_trigger_event():
     ka_b.add_blackboard(bb)
     ka_b.connect_trigger()
     
-    assert ka_b.get_attr('trigger_publish_alias') == 'trigger'
+    assert ka_b.get_attr('_trigger_publish_alias') == 'trigger'
     assert bb.get_attr('agent_addrs')['ka_base']['trigger_response'] == (ka_b.get_attr('_trigger_response_alias'), ka_b.get_attr('_trigger_response_addr'))
-    assert ka_b.get_attr('trigger_publish_alias') == 'trigger'
-    assert ka_b.get_attr('trigger_publish_addr') == bb.get_attr('_pub_trigger_addr')
+    assert ka_b.get_attr('_trigger_publish_alias') == 'trigger'
+    assert ka_b.get_attr('_trigger_publish_addr') == bb.get_attr('_pub_trigger_addr')
     
     ns.shutdown()
     time.sleep(0.2)
@@ -118,7 +118,7 @@ def test_trigger_event():
     time.sleep(0.2)
     assert bb.get_attr('_kaar') == {1: {'ka_base': 0, 'ka_base1': 0, 'ka_base2': 0}}
     assert bb.get_attr('_ka_to_execute') == (None, 0)
-    ka_b1.set_attr(trigger_val=1)
+    ka_b1.set_attr(_trigger_val=1)
     bb.publish_trigger()
     bb.controller()
     time.sleep(0.2)

@@ -107,7 +107,7 @@ def test_controller():
     ka_b.connect_trigger()
     ka_b1.add_blackboard(bb)
     ka_b1.connect_trigger()
-    ka_b1.set_attr(trigger_val=2)
+    ka_b1.set_attr(_trigger_val=2)
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()

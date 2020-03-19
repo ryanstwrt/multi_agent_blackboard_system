@@ -22,9 +22,9 @@ class KaBr(ka.KaBase):
     def handler_trigger_publish(self, message):
         """Read the BB level that it is qualified to read and determine if an entry is available."""
         self.read_bb_lvl()
-        self.trigger_val = 10 if self.entry_name else 0
-        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self.trigger_val))
-        self.send(self.trigger_response_alias, (self.name, self.trigger_val)) 
+        self._trigger_val = 10 if self._entry_name else 0
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val)) 
 
 class KaBr_lvl2(KaBr):
     """Reads  to verify the components of the MABS are working correctly.
@@ -37,7 +37,15 @@ class KaBr_lvl2(KaBr):
         self.bb_lvl = 1
         self.bb_lvl_read = 2
         self.desired_results = None
-        
+
+    def determine_valid_core(self, rx_params):
+        """Determine if the core falls in the desired results range"""
+        for param_name, param_range in self.desired_results.items():
+            param = rx_params[param_name]
+            if param < param_range[0] or param > param_range[1]:
+                return False
+        return True
+    
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name))
         self.read_bb_lvl()
@@ -51,11 +59,3 @@ class KaBr_lvl2(KaBr):
             if valid:
                 self._entry_name = core_name
                 self._entry = {'valid': True}
-
-    def determine_valid_core(self, rx_params):
-        """Determine if the core falls in the desired results range"""
-        for param_name, param_range in self.desired_results.items():
-            param = rx_params[param_name]
-            if param < param_range[0] or param > param_range[1]:
-                return False
-        return True

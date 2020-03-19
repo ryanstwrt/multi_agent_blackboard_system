@@ -33,11 +33,11 @@ class KaBase(Agent):
             Socket address for the push-pull trigger communication for the BB.
         _trigger_response_alias : str
             Alias for the socket address in the trigger communication for the BB. Given in the form `trigger_response_<name>`.
-        trigger_publish_alias : str
+        _trigger_publish_alias : str
             Alias for the socket address in the trigger communication with the BB. Takes the form `trigger`.
-        trigger_publish_addr : str
+        _trigger_publish_addr : str
             Socket address for the publish-subscribe trigger communication for the BB.
-      trigger_val : int 
+        _trigger_val : int 
           Value for the trigger to determine if it will be selected for execution.
 """
 
@@ -56,20 +56,27 @@ class KaBase(Agent):
         
         self._trigger_response_alias = 'trigger_response_{}'.format(self.name)
         self._trigger_response_addr = None
-        self.trigger_publish_alias = None
-        self.trigger_publish_addr = None
-        self.trigger_val = 0
+        self._trigger_publish_alias = None
+        self._trigger_publish_addr = None
+        self._trigger_val = 0
         
     def add_blackboard(self, blackboard):
-        """Add a BB to to the KA, and update the BB's agent address dict.
-        Ensures that updating the communication lines have a key to reference."""
+        """
+        Add a BB to to the KA, and update the BB's agent address dict.
+        Ensures that updating the communication lines have a key to reference.
+        
+        Parameters
+        ----------
+        blackboard : Agent
+            Reference for the BB
+        """
         self.bb = blackboard
         bb_agent_addr = self.bb.get_attr('agent_addrs')
         bb_agent_addr[self.name] = {}
         self.bb.set_attr(agent_addrs=bb_agent_addr)
 
     def connect_executor(self):
-        """Create a line of communication through the reply request format to allow writing to the blackboard."""
+        """Create a push-pull communication channel to execute KA."""
         if self.bb:
             self.executor_alias, self.executor_addr = self.bb.connect_executor(self.name)
             self.connect(self.executor_addr, alias=self.executor_alias, handler=self.handler_executor)
@@ -78,17 +85,18 @@ class KaBase(Agent):
             self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
 
     def connect_trigger(self):
-        """Create two lines of communication for the trigger.
+        """
+        Create two lines of communication for the trigger.
         1. Create a push-pull for the KA to inform the BB of it's triger value (if it is available)
-        2. Connect to the BB's publish-subscribe to be informed when trigger events are occuring."""
+        2. Connect to the BB's publish-subscribe to be informed when trigger events are occuring.
+        """
         if self.bb:
             self._trigger_response_addr = self.bind('PUSH', alias=self._trigger_response_alias)
-            self.trigger_publish_alias, self.trigger_publish_addr = self.bb.connect_trigger((self.name, self._trigger_response_addr, self._trigger_response_alias))
-            self.connect(self.trigger_publish_addr, alias=self.trigger_publish_alias, handler=self.handler_trigger_publish)
+            self._trigger_publish_alias, self._trigger_publish_addr = self.bb.connect_trigger((self.name, self._trigger_response_addr, self._trigger_response_alias))
+            self.connect(self._trigger_publish_addr, alias=self._trigger_publish_alias, handler=self.handler_trigger_publish)
 
     def connect_writer(self):
-        """Create a line of communiction through the reply-request format.
-        This will allow for the KA to write to the BB when it can add to the problem."""
+        """Create a reply-request communication channel for KA to write to BB."""
         if self.bb:
             self._writer_alias, self._writer_addr = self.bb.connect_writer(self.name)
             self.connect(self._writer_addr, alias=self._writer_alias)
@@ -100,9 +108,16 @@ class KaBase(Agent):
         raise NotImplementedError
 
     def handler_trigger_publish(self, message):
-        """Send a message to the BB indiciating it's trigger value."""
-        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self.trigger_val))
-        self.send(self._trigger_response_alias, (self.name, self.trigger_val))
+        """
+        Send a message to the BB indiciating it's trigger value.
+        
+        Parameters
+        ----------
+        message : str
+            String containts unused string, but required for agent communication.
+        """
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
     
     def write_to_bb(self):
         """Write the KA's entry to the BB on the specified level."""

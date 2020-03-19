@@ -21,9 +21,9 @@ def test_kabr_init():
     assert ka_b.get_attr('executor_alias') == None
     assert ka_b.get_attr('_trigger_response_addr') == None
     assert ka_b.get_attr('_trigger_response_alias') == 'trigger_response_ka_br'
-    assert ka_b.get_attr('trigger_publish_addr') == None
-    assert ka_b.get_attr('trigger_publish_alias') == None
-    assert ka_b.get_attr('trigger_val') == 0
+    assert ka_b.get_attr('_trigger_publish_addr') == None
+    assert ka_b.get_attr('_trigger_publish_alias') == None
+    assert ka_b.get_attr('_trigger_val') == 0
     
     ns.shutdown()
     time.sleep(0.2)
@@ -41,9 +41,9 @@ def test_kabr_lvl2_init():
     assert ka_br2.get_attr('executor_alias') == None
     assert ka_br2.get_attr('_trigger_response_addr') == None
     assert ka_br2.get_attr('_trigger_response_alias') == 'trigger_response_ka_br_lvl2'
-    assert ka_br2.get_attr('trigger_publish_addr') == None
-    assert ka_br2.get_attr('trigger_publish_alias') == None
-    assert ka_br2.get_attr('trigger_val') == 0
+    assert ka_br2.get_attr('_trigger_publish_addr') == None
+    assert ka_br2.get_attr('_trigger_publish_alias') == None
+    assert ka_br2.get_attr('_trigger_val') == 0
     assert ka_br2.get_attr('bb_lvl_read') == 2
     assert ka_br2.get_attr('desired_results') == None
     

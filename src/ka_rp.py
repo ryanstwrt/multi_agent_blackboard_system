@@ -8,7 +8,7 @@ from collections import OrderedDict
 import ka
 
 
-class KaReactorPhysics(ka.KaBase):
+class KaRp(ka.KaBase):
     """
     Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
     
@@ -26,9 +26,9 @@ class KaReactorPhysics(ka.KaBase):
     """
     def on_init(self):
         super().on_init()
-        self.trigger_val = 1.0
+        self._trigger_val = 1.0
 
-class KaReactorPhysics_verify(KaReactorPhysics):
+class KaRp_verify(KaRp):
     """
     Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
     
@@ -69,7 +69,7 @@ class KaReactorPhysics_verify(KaReactorPhysics):
         """Determine the core design variables using either a surrogate model, or random assignment."""
         for param, ranges in self.independent_variable_ranges.items():
             self.design_variables[param] = round(random.random() * (ranges[1] - ranges[0]) + ranges[0],2)
-        self.entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
+        self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
         self.log_info('Core design variables determined: {}'.format(self.design_variables))
 
     def calc_core_params(self):
@@ -79,7 +79,7 @@ class KaReactorPhysics_verify(KaReactorPhysics):
             self.objective_functions[obj_name] = float(interpolator(tuple([x for x in self.design_variables.values()])))
         a = self.design_variables.copy()
         a.update(self.objective_functions)
-        self.entry = {'reactor parameters': a}
+        self._entry = {'reactor parameters': a}
     
     def create_interpolator(self):
         """Build the linear interpolator for estimating between known datapoints.
