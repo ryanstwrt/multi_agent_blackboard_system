@@ -21,42 +21,42 @@ class Blackboard(Agent):
     Attributes:
         agent_addrs : list
             List of agents currently active in the multi-agent system, along with each line of communication that is currently set up.
-        new_entry : bool
+        _new_entry : bool
             Toggle to determine if BB should be write to archive while it is waiting.
         archive_name : str
             Name of the hdf5 file that will store abstract levels long term.
-        sleep_limit : int
+        _sleep_limit : int
             Number of seconds to wait if it doesn't hear from an agent before it sends another trigger event.
         abstract_lvls : dict 
             Dictionary of abstract levels on the blackboard, which stores all data from KA.
         abstract_lvl_format : dict
             Dictionary of the abstract levels entry formt.
-        ka_to_execute : tuple (agent_name, trigger_value)
+        _ka_to_execute : tuple (agent_name, trigger_value)
             Tuple containing the KA to trigger, and its associated trigger value.
-        trigger_event_num : int
+        _trigger_event : int
             Counter for the number of trigger events that have occured.
-        trigger_events : dictionary
-            Dictionary of trigger events, along with the agent `ka_to_execute` for that trigger event to hold as a log.
-        pub_trigger_alias : str
+        _kaar : dictionary
+            Knoweldge Agent Activation Record - dictionary of trigger events, along with the agent `_ka_to_execute` for that trigger event to hold as a log.
+        _pub_trigger_alias : str
             Alias to be used for the publish-subscribe channel of communication with agents.
-        pub_trigger_alias : str
+        _pub_trigger_addr : str
             Address for the publish-subscribe channel to send to an agent when it connects.
     """
     def on_init(self):
         self.agent_addrs = {}
-        self.agent_writing = False
-        self.new_entry = False
+        self._agent_writing = False
+        self._new_entry = False
         self.archive_name = '{}_archive.h5'.format(self.name)
-        self.sleep_limit = 10
+        self._sleep_limit = 10
             
         self.abstract_lvls = {}
         self.abstract_lvls_format = {}
         
-        self.ka_to_execute = (None, 0)
-        self.trigger_event_num = 0
-        self.trigger_events = {}
-        self.pub_trigger_alias = 'trigger'
-        self.pub_trigger_addr = self.bind('PUB', alias=self.pub_trigger_alias)
+        self._ka_to_execute = (None, 0)
+        self._trigger_event = 0
+        self._kaar = {}
+        self._pub_trigger_alias = 'trigger'
+        self._pub_trigger_addr = self.bind('PUB', alias=self._pub_trigger_alias)
         
     def add_abstract_lvl(self, level, entry):
         """
@@ -118,7 +118,7 @@ class Blackboard(Agent):
         agent_name, response_addr, response_alias = message
         self.agent_addrs[agent_name].update({'trigger_response': (response_alias, response_addr)})
         self.connect(response_addr, alias=response_alias, handler=self.handler_trigger_response)
-        return (self.pub_trigger_alias, self.pub_trigger_addr)
+        return (self._pub_trigger_alias, self._pub_trigger_addr)
     
     def connect_writer(self, agent_name):
         """
@@ -145,10 +145,10 @@ class Blackboard(Agent):
     def controller(self):
         """Determines which KA to select after a trigger event."""
         self.log_info('Determining which KA to execute')
-        self.ka_to_execute = (None, 0)
-        for k,v in self.trigger_events[self.trigger_event_num].items():
-            if v > self.ka_to_execute[1]:
-                self.ka_to_execute = (k,v)
+        self._ka_to_execute = (None, 0)
+        for k,v in self._kaar[self._trigger_event].items():
+            if v > self._ka_to_execute[1]:
+                self._ka_to_execute = (k,v)
 
     def determine_h5_type(self, data_type, data_val):
         """
@@ -174,8 +174,8 @@ class Blackboard(Agent):
             return None
     
     def finish_writing_to_bb(self):
-        """Update agent_writing to False when agent is finished writing"""
-        self.agent_writing = False
+        """Update _agent_writing to False when agent is finished writing"""
+        self._agent_writing = False
         
     def handler_trigger_response(self, message):
         """
@@ -191,7 +191,7 @@ class Blackboard(Agent):
         """
         agent_name, trig_val = message
         self.log_debug('Logging trigger response ({}) for agent {}'.format(trig_val, agent_name))
-        self.trigger_events[self.trigger_event_num].update({agent_name: trig_val})
+        self._kaar[self._trigger_event].update({agent_name: trig_val})
         
     def handler_writer(self, message):
         """
@@ -201,11 +201,16 @@ class Blackboard(Agent):
         ----------
         message : str
             Alias for the KA sending request
+            
+        Returns
+        -------
+        bool
+            True if agent can write, false if agent must wait
         """
         agent_name = message
-        if not self.agent_writing:
-            self.agent_writing = True
-            self.new_entry = True
+        if not self._agent_writing:
+            self._agent_writing = True
+            self._new_entry = True
             self.log_info('Agent {} given permission to write'.format(agent_name))
             return True
         else:
@@ -214,14 +219,14 @@ class Blackboard(Agent):
 
     def publish_trigger(self):
         """Send a trigger event to all KAs."""
-        self.trigger_event_num += 1
-        self.trigger_events[self.trigger_event_num] = {}
-        self.send(self.pub_trigger_alias, 'publishing trigger')
+        self._trigger_event += 1
+        self._kaar[self._trigger_event] = {}
+        self.send(self._pub_trigger_alias, 'publishing trigger')
         
     def send_executor(self):
         """Send an executor message to the triggered KA."""
-        self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self.ka_to_execute[0], self.ka_to_execute[1], self.trigger_event_num))
-        self.send('executor_{}'.format(self.ka_to_execute[0]), self.ka_to_execute)
+        self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], self._ka_to_execute[1], self._trigger_event))
+        self.send('executor_{}'.format(self._ka_to_execute[0]), self._ka_to_execute)
 
     def str_to_data_types(self, string):
         """Convert a string to the appropriate data type class"""
@@ -319,14 +324,14 @@ class Blackboard(Agent):
     def wait_for_ka(self):
         """Write to H5 file and sleep while waiting for agents."""
         sleep_time = 0
-        if self.new_entry == False:
+        if self._new_entry == False:
             self.write_to_h5()
-        while not self.new_entry:
+        while not self._new_entry:
             time.sleep(1)
             sleep_time += 1
-            if sleep_time > self.sleep_limit:
+            if sleep_time > self._sleep_limit:
                 break
-        self.new_entry = False
+        self._new_entry = False
                             
     def write_to_h5(self):
         """BB will convert data from abstract levels to H5 file.

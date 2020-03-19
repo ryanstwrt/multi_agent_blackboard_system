@@ -49,8 +49,8 @@ class KaBr_lvl2(KaBr):
         for core_name, entry in lvl_2.items():
             valid = self.determine_valid_core(entry['reactor parameters'])
             if valid:
-                self.entry_name = core_name
-                self.entry = {'valid': True}
+                self._entry_name = core_name
+                self._entry = {'valid': True}
 
     def determine_valid_core(self, rx_params):
         """Determine if the core falls in the desired results range"""
