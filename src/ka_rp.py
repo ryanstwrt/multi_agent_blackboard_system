@@ -13,16 +13,6 @@ class KaRp(ka.KaBase):
     Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
     
     Inherets from KaBase.
-    
-    Attibutes:
-    
-      core_name        (str)             - Name of the core
-      rx_parameters    (dataframe)       - Pandas dataframe containing reactor core parameters from Mammoth
-      surrogate_models (SurrogateModels) - SurrogateModels class from surrogate_modeling, containes a set of trained surogate mdoels
-      objectives       (list)            - List of the desired objective functions to be examined
-      design_variables (list)            - List of the design variables to be used
-      results_path     (str)             - Path to the desired location for printing results
-      weight           (tuple)           - Weights for the associated objectives, these will be optimized in an attempt to find a solution which resembles physical programming
     """
     def on_init(self):
         super().on_init()

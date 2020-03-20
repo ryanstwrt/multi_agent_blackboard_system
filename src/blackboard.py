@@ -222,6 +222,7 @@ class Blackboard(Agent):
         self._trigger_event += 1
         self._kaar[self._trigger_event] = {}
         self.send(self._pub_trigger_alias, 'publishing trigger')
+        time.sleep(3)
         
     def send_executor(self):
         """Send an executor message to the triggered KA."""
@@ -325,7 +326,9 @@ class Blackboard(Agent):
         """Write to H5 file and sleep while waiting for agents."""
         sleep_time = 0
         if self._new_entry == False:
+#            self.agent_writing = True
             self.write_to_h5()
+#            self.agent_writing = False
         while not self._new_entry:
             time.sleep(1)
             sleep_time += 1
@@ -377,4 +380,5 @@ class Blackboard(Agent):
                         else:
                             group_level[name][data_name] = self.determine_h5_type(data_type, data_val)
                             group_level[name][data_name].attrs['type'] = repr(data_type)
+        self.log_info("Finished writing to archive")
         h5.close()

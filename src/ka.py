@@ -25,9 +25,9 @@ class KaBase(Agent):
             Socket address for the request-reply writer communication between the BB. 
         _writer_alias : str
             Alias for the sockect address in the writer communication for the BB. Given in the form of `write_<name>`.
-        executor_addr : str
+        _executor_addr : str
             Socket address for the push-pull executor communication between the BB. 
-        executor_alias : str
+        _executor_alias : str
             Alias for the sockect address in the executor communication for the BB. Given in the form `executor_<name>`.
         _trigger_response_addr : str
             Socket address for the push-pull trigger communication for the BB.
@@ -51,8 +51,8 @@ class KaBase(Agent):
         self._writer_addr = None
         self._writer_alias = None
         
-        self.executor_addr = None
-        self.executor_alias = None
+        self._executor_addr = None
+        self._executor_alias = None
         
         self._trigger_response_alias = 'trigger_response_{}'.format(self.name)
         self._trigger_response_addr = None
@@ -78,8 +78,8 @@ class KaBase(Agent):
     def connect_executor(self):
         """Create a push-pull communication channel to execute KA."""
         if self.bb:
-            self.executor_alias, self.executor_addr = self.bb.connect_executor(self.name)
-            self.connect(self.executor_addr, alias=self.executor_alias, handler=self.handler_executor)
+            self._executor_alias, self._executor_addr = self.bb.connect_executor(self.name)
+            self.connect(self._executor_addr, alias=self._executor_alias, handler=self.handler_executor)
             self.log_info('Agent {} connected executor to BB'.format(self.name))
         else:
             self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))

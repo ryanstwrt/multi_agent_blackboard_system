@@ -15,8 +15,8 @@ def test_ka_init_agent():
     assert ka_b.get_attr('_entry_name') == None
     assert ka_b.get_attr('_writer_addr') == None
     assert ka_b.get_attr('_writer_alias') == None
-    assert ka_b.get_attr('executor_addr') == None
-    assert ka_b.get_attr('executor_alias') == None
+    assert ka_b.get_attr('_executor_addr') == None
+    assert ka_b.get_attr('_executor_alias') == None
     assert ka_b.get_attr('_trigger_response_addr') == None
     assert ka_b.get_attr('_trigger_response_alias') == 'trigger_response_ka_base'
     assert ka_b.get_attr('_trigger_publish_addr') == None
@@ -46,8 +46,8 @@ def test_connect_executor():
     ka_b.add_blackboard(bb)
     ka_b.connect_executor()
 
-    assert ka_b.get_attr('executor_alias') == 'executor_ka_base'
-    assert bb.get_attr('agent_addrs')['ka_base']['executor'] == (ka_b.get_attr('executor_alias'), ka_b.get_attr('executor_addr'))
+    assert ka_b.get_attr('_executor_alias') == 'executor_ka_base'
+    assert bb.get_attr('agent_addrs')['ka_base']['executor'] == (ka_b.get_attr('_executor_alias'), ka_b.get_attr('_executor_addr'))
     
     ns.shutdown()
     time.sleep(0.2)
@@ -115,15 +115,15 @@ def test_trigger_event():
     
     bb.publish_trigger()
     bb.controller()
-    time.sleep(0.2)
+    time.sleep(0.5)
     assert bb.get_attr('_kaar') == {1: {'ka_base': 0, 'ka_base1': 0, 'ka_base2': 0}}
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     ka_b1.set_attr(_trigger_val=1)
     bb.publish_trigger()
     bb.controller()
-    time.sleep(0.2)
-    assert bb.get_attr('_kaar') == {1: {'ka_base': 0, 'ka_base1': 0, 'ka_base2': 0}, 
-                                             2: {'ka_base': 0, 'ka_base1': 1, 'ka_base2': 0}}
+    time.sleep(0.5)
+    assert bb.get_attr('_kaar') == {1: {'ka_base': 0, 'ka_base1': 0, 'ka_base2': 0},
+                                    2: {'ka_base': 0, 'ka_base1': 1, 'ka_base2': 0}}
     assert bb.get_attr('_ka_to_execute') == ('ka_base1', 1)
     
     ns.shutdown()

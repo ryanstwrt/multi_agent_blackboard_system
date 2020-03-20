@@ -15,9 +15,10 @@ class KaBr(ka.KaBase):
     
     def on_init(self):
         super().on_init()
+        self.bb_lvl_read = 0
         
     def read_bb_lvl(self):
-        raise NotImplementedError
+        pass
 
     def handler_trigger_publish(self, message):
         """Read the BB level that it is qualified to read and determine if an entry is available."""
