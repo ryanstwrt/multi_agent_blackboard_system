@@ -41,6 +41,8 @@ class Blackboard(Agent):
             Alias to be used for the publish-subscribe channel of communication with agents.
         _pub_trigger_addr : str
             Address for the publish-subscribe channel to send to an agent when it connects.
+        _shutdown_alias : str
+            Alias for the shutdown request-reply channel.
     """
     def on_init(self):
         self.agent_addrs = {}
@@ -57,6 +59,8 @@ class Blackboard(Agent):
         self._kaar = {}
         self._pub_trigger_alias = 'trigger'
         self._pub_trigger_addr = self.bind('PUB', alias=self._pub_trigger_alias)
+        self._shutdown_alias = 'shutdown'
+        self._shutdown_addr = self.bind('PUSH', alias=self._shutdown_alias)
         
     def add_abstract_lvl(self, level, entry):
         """
@@ -141,7 +145,25 @@ class Blackboard(Agent):
         self.agent_addrs[agent_name].update({'writer': (alias_name, write_addr)})
         self.log_info('BB connected writer to {}'.format(agent_name))
         return (alias_name, write_addr)
-
+    
+    def connect_shutdown(self, message):
+        """
+        Connects the KA's shutdown communication with the BB
+        
+        Parameters:
+        message : tuple
+            agent_name : str
+                name of the agent connecting
+            addr : str
+                socket addres of the shutdown communication
+            alias : str
+                alias of the socket for shutdown communication
+        """
+        agent_name = message
+        self.agent_addrs[agent_name].update({'shutdown': (self._shutdown_alias, self._shutdown_addr)})
+        return (self._shutdown_alias, self._shutdown_addr)
+        
+        
     def controller(self):
         """Determines which KA to select after a trigger event."""
         self.log_info('Determining which KA to execute')
@@ -149,7 +171,10 @@ class Blackboard(Agent):
         for k,v in self._kaar[self._trigger_event].items():
             if v > self._ka_to_execute[1]:
                 self._ka_to_execute = (k,v)
-
+                
+    def determine_complete(self):
+        pass
+                
     def determine_h5_type(self, data_type, data_val):
         """
         Determines how to place a datatype in an h5 file.

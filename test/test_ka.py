@@ -22,6 +22,8 @@ def test_ka_init_agent():
     assert ka_b.get_attr('_trigger_publish_addr') == None
     assert ka_b.get_attr('_trigger_publish_alias') == None
     assert ka_b.get_attr('_trigger_val') == 0
+    assert ka_b.get_attr('_shutdown_addr') == None
+    assert ka_b.get_attr('_shutdown_alias') == None
     
     ns.shutdown()
     time.sleep(0.2)
@@ -64,6 +66,17 @@ def test_connect_trigger_event():
     assert ka_b.get_attr('_trigger_publish_alias') == 'trigger'
     assert ka_b.get_attr('_trigger_publish_addr') == bb.get_attr('_pub_trigger_addr')
     
+    ns.shutdown()
+    time.sleep(0.2)
+
+def test_connect_shutdown():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_b = run_agent(name='ka_base', base=ka.KaBase)
+    ka_b.add_blackboard(bb)
+    ka_b.connect_shutdown()
+    assert ka_b.get_attr('_shutdown_alias') == 'shutdown'
+    assert bb.get_attr('agent_addrs')['ka_base']['shutdown'] == (ka_b.get_attr('_shutdown_alias'), ka_b.get_attr('_shutdown_addr'))
     ns.shutdown()
     time.sleep(0.2)
     
@@ -128,3 +141,17 @@ def test_trigger_event():
     
     ns.shutdown()
     time.sleep(0.2)
+
+def test_shutdown():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_b = run_agent(name='ka_base', base=ka.KaBase)
+    ka_b.add_blackboard(bb)
+    ka_b.connect_shutdown()
+    assert ns.agents() == ['blackboard', 'ka_base']
+    bb.send('shutdown', 'message')
+    time.sleep(0.1)
+    assert ns.agents() ==['blackboard']
+
+    ns.shutdown()
+    time.sleep(0.2)    

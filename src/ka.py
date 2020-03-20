@@ -38,7 +38,11 @@ class KaBase(Agent):
         _trigger_publish_addr : str
             Socket address for the publish-subscribe trigger communication for the BB.
         _trigger_val : int 
-          Value for the trigger to determine if it will be selected for execution.
+            Value for the trigger to determine if it will be selected for execution.
+        _shutdown_addr : str
+            Socket address for the request-reply shutdown communication between the BB.
+        _shutdown_alias : str
+            Alias for the socket address in the shutdown communication. Takes the form `shutdown`.
 """
 
     def on_init(self):
@@ -59,6 +63,9 @@ class KaBase(Agent):
         self._trigger_publish_alias = None
         self._trigger_publish_addr = None
         self._trigger_val = 0
+        
+        self._shutdown_addr = None
+        self._shutdown_alias = None
         
     def add_blackboard(self, blackboard):
         """
@@ -94,6 +101,8 @@ class KaBase(Agent):
             self._trigger_response_addr = self.bind('PUSH', alias=self._trigger_response_alias)
             self._trigger_publish_alias, self._trigger_publish_addr = self.bb.connect_trigger((self.name, self._trigger_response_addr, self._trigger_response_alias))
             self.connect(self._trigger_publish_addr, alias=self._trigger_publish_alias, handler=self.handler_trigger_publish)
+        else:
+            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
 
     def connect_writer(self):
         """Create a reply-request communication channel for KA to write to BB."""
@@ -102,8 +111,21 @@ class KaBase(Agent):
             self.connect(self._writer_addr, alias=self._writer_alias)
             self.log_info('Agent {} connected writer to BB'.format(self.name))
         else:
-            self.log_warning('Warning: Agent {} not connected to blackbaord agent'.format(self.name))
+            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
+            
+    def connect_shutdown(self):
+        """Creates a reply-requst communication channel for the KA to be shutdown by the BB"""
+        if self.bb:
+            self._shutdown_alias, self._shutdown_addr = self.bb.connect_shutdown(self.name)
+            self.connect(self._shutdown_addr, alias=self._shutdown_alias, handler=self.handler_shutdown)
+            self.log_info('Agent {} connected shutdown to BB'.format(self.name))
+        else:
+            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
 
+    def handler_shutdown(self, message):
+        self.log_info('Agent {} shutting down'.format(self.name))
+        self.shutdown()
+            
     def handler_executor(self, message):
         raise NotImplementedError
 

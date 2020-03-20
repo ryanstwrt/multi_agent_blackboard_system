@@ -70,6 +70,27 @@ def test_connect_trigger_agent():
 
     ns.shutdown()
     time.sleep(0.1)    
+
+def test_connect_shutdown():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.set_attr(agent_addrs={'test':{}})
+    bb.connect_shutdown('test')
+    assert bb.get_attr('agent_addrs')['test']['shutdown'][0] == 'shutdown'
+
+    ns.shutdown()
+    time.sleep(0.1) 
+    
+def test_connect_shutdown_agent():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_b = run_agent(name='ka', base=ka.KaBase)
+    ka_b.add_blackboard(bb)    
+    ka_b.connect_shutdown()
+    assert bb.get_attr('agent_addrs')['ka']['shutdown'][0] == 'shutdown'
+
+    ns.shutdown()
+    time.sleep(0.1) 
     
 def test_connect_writer():
     ns = run_nameserver()
