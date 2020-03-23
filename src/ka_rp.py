@@ -31,20 +31,17 @@ class KaRp_verify(KaRp):
       surrogate_models (SurrogateModels) - SurrogateModels class from surrogate_modeling, containes a set of trained surogate mdoels
       objectives       (list)            - List of the desired objective functions to be examined
       design_variables (list)            - List of the design variables to be used
-      results_path     (str)             - Path to the desired location for printing results
-      weight           (tuple)           - Weights for the associated objectives, these will be optimized in an attempt to find a solution which resembles physical programming
     """
 
     def on_init(self):
         super().on_init()
         self.design_variables = {}
         self.objective_functions = {}
-        self.results_path = None
         self.interpolator_dict = {}
+        self.interp_path = None
         self.bb_lvl = 2
         self.objectives = ['keff', 'void_coeff', 'doppler_coeff']
         self.independent_variable_ranges = OrderedDict({'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
-        self.create_interpolator()
 
     def handler_executor(self, message):
         """Execution handler for KA-RP.
@@ -55,7 +52,7 @@ class KaRp_verify(KaRp):
         self.calc_core_params()
         self.write_to_bb()
     
-    def determine_design_variables(self, recursions=1):
+    def determine_design_variables(self):
         """Determine the core design variables using either a surrogate model, or random assignment."""
         for param, ranges in self.independent_variable_ranges.items():
             self.design_variables[param] = round(random.random() * (ranges[1] - ranges[0]) + ranges[0],2)
@@ -74,7 +71,7 @@ class KaRp_verify(KaRp):
     def create_interpolator(self):
         """Build the linear interpolator for estimating between known datapoints.
         This uses scipy's LinearNDInterpolator, where we create a unique interpolator for each objective function"""
-        design_var, objective_func = dbr.reshape_database(r'../test/sfr_db_new.h5', [x for x in self.independent_variable_ranges.keys()], self.objectives)
+        design_var, objective_func = dbr.reshape_database(r'{}/sfr_db_new.h5'.format(self.interp_path), [x for x in self.independent_variable_ranges.keys()], self.objectives)
         design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
         for num, objective in enumerate(self.objectives):
             self.interpolator_dict[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])

@@ -24,6 +24,9 @@ def test_kabr_init():
     assert ka_b.get_attr('_trigger_publish_addr') == None
     assert ka_b.get_attr('_trigger_publish_alias') == None
     assert ka_b.get_attr('_trigger_val') == 0
+    assert ka_b.get_attr('_shutdown_addr') == None
+    assert ka_b.get_attr('_shutdown_alias') == None
+
     
     ns.shutdown()
     time.sleep(0.2)
@@ -46,6 +49,9 @@ def test_kabr_lvl2_init():
     assert ka_br2.get_attr('_trigger_val') == 0
     assert ka_br2.get_attr('bb_lvl_read') == 2
     assert ka_br2.get_attr('desired_results') == None
+    assert ka_br2.get_attr('_shutdown_addr') == None
+    assert ka_br2.get_attr('_shutdown_alias') == None
+
     
     ns.shutdown()
     time.sleep(0.2)

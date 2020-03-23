@@ -184,7 +184,7 @@ class Blackboard(Agent):
         data_type : class
             Class of data type.
         data_val : data_type
-            Data in the form of data_type, get's manipulated to enter H5 file.
+            Transforms the class of data into a useable formato for H5.
         """
         if data_type == str:
             return [np.string_(data_val)]
@@ -247,7 +247,7 @@ class Blackboard(Agent):
         self._trigger_event += 1
         self._kaar[self._trigger_event] = {}
         self.send(self._pub_trigger_alias, 'publishing trigger')
-        time.sleep(3)
+        time.sleep(2)
         
     def send_executor(self):
         """Send an executor message to the triggered KA."""
@@ -264,7 +264,7 @@ class Blackboard(Agent):
     def get_data_types(self, entry_data):
         """
         Determine the data types required for each H5 dataset.
-        This is done by checking the attributes for each dataset and converting the string to a class via the str_to_data_types
+        This is done by checking the attributes for each dataset and converting the string to a class via `str_to_data_types`.
         """
         data_names = [x for x in entry_data.keys()]
         data_types = [self.str_to_data_types(x.attrs.get('type')) for x in entry_data.values()]
