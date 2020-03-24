@@ -170,7 +170,7 @@ class Blackboard(Agent):
         self._ka_to_execute = (None, 0)
         for k,v in self._kaar[self._trigger_event].items():
             if v > self._ka_to_execute[1]:
-                self._ka_to_execute = (k,v)
+                self._ka_to_execute = (k,v)                
                 
     def determine_complete(self):
         pass
@@ -202,6 +202,29 @@ class Blackboard(Agent):
         """Update _agent_writing to False when agent is finished writing"""
         self._agent_writing = False
         
+    def get_data_types(self, entry_data):
+        """
+        Determine the data types required for each H5 dataset.
+        This is done by checking the attributes for each dataset and converting the string to a class via `str_to_data_types`.
+        """
+        data_names = [x for x in entry_data.keys()]
+        data_types = [self.str_to_data_types(x.attrs.get('type')) for x in entry_data.values()]
+        data_dict = {data_names[i]: data_types[i] for i in range(len(data_names))}
+        return data_dict
+         
+    def load_dataset(self, data_name, data, data_dict):
+        """Load the H5 data sets to their appropriate format for the blackboard"""
+        if data_dict[data_name] == list:
+            return data_dict[data_name](data)
+        elif data_dict[data_name] == dict:
+            sub_data_dict = self.get_data_types(data)
+            sub_dataset = {d_names: self.load_dataset(d_names, d, sub_data_dict) for d_names, d in data.items()}
+            return sub_dataset
+        elif data_dict[data_name] == str:
+            return data[0].decode('UTF-8')
+        else:
+            return data_dict[data_name](data[0])
+
     def handler_trigger_response(self, message):
         """
         Handler for KAs trigger response, stores all responses in `trigger_evemts`.
@@ -242,48 +265,6 @@ class Blackboard(Agent):
             self.log_info('Agent {} waiting to write'.format(agent_name))
             return False
 
-    def publish_trigger(self):
-        """Send a trigger event to all KAs."""
-        self._trigger_event += 1
-        self._kaar[self._trigger_event] = {}
-        self.send(self._pub_trigger_alias, 'publishing trigger')
-        time.sleep(2)
-        
-    def send_executor(self):
-        """Send an executor message to the triggered KA."""
-        self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], self._ka_to_execute[1], self._trigger_event))
-        self.send('executor_{}'.format(self._ka_to_execute[0]), self._ka_to_execute)
-
-    def str_to_data_types(self, string):
-        """Convert a string to the appropriate data type class"""
-        split_str = string.split(' ')
-        re_str = re.findall('[a-z]', split_str[1])
-        join_str = ''.join(re_str)
-        return eval(join_str)
-    
-    def get_data_types(self, entry_data):
-        """
-        Determine the data types required for each H5 dataset.
-        This is done by checking the attributes for each dataset and converting the string to a class via `str_to_data_types`.
-        """
-        data_names = [x for x in entry_data.keys()]
-        data_types = [self.str_to_data_types(x.attrs.get('type')) for x in entry_data.values()]
-        data_dict = {data_names[i]: data_types[i] for i in range(len(data_names))}
-        return data_dict
-         
-    def load_dataset(self, data_name, data, data_dict):
-        """Load the H5 data sets to their appropriate format for the blackboard"""
-        if data_dict[data_name] == list:
-            return data_dict[data_name](data)
-        elif data_dict[data_name] == dict:
-            sub_data_dict = self.get_data_types(data)
-            sub_dataset = {d_names: self.load_dataset(d_names, d, sub_data_dict) for d_names, d in data.items()}
-            return sub_dataset
-        elif data_dict[data_name] == str:
-            return data[0].decode('UTF-8')
-        else:
-            return data_dict[data_name](data[0])
-        
     def load_h5(self):
         """Load an H5 archive of the blackboard"""
         self.log_info("Loading H5 archive: {}".format(self.archive_name))
@@ -300,6 +281,13 @@ class Blackboard(Agent):
                 temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}    
                 self.update_abstract_lvl(int(level.split(' ')[1]), entry_name, temp_dict)
         h5.close()
+        
+    def publish_trigger(self):
+        """Send a trigger event to all KAs."""
+        self._trigger_event += 1
+        self._kaar[self._trigger_event] = {}
+        self.send(self._pub_trigger_alias, 'publishing trigger')
+        time.sleep(3)
 
     def remove_bb_entry(self, level, name):
         """
@@ -316,6 +304,21 @@ class Blackboard(Agent):
         self.log_debug('Removing entry {} from BB abstract level {}.'.format(name, level))
         self.finish_writing_to_bb()
         
+    def send_executor(self):
+        """Send an executor message to the triggered KA."""
+        if self._ka_to_execute != (None, 0):
+            self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], self._ka_to_execute[1], self._trigger_event))
+            self.send('executor_{}'.format(self._ka_to_execute[0]), self._ka_to_execute)
+        else:
+            self.log_info('No KA to execute, waiting to sends trigger again.')
+            
+    def str_to_data_types(self, string):
+        """Convert a string to the appropriate data type class"""
+        split_str = string.split(' ')
+        re_str = re.findall('[a-z]', split_str[1])
+        join_str = ''.join(re_str)
+        return eval(join_str)
+            
     def update_abstract_lvl(self, level, name, entry):
         """
         Update an abstract level with a new entry
@@ -350,10 +353,8 @@ class Blackboard(Agent):
     def wait_for_ka(self):
         """Write to H5 file and sleep while waiting for agents."""
         sleep_time = 0
-        if self._new_entry == False:
-#            self.agent_writing = True
+        if self._new_entry == False and len(self._kaar) % 10 == 0:
             self.write_to_h5()
-#            self.agent_writing = False
         while not self._new_entry:
             time.sleep(1)
             sleep_time += 1
@@ -386,6 +387,7 @@ class Blackboard(Agent):
         self.log_info("Writing blackboard to archive")
         h5 = h5py.File(self.archive_name, 'r+')
         for level, entry in self.abstract_lvls.items():
+            time.sleep(2)
             group_level = h5[level]
             for name, data in entry.items():
                 if name in group_level.keys():

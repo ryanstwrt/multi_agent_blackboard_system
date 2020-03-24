@@ -6,7 +6,7 @@ import scipy.interpolate
 import db_reshape as dbr
 from collections import OrderedDict
 import ka
-
+import time
 
 class KaRp(ka.KaBase):
     """
