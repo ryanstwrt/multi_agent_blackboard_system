@@ -1,11 +1,11 @@
-# Multi-Agent Blackboard System (MABS)
+# Multi-Agent Blackboard System
 
-The MABS architecture is used for performing multi-objective optimization for experimental placement in a prototypical test reactor.
-Individual agents run high-fidelity simulations to determine reactor parameters, and write this information to the blackboard.
-The blackboard is used to store information and partial solutions to determine a maximum number of experimental assemblies that can be placed in a core.
-There are four abstraction levels to the blackboard, which stores information gleaned from high-fidelity solutions.
-The first level of abstraction contains solutions on the Pareto Front and the number of experiments.
-The second level contains basic information from the high-fidelity solutions such as the number of experiments and if the solution produces a valid core.
-The third level holds the raw data obtained from high-fidelity solutions in a Pandas Dataframe for ease and searchability.
-The fourth level hlds the cross-section sets that are used for the high-fidelity solutions.
-A H5 database will also hold the third and fourth levels information to prevent any loss of data should a failure in the MABS system be encountered.
+The multi-agent blackboard system (MABS) is a general use blackboard framework, which employs the use of multiple agents.
+Multiple agents are allowed to exist and operate concurrently using osBrain [1].
+The MABS has a skeletal framework that introduces the basic components for the blackboard and knowledge agents.
+Users can leverage these components and build a blackboard system which is able to accommodate their needs.
+
+This repository is currently under construction. 
+Check back for more information when the final framework is ready.
+
+[1] osBrain v0.6.5, (2019), GitHub repository, https://github.com/opensistemas-hub/osbrain.
