@@ -59,8 +59,6 @@ class Blackboard(Agent):
         self._kaar = {}
         self._pub_trigger_alias = 'trigger'
         self._pub_trigger_addr = self.bind('PUB', alias=self._pub_trigger_alias)
-        self._shutdown_alias = 'shutdown'
-        self._shutdown_addr = self.bind('PUSH', alias=self._shutdown_alias)
         
     def add_abstract_lvl(self, level, entry):
         """
@@ -97,6 +95,10 @@ class Blackboard(Agent):
         executor_addr = self.bind('PUSH', alias=alias_name)
         self.agent_addrs[agent_name].update({'executor': (alias_name, executor_addr)})
         return (alias_name, executor_addr)
+    
+    def connect_ka(self, agent_type, agent_alias):
+        """Connect a KA to the blackboard"""
+        pass
         
     def connect_trigger(self, message):
         """
@@ -143,26 +145,27 @@ class Blackboard(Agent):
         alias_name = 'writer_{}'.format(agent_name)
         write_addr = self.bind('REP', alias=alias_name, handler=self.handler_writer)
         self.agent_addrs[agent_name].update({'writer': (alias_name, write_addr)})
-        self.log_info('BB connected writer to {}'.format(agent_name))
         return (alias_name, write_addr)
     
-    def connect_shutdown(self, message):
+    def connect_shutdown(self, agent_name):
         """
         Connects the KA's shutdown communication with the BB
         
         Parameters:
-        message : tuple
-            agent_name : str
-                name of the agent connecting
-            addr : str
-                socket addres of the shutdown communication
-            alias : str
-                alias of the socket for shutdown communication
+        message : str
+            Alias of the agent connecting
+            
+        Returns
+        -------
+        alias_name : str
+            Alias of the shutdown line of communication.
+        alias_addr : str
+            Address for the KA to connect to for shutdown communication.
         """
-        agent_name = message
-        self.agent_addrs[agent_name].update({'shutdown': (self._shutdown_alias, self._shutdown_addr)})
-        return (self._shutdown_alias, self._shutdown_addr)
-        
+        alias_name = 'shutdown_{}'.format(agent_name)
+        shutdown_addr = self.bind('PUSH', alias=alias_name)        
+        self.agent_addrs[agent_name].update({'shutdown': (alias_name, shutdown_addr)})
+        return (alias_name, shutdown_addr)
         
     def controller(self):
         """Determines which KA to select after a trigger event."""
