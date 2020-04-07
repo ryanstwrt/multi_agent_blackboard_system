@@ -75,7 +75,7 @@ def test_connect_shutdown():
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.add_blackboard(bb)
     ka_b.connect_shutdown()
-    assert ka_b.get_attr('_shutdown_alias') == 'shutdown'
+    assert ka_b.get_attr('_shutdown_alias') == 'shutdown_ka_base'
     assert bb.get_attr('agent_addrs')['ka_base']['shutdown'] == (ka_b.get_attr('_shutdown_alias'), ka_b.get_attr('_shutdown_addr'))
     ns.shutdown()
     time.sleep(0.2)
@@ -149,7 +149,7 @@ def test_shutdown():
     ka_b.add_blackboard(bb)
     ka_b.connect_shutdown()
     assert ns.agents() == ['blackboard', 'ka_base']
-    bb.send('shutdown', 'message')
+    bb.send('shutdown_ka_base', 'message')
     time.sleep(0.1)
     assert ns.agents() ==['blackboard']
 

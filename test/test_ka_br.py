@@ -3,7 +3,6 @@ from osbrain import run_nameserver
 from osbrain import run_agent
 import blackboard
 import ka
-import pandas as pd
 import time
 import os
 import ka_br

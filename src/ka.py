@@ -87,7 +87,7 @@ class KaBase(Agent):
         if self.bb:
             self._executor_alias, self._executor_addr = self.bb.connect_executor(self.name)
             self.connect(self._executor_addr, alias=self._executor_alias, handler=self.handler_executor)
-            self.log_info('Agent {} connected executor to BB'.format(self.name))
+            self.log_debug('Agent {} connected executor to BB'.format(self.name))
         else:
             self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
 
@@ -109,7 +109,7 @@ class KaBase(Agent):
         if self.bb:
             self._writer_alias, self._writer_addr = self.bb.connect_writer(self.name)
             self.connect(self._writer_addr, alias=self._writer_alias)
-            self.log_info('Agent {} connected writer to BB'.format(self.name))
+            self.log_debug('Agent {} connected writer to BB'.format(self.name))
         else:
             self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
             
@@ -118,7 +118,7 @@ class KaBase(Agent):
         if self.bb:
             self._shutdown_alias, self._shutdown_addr = self.bb.connect_shutdown(self.name)
             self.connect(self._shutdown_addr, alias=self._shutdown_alias, handler=self.handler_shutdown)
-            self.log_info('Agent {} connected shutdown to BB'.format(self.name))
+            self.log_debug('Agent {} connected shutdown to BB'.format(self.name))
         else:
             self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
 
