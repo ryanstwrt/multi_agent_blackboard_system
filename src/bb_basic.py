@@ -46,6 +46,6 @@ class BbTraditional(blackboard.Blackboard):
     
     def wait_for_ka(self):
         """Write to H5 file and sleep while waiting for agents."""
-        sleep_time = 0
-        self.write_to_h5()
+        if self._new_entry == False and len(self._kaar) % 10 == 0:
+            self.write_to_h5()
         self.determine_complete()
