@@ -17,17 +17,13 @@ class KaBr(ka.KaBase):
         super().on_init()
         self.bb_lvl_read = 0
     
+    def clear_entry(self):
+        """Clear the KA entry"""
+        self._entry = None
+        self._entry_name = None
+        
     def determine_validity(self):
         pass
-    
-    def read_bb_lvl(self):
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-        lvl3 = self.bb.get_attr('abstract_lvls')['level 3']
-        for core_name in lvl.keys():
-            valid = self.determine_validity(lvl3[core_name]['reactor parameters'])
-            if valid:
-                self.add_entry(core_name)
-                return True
 
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
@@ -40,12 +36,64 @@ class KaBr(ka.KaBase):
         self._trigger_val = 10 if new_entry else 0
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
-    
-    def clear_entry(self):
-        """Clear the KA entry"""
-        self._entry = None
-        self._entry_name = None
+
+    def read_bb_lvl(self):
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        lvl3 = self.bb.get_attr('abstract_lvls')['level 3']
+        for core_name in lvl.keys():
+            valid = self.determine_validity(lvl3[core_name]['reactor parameters'])
+            if valid[0]:
+                self.add_entry((core_name,valid[1]))
+                return True
         
+class KaBr_lvl2(KaBr):
+    """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
+    def on_init(self):
+        super().on_init()
+        self.bb_lvl = 1
+        self.bb_lvl_read = 2
+        self.desired_results = None
+        
+    def add_entry(self, core_name):
+        self._entry_name = core_name[0]
+        self._entry = {'pareto': core_name[1]}
+        
+    def determine_validity(self, rx_params):
+        """Determine if the core is pareto optimal"""
+        lvl_1 = self.bb.get_attr('abstract_lvls')['level 1']
+        lvl_3 = self.bb.get_attr('abstract_lvls')['level 3']
+        
+        for opt_core in lvl_1.keys():
+            opt_params = lvl_3[opt_core]['reactor parameters']
+            pareto_opt = self.determine_optimal_type(rx_params, opt_params)
+            if pareto_opt == None:
+                return (False, pareto_opt)
+            else:
+                return (True, pareto_opt)
+
+    def determine_optimal_type(self, new_rx, opt_rx):
+        """Determine if the solution is Pareto, weak, or not optimal"""
+        optimal = 0
+        for param, value in new_rx.items():
+            if value < opt_rx[param]:
+                optimal += 1
+        if optimal == len(opt_rx.keys()):
+            return 'pareto'
+        elif optimal > 0:
+            return 'weak'
+        else:
+            return None
+    
+    def remove_entry():
+        """Remove an entry that has been dominated."""
+        pass
+    
+    def handler_executor(self, message):
+        self.log_debug('Executing agent {}'.format(self.name)) 
+        self.write_to_bb()
+        self.remove_entry()
+        self.clear_etry()
+                
 
 class KaBr_lvl3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
@@ -61,42 +109,14 @@ class KaBr_lvl3(KaBr):
         for param_name, param_range in self.desired_results.items():            
             param = rx_params[param_name]
             if param < param_range[0] or param > param_range[1]:
-                return False
-        return True
+                return (False, None)
+        return (True, None)
     
     def add_entry(self, core_name):
-        self._entry_name = core_name
+        self._entry_name = core_name[0]
         self._entry = {'valid': True}
         
-class KaBr_lvl2(KaBr):
-    """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
-    def on_init(self):
-        super().on_init()
-        self.bb_lvl = 1
-        self.bb_lvl_read = 2
-        self.desired_results = None
-        self.valid_results = []
-        
-    def determine_validity(self, rx_params):
-        """Determine if the core is pareto optimal"""
-        lvl_2 = self.bb.get_attr('abstract_lvls')['level 2']
-        
-        for opt_core, entry in lvl_2.items():
-            opt_params = entry['reactor parameters']
-            pareto_opt = self.determine_pareto_optimal()
-            if pareto_opt != None:
-                self._entry_name = opt_core
-                self._entry = {'pareto': pareto_opt}
-
-    def determine_optimal_type(self):
-        """Determine if the solution is Pareto, weak, or not optimal"""
-        pass
-    
-    def handler_executor(self, message):
-        self.log_debug('Executing agent {}'.format(self.name)) 
-        self.write_to_bb()
-                
-   
+            
 class KaBr_verify(KaBr):
     """Reads `level 2` to verify the components of the MABS are working correctly.
     
