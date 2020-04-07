@@ -190,9 +190,9 @@ def test_kabr_lvl3_determine_validity():
     
     ka_br_lvl2.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
     bool_ = ka_br_lvl2.determine_validity({'keff': 1.1, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4})
-    assert bool_ == True
+    assert bool_ == (True, None)
     bool_ = ka_br_lvl2.determine_validity({'keff': 0.9, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4})
-    assert bool_ == False
+    assert bool_ == (False, None)
 
     ns.shutdown()
     time.sleep(0.2)
@@ -250,7 +250,7 @@ def test_kabr_lvl3_add_entry():
     ns = run_nameserver()
     ka_br_lvl3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
 
-    ka_br_lvl3.add_entry('core_1')
+    ka_br_lvl3.add_entry(('core_1', None))
     
     assert ka_br_lvl3.get_attr('_entry') == {'valid': True}
     assert ka_br_lvl3.get_attr('_entry_name') == 'core_1'
