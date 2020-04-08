@@ -105,12 +105,12 @@ def test_kabr_verify_determine_valid_core():
 def test_kabr_verify_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_verify)
-    ka_br_lvl2.add_blackboard(bb)
-    ka_br_lvl2.connect_writer()
-    ka_br_lvl2.connect_executor()
+    ka_br_verify = run_agent(name='ka_br', base=ka_br.KaBr_verify)
+    ka_br_verify.add_blackboard(bb)
+    ka_br_verify.connect_writer()
+    ka_br_verify.connect_executor()
     
-    ka_br_lvl2.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
+    ka_br_verify.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
     
     bb.add_abstract_lvl(1, {'valid': bool})
     bb.add_abstract_lvl(2, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}})

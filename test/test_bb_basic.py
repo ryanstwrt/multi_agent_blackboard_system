@@ -86,3 +86,12 @@ def test_wait_for_ka():
     assert bb.get_attr('_complete') == True
     ns.shutdown()
     time.sleep(0.1)
+    
+def test_BbSFROpt_add_panel():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_basic.BbTraditional)
+
+    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
+
+    ns.shutdown()
+    time.sleep(0.1)
