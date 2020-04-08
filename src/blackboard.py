@@ -320,6 +320,7 @@ class Blackboard(Agent):
         split_str = string.split(' ')
         re_str = re.findall('[a-z]', split_str[1])
         join_str = ''.join(re_str)
+        print(join_str, string)
         return eval(join_str)
             
     def update_abstract_lvl(self, level, name, entry):
@@ -350,7 +351,10 @@ class Blackboard(Agent):
                 self.abstract_lvls_format[lvl_name].values()))
                 self.finish_writing_to_bb()
                 return
+        #if not panel:
         abstract_lvl[name] = entry
+        #else:
+        #abstract_lvl[panel][name] = entry
         self.finish_writing_to_bb()
         
     def wait_for_ka(self):
@@ -400,11 +404,7 @@ class Blackboard(Agent):
                     for data_name, data_val in data.items():
                         data_type = type(data_val)
                         if data_type == dict:
-                            group_level[name].create_group(data_name)
-                            group_level[name][data_name].attrs['type'] = repr(data_type)
-                            for k,v in data_val.items():
-                                group_level[name][data_name][k] = self.determine_h5_type(type(v), v)
-                                group_level[name][data_name][k].attrs['type'] = repr(type(v))
+                            self.dict_writer(data_name, data_val, group_level[name])
                         elif None:
                             pass
                         else:
@@ -412,3 +412,15 @@ class Blackboard(Agent):
                             group_level[name][data_name].attrs['type'] = repr(data_type)
         self.log_info("Finished writing to archive")
         h5.close()
+        
+    def dict_writer(self, data_name, data_dict, group_level):
+        group_level.create_group(data_name)
+        group_level[data_name].attrs['type'] = repr(type(data_dict))
+        for k,v in data_dict.items():
+            if type(v) == dict:
+                self.dict_writer(k, v, group_level[data_name][k])
+            elif None:
+                pass
+            else:
+                group_level[data_name][k] = self.determine_h5_type(type(v), v)
+                group_level[data_name][k].attrs['type'] = repr(type(v))

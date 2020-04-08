@@ -49,3 +49,37 @@ class BbTraditional(blackboard.Blackboard):
         if self._new_entry == False and len(self._kaar) % 10 == 0:
             self.write_to_h5()
         self.determine_complete()
+        
+class BbSfrOpt(BbTraditional):
+    
+    def on_init(self):
+        super().on_init()
+    
+    def connect_agent(self, agetn_type, agent_alias):
+        """Connect a KA to the BB"""
+        if agent_type == 'rp_explore':
+            pass
+        elif agent_type == 'rp_exploit':
+            pass
+        elif agent_type == 'br_lvl3':
+            ka = run_agent(name=agent_alias, base=KABR.KaBr_lvl3)
+            ka.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 1.0)})
+        elif agent_type == 'br_lvl2':
+            ka = run_agent(name=agent_alias, base=KABR.KaBr_lvl2)
+            ka.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
+        else:
+            self.log_info('Agent type ({}) does not match a known agent type.'.format(agent_type))
+            return
+        ka.add_blackboard(self)
+        ka.connect_writer()
+        ka.connect_trigger()
+        ka.connect_executor()
+        ka.connect_shutdown()
+        self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
+        
+    def add_panel(self, level, panels):
+        """Split a blackbaord abstract level into multiple panels"""        
+        lvl = {panel_name : {} for panel_name in panels}
+        self.abstract_lvls['level {}'.format(level)] = lvl
+
+    
