@@ -411,9 +411,13 @@ def test_load_h5():
     bb.add_abstract_lvl(1, {'entry 1': tuple, 'entry 2': bool})
     bb.add_abstract_lvl(2, {'entry 1': int, 'entry 2': float})
     bb.add_abstract_lvl(3, {'entry 1': {'test_1': tuple, 'test_2': float, 'test_3': int}, 'entry 2': str, 'entry 3': list})
-    bb.update_abstract_lvl(1, 'core_2', {'entry 1': (1,1,0), 'entry 2': True})
+    bb.add_abstract_lvl(4, {'entry 1': {'test 1': {'nested_test': int}}})
+    
+    bb.update_abstract_lvl(1, 'core_1', {'entry 1': (1,1,0), 'entry 2': True})
     bb.update_abstract_lvl(2, 'core_2', {'entry 1': 1, 'entry 2': 1.2})
-    bb.update_abstract_lvl(3, 'core_2', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1,2,3]})
+    bb.update_abstract_lvl(3, 'core_3', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1,2,3]})
+    bb.update_abstract_lvl(4, 'core_4', {'entry 1': {'test 1': {'nested_test': 3}}})
+    
     time.sleep(0.1)
     bb.write_to_h5()
     time.sleep(1)
