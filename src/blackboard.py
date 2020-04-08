@@ -200,7 +200,34 @@ class Blackboard(Agent):
         else:
             self.log_warning('Data {} was not a recongnized data type ({}), please add statment requiring how to store it.'.format(data_name, data_type))
             return None
-    
+
+    def dict_writer(self, data_name, data_dict, group_level):
+        """
+        Recursively write dictionary results to the H5 file.
+        
+        Parameters:
+        data_name : str
+            name of the H5 group
+        data_dict : dict
+            dictionary of data that will be written to the H5 file
+        group_level : HDF group
+            group that will be accessed for placing the data from the dictionary
+        """
+        group_level.create_group(data_name)
+        group_level[data_name].attrs['type'] = repr(type(data_dict))
+        print(group_level)
+        for k,v in data_dict.items():
+            if type(v) == dict:
+                print('Inner dict')
+                #print(group_level[data_name])
+                print(k, v)
+                self.dict_writer(k, v, group_level[data_name])
+            elif None:
+                pass
+            else:
+                group_level[data_name][k] = self.determine_h5_type(type(v), v)
+                group_level[data_name][k].attrs['type'] = repr(type(v))
+        
     def finish_writing_to_bb(self):
         """Update _agent_writing to False when agent is finished writing"""
         self._agent_writing = False
@@ -320,10 +347,18 @@ class Blackboard(Agent):
         split_str = string.split(' ')
         re_str = re.findall('[a-z]', split_str[1])
         join_str = ''.join(re_str)
-        print(join_str, string)
         return eval(join_str)
+    
+    def recursive_dict(self, dict_):
+        a = {}
+        for x,y in dict_.items():
+            if type(y) == dict:
+                a[x] = self.recursive_dict(y)
+            else:
+                a[x] = type(y)
+        return a
             
-    def update_abstract_lvl(self, level, name, entry):
+    def update_abstract_lvl(self, level, name, entry, panel=None):
         """
         Update an abstract level with a new entry
         
@@ -340,21 +375,20 @@ class Blackboard(Agent):
         for entry_name, entry_type in entry.items():
             try:
                 assert entry_name in self.abstract_lvls_format[lvl_name].keys()
-                if type(entry_type) == dict:
-                    a = {x: type(y) for x,y in entry_type.items()}
-                    assert a == self.abstract_lvls_format[lvl_name][entry_name]
+                if type(entry_type) == dict:                        
+                    a = self.recursive_dict(entry_type)
                 else:
                     assert type(entry_type) == self.abstract_lvls_format[lvl_name][entry_name]
             except AssertionError:
-                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys {}\n with value types {}.\n Entry was not added.'.format(name, level, entry.keys(), entry.values(), 
+                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys: {}\n with value types: {}.\n Entry was not added.'.format(name, level, entry.keys(), entry.values(), 
                 self.abstract_lvls_format[lvl_name].keys(),
                 self.abstract_lvls_format[lvl_name].values()))
                 self.finish_writing_to_bb()
                 return
-        #if not panel:
-        abstract_lvl[name] = entry
-        #else:
-        #abstract_lvl[panel][name] = entry
+        if not panel:
+            abstract_lvl[name] = entry
+        else:
+            abstract_lvl[panel][name] = entry
         self.finish_writing_to_bb()
         
     def wait_for_ka(self):
@@ -413,14 +447,3 @@ class Blackboard(Agent):
         self.log_info("Finished writing to archive")
         h5.close()
         
-    def dict_writer(self, data_name, data_dict, group_level):
-        group_level.create_group(data_name)
-        group_level[data_name].attrs['type'] = repr(type(data_dict))
-        for k,v in data_dict.items():
-            if type(v) == dict:
-                self.dict_writer(k, v, group_level[data_name][k])
-            elif None:
-                pass
-            else:
-                group_level[data_name][k] = self.determine_h5_type(type(v), v)
-                group_level[data_name][k].attrs['type'] = repr(type(v))

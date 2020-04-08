@@ -87,11 +87,14 @@ def test_wait_for_ka():
     ns.shutdown()
     time.sleep(0.1)
     
-def test_BbSFROpt_add_panel():
+def test_BbSfrOpt_add_panel():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbTraditional)
+    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
 
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
+    bb.add_panel(1, ['new', 'old'])
+    print(bb.get_attr('abstract_lvls'))
 
     ns.shutdown()
+    assert 1 > 2
     time.sleep(0.1)
