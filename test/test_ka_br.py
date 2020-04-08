@@ -154,8 +154,71 @@ def test_kabr_lvl2_init():
     
     ns.shutdown()
     time.sleep(0.2)
-    
 
+def test_kabr_lvl2_add_entry():
+    ns = run_nameserver()
+    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
+
+    ka_br_lvl2.add_entry(('core_1', 'pareto'))
+    
+    assert ka_br_lvl2.get_attr('_entry') == {'pareto type': 'pareto'}
+    assert ka_br_lvl2.get_attr('_entry_name') == 'core_1'
+    
+    ns.shutdown()
+    time.sleep(0.2) 
+    
+def test_kabr_lvl2_determine_validity():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
+    ka_br_lvl2.add_blackboard(bb)
+    ka_br_lvl2.connect_writer()
+    ka_br_lvl2.connect_executor()
+    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
+    
+    bb.add_abstract_lvl(1, {'pareto type': str})
+    bb.add_abstract_lvl(2, {'valid': bool})
+    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float}})
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.05, 'void_coeff': -150.0}})
+    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.05, 'void_coeff': -160.0}})
+
+    bb.update_abstract_lvl(2, 'core_1', {'valid': True})
+    bol, p_type = ka_br_lvl2.determine_validity('core_1')
+    assert p_type == 'pareto'
+    assert bol == True
+
+    bb.update_abstract_lvl(1, 'core_1', {'pareto type': 'pareto'})
+    bol, p_type = ka_br_lvl2.determine_validity('core_2')
+    assert p_type == 'weak'
+    assert bol == True
+
+    ns.shutdown()
+    time.sleep(0.2) 
+
+def test_kabr_lvl2_determine_optimal_type():
+    ns = run_nameserver()
+    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
+    
+    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'doppler_coeff': 'lt', 'pu_content': 'lt'})
+    
+    bool_ = ka_br_lvl2.determine_optimal_type(
+        {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4}, 
+        {'keff': 1.05, 'void_coeff': -120, 'doppler_coeff': -0.65, 'pu_content': 0.6})
+    assert bool_ == 'pareto'
+    
+    bool_ = ka_br_lvl2.determine_optimal_type(
+        {'keff': 1.02, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4}, 
+        {'keff': 1.05, 'void_coeff': -120, 'doppler_coeff': -0.65, 'pu_content': 0.6})
+    assert bool_ == 'weak'
+    
+    bool_ = ka_br_lvl2.determine_optimal_type(
+        {'keff': 1.02, 'void_coeff': -110, 'doppler_coeff': -0.55, 'pu_content': 0.7}, 
+        {'keff': 1.05, 'void_coeff': -120, 'doppler_coeff': -0.65, 'pu_content': 0.6})
+    assert bool_ == None
+    
+    ns.shutdown()
+    time.sleep(0.2)
+    
 #-----------------------------------------
 # Test of KaBr_lvl3
 #-----------------------------------------
@@ -186,12 +249,19 @@ def test_kabr_lvl3_init():
     
 def test_kabr_lvl3_determine_validity():
     ns = run_nameserver()
-    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_br_lvl3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
+    ka_br_lvl3.add_blackboard(bb)
+    ka_br_lvl3.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'pu_content': (0, 0.6)})
     
-    ka_br_lvl2.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
-    bool_ = ka_br_lvl2.determine_validity({'keff': 1.1, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4})
+    bb.add_abstract_lvl(2, {'valid': bool})
+    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float}})
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.05, 'void_coeff': -150.0}})
+    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 0.9, 'void_coeff': -150.0}})
+    
+    bool_ = ka_br_lvl3.determine_validity('core_1')
     assert bool_ == (True, None)
-    bool_ = ka_br_lvl2.determine_validity({'keff': 0.9, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4})
+    bool_ = ka_br_lvl3.determine_validity('core_2')
     assert bool_ == (False, None)
 
     ns.shutdown()
