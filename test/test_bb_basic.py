@@ -96,5 +96,5 @@ def test_BbSfrOpt_add_panel():
     print(bb.get_attr('abstract_lvls'))
 
     ns.shutdown()
-    assert 1 > 2
+  #  assert 1 > 2
     time.sleep(0.1)
