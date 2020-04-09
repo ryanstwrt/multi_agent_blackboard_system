@@ -369,10 +369,15 @@ def test_write_to_h5():
     raw_data = {'test_1': (1,1,1), 'test_2': 0.0, 'test_3': 1}
     bb.add_abstract_lvl(1, {'entry 1': tuple, 'entry 2': bool})
     bb.add_abstract_lvl(2, {'entry 1': int, 'entry 2': float})
+    bb.add_abstract_lvl(4, {'entry 1': {'test 1': {'nested_test': int}}})
+   
+
     bb.add_abstract_lvl(3, {'entry 1': {'test_1': tuple, 'test_2': float, 'test_3': int}, 'entry 2': str, 'entry 3': list})
     bb.update_abstract_lvl(1, 'core_2', {'entry 1': (1,1,0), 'entry 2': True})
     bb.update_abstract_lvl(2, 'core_2', {'entry 1': 1, 'entry 2': 1.2})
     bb.update_abstract_lvl(3, 'core_2', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1,2,3]})
+    bb.update_abstract_lvl(4, 'core_4', {'entry 1': {'test 1': {'nested_test': 3}}})
+
     time.sleep(0.1)
     bb.write_to_h5()
     
@@ -387,7 +392,10 @@ def test_write_to_h5():
                 assert k2 in abs_lvls[k][k1].keys()
                 if type(v2) == h5py.Group:
                     for k3,v3 in v2.items():
-                        if isinstance(v3[0], Iterable):
+                        print(type(v3))
+                        if isinstance(v3, h5py._hl.group.Group):
+                            assert abs_lvls[k][k1][k2][k3]['nested_test'] == v3['nested_test'][0]
+                        elif isinstance(v3[0], Iterable):
                             assert list(abs_lvls[k][k1][k2][k3]) == list(v3[0])
                         else:
                             assert abs_lvls[k][k1][k2][k3] == v3[0]

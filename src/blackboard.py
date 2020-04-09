@@ -215,12 +215,8 @@ class Blackboard(Agent):
         """
         group_level.create_group(data_name)
         group_level[data_name].attrs['type'] = repr(type(data_dict))
-        print(group_level)
         for k,v in data_dict.items():
             if type(v) == dict:
-                print('Inner dict')
-                #print(group_level[data_name])
-                print(k, v)
                 self.dict_writer(k, v, group_level[data_name])
             elif None:
                 pass
@@ -237,18 +233,30 @@ class Blackboard(Agent):
         Determine the data types required for each H5 dataset.
         This is done by checking the attributes for each dataset and converting the string to a class via `str_to_data_types`.
         """
-        data_names = [x for x in entry_data.keys()]
-        data_types = [self.str_to_data_types(x.attrs.get('type')) for x in entry_data.values()]
-        data_dict = {data_names[i]: data_types[i] for i in range(len(data_names))}
+        data_dict = {}
+        for k,v in entry_data.items():
+            type_ = self.str_to_data_types(v.attrs.get('type'))
+            if type_ == dict:
+                data_dict[k] = self.get_data_types(entry_data[k])
+            else:
+                data_dict[k] = type_
         return data_dict
          
     def load_dataset(self, data_name, data, data_dict):
         """Load the H5 data sets to their appropriate format for the blackboard"""
+        print(data_name)
+        print(data_dict)
+        print(data_dict[data_name])
+        print(type(data_dict[data_name]))
+        print(data)
+        print(' ')
         if data_dict[data_name] == list:
             return data_dict[data_name](data)
-        elif data_dict[data_name] == dict:
-            sub_data_dict = self.get_data_types(data)
-            sub_dataset = {d_names: self.load_dataset(d_names, d, sub_data_dict) for d_names, d in data.items()}
+        elif type(data_dict[data_name]) == dict:
+            print('made it here')
+            sub_dataset = self.get_data_types(data)
+            for d_names, d in data.items():
+                sub_dataset[d_names] = self.load_dataset(d_names, d, data_dict[data_name])
             return sub_dataset
         elif data_dict[data_name] == str:
             return data[0].decode('UTF-8')
@@ -294,21 +302,23 @@ class Blackboard(Agent):
         else:
             self.log_info('Agent {} waiting to write'.format(agent_name))
             return False
-
+       
+        
     def load_h5(self):
         """Load an H5 archive of the blackboard"""
         self.log_info("Loading H5 archive: {}".format(self.archive_name))
         h5 = h5py.File(self.archive_name, 'r')
         for level, entries in h5.items():
-            for entry_name, entry in entries.items():  
-                data_dict = self.get_data_types(entry)
-                
+            for entry_name, entry in entries.items(): 
+                #print(entry_name, entry)
+                data_dict = self.get_data_types(entry)                
                 if not self.abstract_lvls.get(level, False):
                     sub_data_dict = {}
                     for data_name, data_type in data_dict.items():
                         sub_data_dict[data_name] = self.get_data_types(entry[data_name]) if data_type == dict else data_dict[data_name]
                     self.add_abstract_lvl(int(level.split(' ')[1]), sub_data_dict)
-                temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}    
+                temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}
+ #               print(temp_dict)
                 self.update_abstract_lvl(int(level.split(' ')[1]), entry_name, temp_dict)
         h5.close()
         
@@ -349,13 +359,18 @@ class Blackboard(Agent):
         join_str = ''.join(re_str)
         return eval(join_str)
     
-    def recursive_dict(self, dict_):
+    def recursive_dict(self, dict_, lvl_format):
+        """Allows the use of nested dicts in the abstract levels"""
         a = {}
         for x,y in dict_.items():
             if type(y) == dict:
-                a[x] = self.recursive_dict(y)
+                a[x] = self.recursive_dict(y, lvl_format[x])
             else:
                 a[x] = type(y)
+                try:
+                    assert type(y) == lvl_format
+                except (TypeError, AssertionError):
+                    assert type(y) == lvl_format[x]
         return a
             
     def update_abstract_lvl(self, level, name, entry, panel=None):
@@ -376,7 +391,7 @@ class Blackboard(Agent):
             try:
                 assert entry_name in self.abstract_lvls_format[lvl_name].keys()
                 if type(entry_type) == dict:                        
-                    a = self.recursive_dict(entry_type)
+                    a = self.recursive_dict(entry_type, self.abstract_lvls_format[lvl_name][entry_name])
                 else:
                     assert type(entry_type) == self.abstract_lvls_format[lvl_name][entry_name]
             except AssertionError:
