@@ -75,6 +75,22 @@ class Blackboard(Agent):
         self.abstract_lvls['level {}'.format(level)] = {}
         self.abstract_lvls_format['level {}'.format(level)] = entry
 
+    def add_panel(self, level, panels):
+        """
+        Split a blackbaord abstract level into multiple panels.
+        
+        Parameters
+        -----------
+        level : int
+            Abstract level to add a panel
+        panels : list
+            List of panel names
+        """        
+        lvl = {panel_name : {} for panel_name in panels}
+        lvl_format = self.abstract_lvls_format['level {}'.format(level)]
+        self.abstract_lvls_format['level {}'.format(level)] = {panel_name: lvl_format for panel_name in panels}
+        self.abstract_lvls['level {}'.format(level)] = lvl
+        
     def connect_executor(self, agent_name):
         """
         Connects the BB's executor communication with the KA.
@@ -386,24 +402,27 @@ class Blackboard(Agent):
             Data to be added to the abstract level (must be in format associated with `level`)
         """
         lvl_name = 'level {}'.format(level)
-        abstract_lvl = self.abstract_lvls[lvl_name]
+        if not panel:
+            abstract_lvl = self.abstract_lvls[lvl_name]
+            lvl_format = self.abstract_lvls_format[lvl_name]
+        else:
+            abstract_lvl = self.abstract_lvls[lvl_name][panel]
+            lvl_format = self.abstract_lvls_format[lvl_name][panel]
+        
         for entry_name, entry_type in entry.items():
             try:
-                assert entry_name in self.abstract_lvls_format[lvl_name].keys()
+                print(entry_name, [x for x in lvl_format.keys()])
+                assert entry_name in lvl_format.keys()
                 if type(entry_type) == dict:                        
-                    a = self.recursive_dict(entry_type, self.abstract_lvls_format[lvl_name][entry_name])
+                    a = self.recursive_dict(entry_type, lvl_format[entry_name])
                 else:
-                    assert type(entry_type) == self.abstract_lvls_format[lvl_name][entry_name]
+                    assert type(entry_type) == lvl_format[entry_name]
             except AssertionError:
-                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys: {}\n with value types: {}.\n Entry was not added.'.format(name, level, entry.keys(), entry.values(), 
-                self.abstract_lvls_format[lvl_name].keys(),
-                self.abstract_lvls_format[lvl_name].values()))
+                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys: {}\n with value types: {}.\n Entry was not added.'.format(name, level, entry.keys(), entry.values(), lvl_format.keys(), lvl_format.values()))
                 self.finish_writing_to_bb()
                 return
-        if not panel:
-            abstract_lvl[name] = entry
-        else:
-            abstract_lvl[panel][name] = entry
+        
+        abstract_lvl[name] = entry
         self.finish_writing_to_bb()
         
     def wait_for_ka(self):
