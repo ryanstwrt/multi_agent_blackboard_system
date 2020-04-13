@@ -41,6 +41,26 @@ def test_add_abstract_lvl():
     ns.shutdown()
     time.sleep(0.1)
 
+def test_add_panel():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': int})
+    assert bb.get_attr('abstract_lvls') == {'level 1': {}}
+    bb.add_panel(1, ['panel_a', 'panel_b', 'panel_c'])
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'panel_a': {},'panel_b': {},'panel_c': {}}}
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'panel_a': {'entry 1': str, 'entry 2': int},
+                                                               'panel_b': {'entry 1': str, 'entry 2': int},
+                                                               'panel_c': {'entry 1': str, 'entry 2': int}}}
+    
+    bb.update_abstract_lvl(1, 'test_name', {'entry 1': 'foo', 'entry 2': 5})
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'panel_a': {},'panel_b': {},'panel_c': {}}}
+    bb.update_abstract_lvl(1, 'test_name', {'entry 1': 'foo', 'entry 2': 5}, panel='panel_a')
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'panel_a': {'test_name': {'entry 1': 'foo', 'entry 2': 5}},'panel_b': {},'panel_c': {}}}
+    
+    ns.shutdown()
+    time.sleep(0.1)
+
+    
 def test_connect_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)

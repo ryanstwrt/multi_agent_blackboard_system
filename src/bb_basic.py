@@ -21,7 +21,7 @@ class BbTraditional(blackboard.Blackboard):
         if agent_type == 'rp':
             ka = run_agent(name=agent_alias, base=karp.KaRp_verify)
             ka.set_attr(interp_path=test_path)
-            ka.create_interpolator()
+            ka.create_sm()
         elif agent_type == 'br':
             ka = run_agent(name=agent_alias, base=kabr.KaBr_verify)
             ka.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 1.0)})
@@ -76,10 +76,3 @@ class BbSfrOpt(BbTraditional):
         ka.connect_executor()
         ka.connect_shutdown()
         self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
-        
-    def add_panel(self, level, panels):
-        """Split a blackbaord abstract level into multiple panels"""        
-        lvl = {panel_name : {} for panel_name in panels}
-        self.abstract_lvls['level {}'.format(level)] = lvl
-
-    
