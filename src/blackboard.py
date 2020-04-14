@@ -260,16 +260,9 @@ class Blackboard(Agent):
          
     def load_dataset(self, data_name, data, data_dict):
         """Load the H5 data sets to their appropriate format for the blackboard"""
-        print(data_name)
-        print(data_dict)
-        print(data_dict[data_name])
-        print(type(data_dict[data_name]))
-        print(data)
-        print(' ')
         if data_dict[data_name] == list:
             return data_dict[data_name](data)
         elif type(data_dict[data_name]) == dict:
-            print('made it here')
             sub_dataset = self.get_data_types(data)
             for d_names, d in data.items():
                 sub_dataset[d_names] = self.load_dataset(d_names, d, data_dict[data_name])
@@ -326,7 +319,6 @@ class Blackboard(Agent):
         h5 = h5py.File(self.archive_name, 'r')
         for level, entries in h5.items():
             for entry_name, entry in entries.items(): 
-                #print(entry_name, entry)
                 data_dict = self.get_data_types(entry)                
                 if not self.abstract_lvls.get(level, False):
                     sub_data_dict = {}
@@ -334,7 +326,6 @@ class Blackboard(Agent):
                         sub_data_dict[data_name] = self.get_data_types(entry[data_name]) if data_type == dict else data_dict[data_name]
                     self.add_abstract_lvl(int(level.split(' ')[1]), sub_data_dict)
                 temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}
- #               print(temp_dict)
                 self.update_abstract_lvl(int(level.split(' ')[1]), entry_name, temp_dict)
         h5.close()
         
@@ -411,7 +402,6 @@ class Blackboard(Agent):
         
         for entry_name, entry_type in entry.items():
             try:
-                print(entry_name, [x for x in lvl_format.keys()])
                 assert entry_name in lvl_format.keys()
                 if type(entry_type) == dict:                        
                     a = self.recursive_dict(entry_type, lvl_format[entry_name])
