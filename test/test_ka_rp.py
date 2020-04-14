@@ -32,7 +32,7 @@ def test_karp_init():
     time.sleep(0.1)
     
 #----------------------------------------------------------
-# Tests fopr KA-RP-Scout
+# Tests fopr KA-RP-verify
 #----------------------------------------------------------
     
 def test_karp_verify_init():
@@ -80,7 +80,7 @@ def test_mc_design_variables():
     time.sleep(0.1)
     
 #----------------------------------------------------------
-# Tests fopr KA-RP-Scout
+# Tests fopr KA-RP-Explore
 #----------------------------------------------------------
 
 def test_karp_scout_init():

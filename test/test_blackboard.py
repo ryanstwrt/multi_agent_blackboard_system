@@ -59,7 +59,6 @@ def test_add_panel():
     
     ns.shutdown()
     time.sleep(0.1)
-
     
 def test_connect_executor():
     ns = run_nameserver()
