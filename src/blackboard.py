@@ -1,11 +1,13 @@
 import osbrain
 from osbrain import Agent
+from osbrain import run_agent
 import numpy as np
 import time
 import h5py
 import os
 import sys
 import re
+from osbrain import run_nameserver
 
 class Blackboard(Agent):
     """
@@ -112,9 +114,28 @@ class Blackboard(Agent):
         self.agent_addrs[agent_name].update({'executor': (alias_name, executor_addr)})
         return (alias_name, executor_addr)
     
-    def connect_ka(self, agent_type, agent_alias):
-        """Connect a KA to the blackboard"""
-        pass
+    def connect_agent(self, agent_type, agent_alias):
+        """
+        Connect a KA to the blackboard.
+        This connects the writer, trigger, executor, and shutdown handlers.
+        This also connnects any specific attributes associated with an agent type.
+        
+        
+        Parameters
+        ----------
+        agent_type : class
+            KA class to allow for the run_agent method to build a proxy to the KA
+        agent_alias : str
+            Alias of the agent to allow for convenient calling
+        """
+        ka = run_agent(name=agent_alias, base=agent_type)
+        ka.add_blackboard(self)
+        ka.connect_writer()
+        ka.connect_trigger()
+        ka.connect_executor()
+        ka.connect_shutdown()
+        self.connect_ka_specific(agent_alias)
+        self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
         
     def connect_trigger(self, message):
         """
@@ -182,6 +203,11 @@ class Blackboard(Agent):
         shutdown_addr = self.bind('PUSH', alias=alias_name)        
         self.agent_addrs[agent_name].update({'shutdown': (alias_name, shutdown_addr)})
         return (alias_name, shutdown_addr)
+    
+    def connect_ka_specific(self, agent):
+        """Holder for implementing and connect a specific knowledge agent."""
+        pass
+        
         
     def controller(self):
         """Determines which KA to select after a trigger event."""
@@ -192,6 +218,7 @@ class Blackboard(Agent):
                 self._ka_to_execute = (k,v)                
                 
     def determine_complete(self):
+        """Holder for determining when a problem will be completed."""
         pass
                 
     def determine_h5_type(self, data_type, data_val):

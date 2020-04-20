@@ -5,6 +5,8 @@ import blackboard
 import bb_basic
 import time
 import os
+import ka_rp as karp
+import ka_br as kabr
 
 def test_BbTraditional_init():
     ns = run_nameserver()
@@ -31,8 +33,8 @@ def test_BbTraditional_init():
 def test_connect_agent():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_basic.BbTraditional)
-    bb.connect_agent('rp', 'ka_rp')
-    bb.connect_agent('br', 'ka_br')
+    bb.connect_agent(karp.KaRp_verify, 'ka_rp')
+    bb.connect_agent(kabr.KaBr_verify, 'ka_br')
     
     agents = bb.get_attr('agent_addrs')
     
@@ -57,9 +59,9 @@ def test_connect_agent():
 def test_determine_complete():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_basic.BbTraditional)
-    bb.connect_agent('rp', 'ka_rp')
-    bb.connect_agent('rp', 'ka_rp1')
-    bb.connect_agent('rp', 'ka_br')
+    bb.connect_agent(karp.KaRp_verify, 'ka_rp')
+    bb.connect_agent(karp.KaRp_verify, 'ka_rp1')
+    bb.connect_agent(kabr.KaBr_verify, 'ka_br')
     
     assert ns.agents() == ['blackboard', 'ka_rp', 'ka_rp1', 'ka_br']
 
