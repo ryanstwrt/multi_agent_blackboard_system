@@ -2,7 +2,7 @@ import blackboard
 import ka_rp as karp
 import ka_br as kabr
 import osbrain
-from osbrain import run_agent
+from osbrain import proxy
 import time
 import os 
 import glob
@@ -16,24 +16,18 @@ class BbTraditional(blackboard.Blackboard):
         super().on_init()
         self._complete = False
         
-    def connect_agent(self, agent_type, agent_alias):
+    def connect_ka_specific(self, agent):
         """Connect a KA to the BB"""
-        if agent_type == 'rp':
-            ka = run_agent(name=agent_alias, base=karp.KaRp_verify)
+        ns = proxy.NSProxy()
+        ka = ns.proxy(agent)
+        if 'rp' in agent:
             ka.set_attr(interp_path=test_path)
             ka.create_sm()
-        elif agent_type == 'br':
-            ka = run_agent(name=agent_alias, base=kabr.KaBr_verify)
-            ka.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 1.0)})
+        elif 'br' in agent:
+            ka.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 1.0)})                               
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent_type))
             return
-        ka.add_blackboard(self)
-        ka.connect_writer()
-        ka.connect_trigger()
-        ka.connect_executor()
-        ka.connect_shutdown()
-        self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
         
     def determine_complete(self):
         if self.abstract_lvls['level 1'] != {}:
@@ -55,24 +49,18 @@ class BbSfrOpt(BbTraditional):
     def on_init(self):
         super().on_init()
     
-    def connect_agent(self, agetn_type, agent_alias):
+    def connect_ka_specific(self, agent):
         """Connect a KA to the BB"""
-        if agent_type == 'rp_explore':
+        if 'explore' in agent:
             pass
-        elif agent_type == 'rp_exploit':
+        elif 'exploit' in agent:
             pass
-        elif agent_type == 'br_lvl3':
+        elif 'lvl3' in agent:
             ka = run_agent(name=agent_alias, base=KABR.KaBr_lvl3)
             ka.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 1.0)})
-        elif agent_type == 'br_lvl2':
+        elif 'lvl2' in agent:
             ka = run_agent(name=agent_alias, base=KABR.KaBr_lvl2)
             ka.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent_type))
             return
-        ka.add_blackboard(self)
-        ka.connect_writer()
-        ka.connect_trigger()
-        ka.connect_executor()
-        ka.connect_shutdown()
-        self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))

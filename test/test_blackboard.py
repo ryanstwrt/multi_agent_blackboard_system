@@ -8,6 +8,7 @@ import time
 import os
 import h5py
 from collections.abc import Iterable
+import ka
     
 def test_blackboard_init_agent():
     ns = run_nameserver()
@@ -137,6 +138,26 @@ def test_connect_writer_agent():
     ns.shutdown()
     time.sleep(0.1)
 
+def test_connect_agent():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.connect_agent(ka.KaBase, 'base')
+    
+    agents = bb.get_attr('agent_addrs')
+    
+    assert [x for x in agents.keys()] == ['base']
+    assert ns.agents() == ['blackboard', 'base']
+
+    base = ns.proxy('base')
+    
+    assert bb.get_attr('agent_addrs')['base']['executor'] == (base.get_attr('_executor_alias'), base.get_attr('_executor_addr'))
+    assert bb.get_attr('agent_addrs')['base']['trigger_response'] == (base.get_attr('_trigger_response_alias'), base.get_attr('_trigger_response_addr'))
+    assert bb.get_attr('agent_addrs')['base']['shutdown'] == (base.get_attr('_shutdown_alias'), base.get_attr('_shutdown_addr'))
+    assert bb.get_attr('agent_addrs')['base']['writer'] == (base.get_attr('_writer_alias'), base.get_attr('_writer_addr'))
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
 def test_controller():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
