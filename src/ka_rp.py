@@ -57,7 +57,6 @@ class KaRpExplore(KaRp):
         """Determine the core design variables using a monte carlo method."""
         for param, ranges in self.independent_variable_ranges.items():
             self.design_variables[param] = round(random.random() * (ranges[1] - ranges[0]) + ranges[0],2)
-        self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
         self.log_info('Core design variables determined: {}'.format(self.design_variables))
 
     def calc_objectives(self):
@@ -67,6 +66,7 @@ class KaRpExplore(KaRp):
             self.objective_functions[obj_name] = float(interpolator(tuple([x for x in self.design_variables.values()])))
         a = self.design_variables.copy()
         a.update(self.objective_functions)
+        self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
         self._entry = {'reactor parameters': a}
     
     def create_sm(self):
@@ -96,6 +96,7 @@ class KaRpExploit(KaRpExplore):
         super().on_init()
         self.perturbed_cores = {}
         self.lvl1 = {}
+        self.perturbations = [0.99, 1.01]
     
     def handler_executor(self, message):
         """Execution handler for KA-RP.
@@ -106,41 +107,34 @@ class KaRpExploit(KaRpExplore):
         if self.lvl1 == {}:
             self.mc_design_variables()
             self.calc_objectives()
+            self.write_to_bb()
         else:
             self.perturb_design()
-        self.write_to_bb()
 
     def perturb_design(self):
-        """Perturb a core design"""
+        """
+        Perturb a core design
+        
+        This first finds a core in BB level 1 that it has not examined yet.
+        It then perturbs each design variable independent by the values in self.perturbations
+        These results are written to the BB level 3, so there should be design_vars * pert added to level 3.
+        """
         lvl3 = self.bb.get_attr('abstract_lvls')['level 3']
-        perturbations = [0.99, 1.0, 1.01]
         for core in self.lvl1.keys():
-            if core in self.perturbed_cores.keys():
+            if core in self.perturbed_cores:
                 pass
             else:
-                self.design_variables = {k: lvl3[core][k] for k in self.independent_variable_ranges.keys()}
-                pert_matrix = np.empty([len(perturbations), len(core_params)])
-                for num, value in enumerate(core_params.keys()):
-                    pert_matrix[num] = [param * pert for pert in perturbations]
-                for param1 in pert_matrix[0]:
-                    for param2 in pert_matrix[1]:
-                        for param3 in pert_matrix[2]:
-                            pert = (param1, param2, param3)
-                    
-                perms - set(permutations(pert_matrix))     
-        
-    def perturbations(self, pert_matrix, level):
-        for param in pert_matrix[level]:
-            if type(param) == list:
-                a = self.permutations(param, level+1)
-            else:
-                return param
-            
-        # Combined perturbations (vars! runs)
-        # Return designs
-        pass
-    
-            
+                base_design_variables = {k: lvl3[core][k] for k in self.independent_variable_ranges.keys()}
+                for var_name, var_value in base_design_variables.items():
+                    for pert in self.perturbations:
+                        self.design_variables = base_design_variables
+                        self.design_variables[var_name] = var_value * pert
+                        self.calc_objectives()
+                        self.write_to_bb()
+                        self.perturbed_cores.append(self._entry_name)
+
+                        # How do we write multiple entries to the BB
+                        # Perhaps have two `write_to_bb`, one for a singular write and one foe multiple writes?
 class KaRp_verify(KaRpExplore):
     def on_init(self):
         super().on_init()

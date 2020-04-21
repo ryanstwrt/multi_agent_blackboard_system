@@ -123,10 +123,22 @@ class KaBase(Agent):
             self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
 
     def handler_shutdown(self, message):
+        """
+        Shutdown the KA.
+        
+        Parameter
+        ---------
+        message : str
+            message sent by BB 
+        """
         self.log_info('Agent {} shutting down'.format(self.name))
         self.shutdown()
             
     def handler_executor(self, message):
+        """
+        Executor handler, not implemented for base KA
+        Each Ka will have a unique executor
+        """
         raise NotImplementedError
 
     def handler_trigger_publish(self, message):
