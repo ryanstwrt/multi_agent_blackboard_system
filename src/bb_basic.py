@@ -48,6 +48,34 @@ class BbSfrOpt(BbTraditional):
     
     def on_init(self):
         super().on_init()
+        self.add_abstract_lvl(1, {'pareto type': str})
+        self.add_abstract_lvl(2, {'valid': bool})
+        self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
+        
+        
+    def handler_writer(self, message):
+        """
+        Handler to determine if it is acceptable for a KA to write to the blackboard
+        
+        Parameters
+        ----------
+        message : str
+            Alias for the KA sending request
+            
+        Returns
+        -------
+        bool
+            True if agent can write, false if agent must wait
+        """
+        agent_name, self._new_entry = message if type(message) == list else (message, True)
+            
+        if not self._agent_writing:
+            self._agent_writing = True
+            self.log_info('Agent {} given permission to write'.format(agent_name))
+            return True
+        else:
+            self.log_info('Agent {} waiting to write'.format(agent_name))
+            return False
     
     def connect_ka_specific(self, agent):
         """Connect a KA to the BB"""

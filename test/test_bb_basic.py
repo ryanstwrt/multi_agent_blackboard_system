@@ -89,6 +89,73 @@ def test_wait_for_ka():
     ns.shutdown()
     time.sleep(0.1)
     
+#----------------------------------------------------------
+# Tests fopr BbSfrOpt
+#----------------------------------------------------------
+
+def test_BbSfrOpt_init():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    assert bb.get_attr('agent_addrs') == {}
+    assert bb.get_attr('_agent_writing') == False
+    assert bb.get_attr('_new_entry') == False
+    assert bb.get_attr('archive_name') == 'blackboard_archive.h5'
+    assert bb.get_attr('_sleep_limit') == 10
+
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str},
+                                            'level 2': {'valid': bool},
+                                            'level 3': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}}}
+    assert bb.get_attr('abstract_lvls') == {'level 1': {}, 'level 2': {}, 'level 3': {}}
+    
+    assert bb.get_attr('_ka_to_execute') == (None, 0) 
+    assert bb.get_attr('_trigger_event') == 0
+    assert bb.get_attr('_kaar') == {}
+    assert bb.get_attr('_pub_trigger_alias') == 'trigger'
+    
+    assert bb.get_attr('_complete') == False
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
+def test_handler_writer():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    rp = run_agent(name='explore', base=karp.KaRpExplore)
+    rp1 = run_agent(name='exploit', base=karp.KaRpExploit)
+    rp.add_blackboard(bb)
+    rp1.add_blackboard(bb)
+    rp.connect_writer()
+    rp1.connect_writer()
+    
+    rp.set_attr(_entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 'keff': 1.0, 'void_coeff': -110.0, 'doppler_coeff': -0.6}})
+    rp.set_attr(_entry_name='core1')
+    rp.write_to_bb()
+    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': {'height': 60, 'smear': 70, 'pu_content': 0.2, 'keff': 1.0, 'void_coeff': -110, 'doppler_coeff': -0.6}}}
+
+    rp1.set_attr(_entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 'keff': 1.1, 'void_coeff': -110.0, 'doppler_coeff': -0.6}})
+    rp1.set_attr(_entry_name='core2')
+    rp1.write_to_bb(True)
+    
+    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': {'height': 60, 'smear': 70, 'pu_content': 0.2, 'keff': 1.0, 'void_coeff': -110, 'doppler_coeff': -0.6}},
+                                                       'core2': {'reactor parameters': {'height': 60, 'smear': 70, 'pu_content': 0.2, 'keff': 1.1, 'void_coeff': -110, 'doppler_coeff': -0.6}}}
+
+    rp1.set_attr(_entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 'keff': 1.1, 'void_coeff': -110.0, 'doppler_coeff': -0.6}})   
+    rp1.set_attr(_entry_name='core3')
+
+    assert bb.get_attr('_new_entry') == True
+    bb.set_attr(_new_entry=False)
+    rp1.write_to_bb(False)
+    assert bb.get_attr('_new_entry') == False
+
+    
+    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': {'height': 60, 'smear': 70, 'pu_content': 0.2, 'keff': 1.0, 'void_coeff': -110, 'doppler_coeff': -0.6}},
+                                                       'core2': {'reactor parameters': {'height': 60, 'smear': 70, 'pu_content': 0.2, 'keff': 1.1, 'void_coeff': -110, 'doppler_coeff': -0.6}},
+                                                       'core3': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 'keff': 1.1, 'void_coeff': -110.0, 'doppler_coeff': -0.6}}}
+    
+    
+    ns.shutdown()
+    time.sleep(0.1)
+
 def test_BbSfrOpt_add_panel():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)

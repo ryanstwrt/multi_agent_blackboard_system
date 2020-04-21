@@ -8,6 +8,7 @@ import time
 import os
 import ka_rp
 from collections import OrderedDict
+import bb_basic
 
 def test_karp_init():
     ns = run_nameserver()
@@ -131,12 +132,12 @@ def test_create_sm():
     pass
 
 #----------------------------------------------------------
-# Tests fopr KA-RP-Explore
+# Tests fopr KA-RP-Exploit
 #----------------------------------------------------------
 
-def test_karp_scout_init():
+def test_karp_exploit_init():
     ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
+    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
     
     assert rp.get_attr('bb') == None
     assert rp.get_attr('bb_lvl') == 3
@@ -162,12 +163,15 @@ def test_karp_scout_init():
     assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
                                                                      'smear': (50,70),
                                                                      'pu_content':(0,1)})
+    assert rp.get_attr('perturbations') == [0.99, 1.01]
+    assert rp.get_attr('perturbed_cores') == {}
+    assert rp.get_attr('lvl1') == {}
     ns.shutdown()
     time.sleep(0.1)
     
-def test_mc_design_variables():
+def test_exploit_mc_design_variables():
     ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
+    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('_entry_name') == None
@@ -176,3 +180,12 @@ def test_mc_design_variables():
     
     ns.shutdown()
     time.sleep(0.1)
+    
+def test_perturb_design():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    
+    ns.shutdown()
+    time.sleep(0.1)    
+    
