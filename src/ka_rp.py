@@ -125,16 +125,30 @@ class KaRpExploit(KaRpExplore):
                 pass
             else:
                 base_design_variables = {k: lvl3[core][k] for k in self.independent_variable_ranges.keys()}
+                i = 0
+                total_perts = len(base_design_variables.keys()) * len(self.permutations)
                 for var_name, var_value in base_design_variables.items():
                     for pert in self.perturbations:
+                        i += 1
                         self.design_variables = base_design_variables
                         self.design_variables[var_name] = var_value * pert
                         self.calc_objectives()
-                        self.write_to_bb()
                         self.perturbed_cores.append(self._entry_name)
+                        completed = True if i == total_perts else False
+                        self.write_to_bb(completed)
 
-                        # How do we write multiple entries to the BB
-                        # Perhaps have two `write_to_bb`, one for a singular write and one foe multiple writes?
+    def write_to_bb(self, completed):
+        """Write the KA's entry to the BB on the specified level."""
+        self.log_debug('Sending writer trigger to BB.')
+        write = False
+        while not write:
+            time.sleep(1)
+            self.send(self._writer_alias, [self.name, completed])
+            write = self.recv(self._writer_alias)
+        else:
+            self.log_debug('Writing to BB Level {}'.format(self.bb_lvl))
+            self.bb.update_abstract_lvl(self.bb_lvl, self._entry_name, self._entry)
+            
 class KaRp_verify(KaRpExplore):
     def on_init(self):
         super().on_init()
