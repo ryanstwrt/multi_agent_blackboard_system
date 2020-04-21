@@ -223,7 +223,7 @@ class Blackboard(Agent):
                 
     def determine_h5_type(self, data_type, data_val):
         """
-        Determines how to place a datatype in an h5 file.
+        Converts a data value into an appropriate H5 format for storage.
         
         Parameters
         ----------
@@ -231,6 +231,12 @@ class Blackboard(Agent):
             Class of data type.
         data_val : data_type
             Transforms the class of data into a useable formato for H5.
+            
+            
+        Returns
+        -------
+        dava_val : varies
+            Value of data in a H5 specific format (i.e. convert str to np.string_ and bool/int/float/tuple to a list)
         """
         if data_type == str:
             return [np.string_(data_val)]
@@ -275,6 +281,15 @@ class Blackboard(Agent):
         """
         Determine the data types required for each H5 dataset.
         This is done by checking the attributes for each dataset and converting the string to a class via `str_to_data_types`.
+        
+        Parameters
+        ----------
+        entry_data : varies
+            Data contained in an H5 group
+        Returns
+        -------
+        data_dict : dict
+            Dictionary of data to be added to the blackbaord
         """
         data_dict = {}
         for k,v in entry_data.items():
@@ -286,7 +301,21 @@ class Blackboard(Agent):
         return data_dict
          
     def load_dataset(self, data_name, data, data_dict):
-        """Load the H5 data sets to their appropriate format for the blackboard"""
+        """
+        Load the H5 data sets to their appropriate format for the blackboard
+        
+        Parameters
+        ----------
+        data_name : str
+            name of data entry
+        data : dict
+            dictionary of data that has been pulled from the H5 file
+            
+        Returns
+        -------
+        data_dict : dict
+            dictionary of data to be added to the blackboard
+        """
         if data_dict[data_name] == list:
             return data_dict[data_name](data)
         elif type(data_dict[data_name]) == dict:
@@ -341,7 +370,11 @@ class Blackboard(Agent):
        
         
     def load_h5(self):
-        """Load an H5 archive of the blackboard"""
+        """
+        Load an H5 archive of the blackboard
+        Loops through each H5 group and pulls all of the data into a dictionary for the BB
+        Determines data type based on group attribute
+        """
         self.log_info("Loading H5 archive: {}".format(self.archive_name))
         h5 = h5py.File(self.archive_name, 'r')
         for level, entries in h5.items():
@@ -387,37 +420,66 @@ class Blackboard(Agent):
             self.log_info('No KA to execute, waiting to sends trigger again.')
             
     def str_to_data_types(self, string):
-        """Convert a string to the appropriate data type class"""
+        """
+        Evaluate a string to return the appropriate data type class
+        
+        Parameters
+        ----------
+        string : str
+            string formation of a data type
+        
+        Returns
+        -------
+        join_str : class
+            class of the evaluated data type 'string'
+        """
         split_str = string.split(' ')
         re_str = re.findall('[a-z]', split_str[1])
         join_str = ''.join(re_str)
         return eval(join_str)
     
     def recursive_dict(self, dict_, lvl_format):
-        """Allows the use of nested dicts in the abstract levels"""
-        a = {}
+        """
+        Allows the use of nested dicts in the abstract levels
+        
+        Parameters
+        ----------
+        dict_ : dict
+            dictionary of abstract level
+        lvl_format :
+            expected data format for the BB level
+            
+        Returns
+        -------
+        formatted_dict : dict
+            dictionary of data for the blackboard
+        """
+        formatted_dict = {}
         for x,y in dict_.items():
             if type(y) == dict:
-                a[x] = self.recursive_dict(y, lvl_format[x])
+                formatted_dict[x] = self.recursive_dict(y, lvl_format[x])
             else:
-                a[x] = type(y)
+                formatted_dict[x] = type(y)
                 try:
                     assert type(y) == lvl_format
                 except (TypeError, AssertionError):
                     assert type(y) == lvl_format[x]
-        return a
+        return formatted_dict
             
     def update_abstract_lvl(self, level, name, entry, panel=None):
         """
         Update an abstract level with a new entry
         
-        Parameters:
+        Parameters
+        ----------
         level : int
             Abstract level to access.
         name : str
             Name of the entry
         entry : dict
             Data to be added to the abstract level (must be in format associated with `level`)
+        panel : bool
+            boolean logic to determine if we are writing to a panel on an abstract level
         """
         lvl_name = 'level {}'.format(level)
         if not panel:
@@ -447,7 +509,7 @@ class Blackboard(Agent):
         sleep_time = 0
         if self._new_entry == False and len(self._kaar) % 10 == 0:
             self.write_to_h5()
-        while not self._new_entry:
+        while not self._new_entry: # Figure out a way to 'loopback' and determine if we have been written to
             time.sleep(1)
             sleep_time += 1
             if sleep_time > self._sleep_limit:
@@ -497,4 +559,3 @@ class Blackboard(Agent):
                             group_level[name][data_name].attrs['type'] = repr(data_type)
         self.log_info("Finished writing to archive")
         h5.close()
-        
