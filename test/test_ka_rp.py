@@ -127,9 +127,18 @@ def test_mc_design_variables():
     ns.shutdown()
     time.sleep(0.1)
     
-def test_create_sm():
+def test_create_sm_interpolate():
     """Create a test when we determine what type of SM we want to use"""
-    pass
+    ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
+    
+    rp.create_sm()
+    sm = rp.get_attr('_sm')
+    keff = sm['keff']((61.37,51.58,0.7340))
+    assert keff == 0.9992587833657331
+    
+    ns.shutdown()
+    time.sleep(0.1)
 
 #----------------------------------------------------------
 # Tests fopr KA-RP-Exploit
@@ -185,6 +194,13 @@ def test_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    
+    proxy_addrs = proxy.NSProxy()
+    rp1 = proxy_addrs('ka_rp_exploit')
+    bb.update_abstract_lvl(1, {'core1': {'Pareto' : 'pareto'}})
+    bb.update_abstract_lvl(3, {'core1': {'reactor parameters': {'height': 60, 'smear': 70, 'pu_content': 0.2, 'keff': 1.0, 'void_coeff': -110, 'doppler_coeff': -0.6}}})
+    
+    
     
     ns.shutdown()
     time.sleep(0.1)    

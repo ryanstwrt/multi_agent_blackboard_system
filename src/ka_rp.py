@@ -3,11 +3,12 @@ from osbrain import Agent
 import numpy as np
 import random
 import scipy.interpolate
-import db_reshape as dbr
+import database_generator as dg
 from collections import OrderedDict
 import ka
 import time
 from itertools import permutations
+import train_surrogate_models as tm
 
 class KaRp(ka.KaBase):
     """
@@ -41,8 +42,10 @@ class KaRpExplore(KaRp):
         self.interpolator_dict = {}
         self.interp_path = None
         self.bb_lvl = 3
-        self.objectives = ['keff', 'void_coeff', 'doppler_coeff']
+        self.objectives = ['keff', 'void', 'doppler']
         self.independent_variable_ranges = OrderedDict({'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
+        self._sm = None
+        self.sm_type = 'interpolate'
 
     def handler_executor(self, message):
         """Execution handler for KA-RP.
@@ -62,8 +65,13 @@ class KaRpExplore(KaRp):
     def calc_objectives(self):
         """Calculate the objective functions based on the core design variables."""
         self.log_debug('Determining core parameters based on SM')
-        for obj_name, interpolator in self.interpolator_dict.items():
-            self.objective_functions[obj_name] = float(interpolator(tuple([x for x in self.design_variables.values()])))
+        design = [x for x in self.design_variables.values()]
+        if self.sm_type == 'interpolate':
+            for obj_name, interpolator in self._sm.items():
+                self.objective_functions[obj_name] = float(interpolator(tuple(design)))
+        else:
+            obj_list = self._sm.predict(self.sm_type, [design])
+            {self.objective_functions[obj] : obj_list[num] for num, obj in enumerate(self.objectives)}
         a = self.design_variables.copy()
         a.update(self.objective_functions)
         self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
@@ -72,10 +80,19 @@ class KaRpExplore(KaRp):
     def create_sm(self):
         """Build the linear interpolator for estimating between known datapoints.
         This uses scipy's LinearNDInterpolator, where we create a unique interpolator for each objective function"""
-        design_var, objective_func = dbr.reshape_database(r'{}/sfr_db_new.h5'.format(self.interp_path), [x for x in self.independent_variable_ranges.keys()], self.objectives)
-        design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
-        for num, objective in enumerate(self.objectives):
-            self.interpolator_dict[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])        
+        design_var, objective_func = dg.get_data([x for x in self.independent_variable_ranges.keys()], self.objectives)
+        if self.sm_type == 'interpolate':
+            self._sm = {}
+            design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
+            for num, objective in enumerate(self.objectives):
+                print(design_var)
+                print(objective_func[:,num])
+                self._sm[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
+        else:
+            self._sm = tm.Surrogate_Models()
+            self._sm.random = 0
+            self._sm.update_database(design_var, objective_func)
+            self._sm.optimize_model(self.sm_type)
 
 class KaRpExploit(KaRpExplore):
     """
