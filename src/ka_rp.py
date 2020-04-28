@@ -42,7 +42,7 @@ class KaRpExplore(KaRp):
         self.interpolator_dict = {}
         self.interp_path = None
         self.bb_lvl = 3
-         self.objectives = ['keff', 'void', 'doppler']
+        self.objectives = ['keff', 'void', 'doppler']
         self.independent_variable_ranges = OrderedDict({'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
         self._sm = None
         self.sm_type = 'interpolate'

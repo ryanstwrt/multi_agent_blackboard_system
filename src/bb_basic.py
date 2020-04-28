@@ -91,7 +91,6 @@ class BbSfrOpt(BbTraditional):
             return False
     
     def connect_ka_specific(self, agent):
-<<<<<<< HEAD
         ns = proxy.NSProxy()
         ka = ns.proxy(agent)
         if 'rp' in agent:
