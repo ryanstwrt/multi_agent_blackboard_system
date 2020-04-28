@@ -155,7 +155,7 @@ def test_create_sm_regression():
     
     ns.shutdown()
     time.sleep(0.1)
-    
+
 #----------------------------------------------------------
 # Tests fopr KA-RP-Exploit
 #----------------------------------------------------------
@@ -210,14 +210,7 @@ def test_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
-    
-#    proxy_addrs = proxy.NSProxy()
- #   rp1 = proxy_addrs('ka_rp_exploit')
-  #  bb.update_abstract_lvl(1, {'core1': {'Pareto' : 'pareto'}})
-   # bb.update_abstract_lvl(3, {'core1': {'reactor parameters': {'height': 60, 'smear': 70, 'pu_content': 0.2, 'keff': 1.0, 'void_coeff': -110, 'doppler_coeff': -0.6}}})
-    
-    
-    
+
     ns.shutdown()
     time.sleep(0.1)    
     

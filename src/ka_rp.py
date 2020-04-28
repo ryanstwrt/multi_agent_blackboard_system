@@ -42,7 +42,7 @@ class KaRpExplore(KaRp):
         self.interpolator_dict = {}
         self.interp_path = None
         self.bb_lvl = 3
-        self.objectives = ['keff', 'void', 'doppler']
+         self.objectives = ['keff', 'void', 'doppler']
         self.independent_variable_ranges = OrderedDict({'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
         self._sm = None
         self.sm_type = 'interpolate'
@@ -82,6 +82,7 @@ class KaRpExplore(KaRp):
     def create_sm(self):
         """Build the linear interpolator for estimating between known datapoints.
         This uses scipy's LinearNDInterpolator, where we create a unique interpolator for each objective function"""
+
         design_var, objective_func = dg.get_data([x for x in self.independent_variable_ranges.keys()], self.objectives)
         if self.sm_type == 'interpolate':
             self._sm = {}
@@ -93,6 +94,7 @@ class KaRpExplore(KaRp):
             self._sm.random = 0
             self._sm.update_database(design_var, objective_func)
             self._sm.optimize_model(self.sm_type)
+
 
 class KaRpExploit(KaRpExplore):
     """

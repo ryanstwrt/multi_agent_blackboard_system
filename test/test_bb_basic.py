@@ -105,6 +105,7 @@ def test_BbSfrOpt_init():
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str},
                                             'level 2': {'valid': bool},
                                             'level 3': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}
+
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 'level 2': {}, 'level 3': {}}
     
     assert bb.get_attr('_ka_to_execute') == (None, 0) 
@@ -185,7 +186,7 @@ def test_handler_writer():
                                                        'core2': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
 
     rp1.set_attr(_entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                                'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}})   
+                                                'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 
     rp1.set_attr(_entry_name='core3')
 
     assert bb.get_attr('_new_entry') == True
@@ -204,7 +205,7 @@ def test_handler_writer():
     
     ns.shutdown()
     time.sleep(0.1)          
-        
+
 def test_BbSfrOpt_add_panel():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
