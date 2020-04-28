@@ -211,7 +211,7 @@ class Blackboard(Agent):
         
     def controller(self):
         """Determines which KA to select after a trigger event."""
-        self.log_info('Determining which KA to execute')
+        self.log_debug('Determining which KA to execute')
         self._ka_to_execute = (None, 0)
         for k,v in self._kaar[self._trigger_event].items():
             if v > self._ka_to_execute[1]:
@@ -362,10 +362,10 @@ class Blackboard(Agent):
         if not self._agent_writing:
             self._agent_writing = True
             self._new_entry = True
-            self.log_info('Agent {} given permission to write'.format(agent_name))
+            self.log_debug('Agent {} given permission to write'.format(agent_name))
             return True
         else:
-            self.log_info('Agent {} waiting to write'.format(agent_name))
+            self.log_debug('Agent {} waiting to write'.format(agent_name))
             return False
        
         

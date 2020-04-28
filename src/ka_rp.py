@@ -60,7 +60,7 @@ class KaRpExplore(KaRp):
         """Determine the core design variables using a monte carlo method."""
         for param, ranges in self.independent_variable_ranges.items():
             self.design_variables[param] = round(random.random() * (ranges[1] - ranges[0]) + ranges[0],2)
-        self.log_info('Core design variables determined: {}'.format(self.design_variables))
+        self.log_debug('Core design variables determined: {}'.format(self.design_variables))
 
     def calc_objectives(self):
         """Calculate the objective functions based on the core design variables."""
@@ -71,9 +71,11 @@ class KaRpExplore(KaRp):
                 self.objective_functions[obj_name] = float(interpolator(tuple(design)))
         else:
             obj_list = self._sm.predict(self.sm_type, [design])
-            {self.objective_functions[obj] : obj_list[num] for num, obj in enumerate(self.objectives)}
+            for num, obj in enumerate(self.objectives):
+                self.objective_functions[obj] = float(obj_list[0][num])
         a = self.design_variables.copy()
         a.update(self.objective_functions)
+        self.log_info('Core Design & Objectives: {}'.format([(x,y) for x,y in a.items()]))
         self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
         self._entry = {'reactor parameters': a}
     
@@ -85,8 +87,6 @@ class KaRpExplore(KaRp):
             self._sm = {}
             design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
             for num, objective in enumerate(self.objectives):
-                print(design_var)
-                print(objective_func[:,num])
                 self._sm[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
         else:
             self._sm = tm.Surrogate_Models()
@@ -170,7 +170,7 @@ class KaRp_verify(KaRpExplore):
     def on_init(self):
         super().on_init()
         self.bb_lvl = 2
-        self.objectives = ['keff', 'void_coeff', 'doppler_coeff']
+        self.objectives = ['keff', 'void', 'doppler']
         self.independent_variable_ranges = OrderedDict({'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
 
     def calc_objectives(self):

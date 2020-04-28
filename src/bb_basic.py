@@ -3,6 +3,7 @@ import ka_rp as karp
 import ka_br as kabr
 import osbrain
 from osbrain import proxy
+from osbrain import run_agent
 import time
 import os 
 import glob
@@ -24,14 +25,15 @@ class BbTraditional(blackboard.Blackboard):
             ka.set_attr(interp_path=test_path)
             ka.create_sm()
         elif 'br' in agent:
-            ka.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 1.0)})                               
+            ka.set_attr(desired_results={'keff': (1.0, 1.2), 'void': (-200, -75), 'doppler': (-1.0,-0.6), 'pu_content': (0, 1.0)})                               
         else:
-            self.log_info('Agent type ({}) does not match a known agent type.'.format(agent_type))
+            self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return
         
     def determine_complete(self):
         if self.abstract_lvls['level 1'] != {}:
             self.log_info('Problem complete, shutting agents down')
+            time.sleep(5)
             for agent_name, connections in self.agent_addrs.items():
                 self.send(connections['shutdown'][0], "shutdown")
             self._complete = True
@@ -44,15 +46,26 @@ class BbTraditional(blackboard.Blackboard):
             self.write_to_h5()
         self.determine_complete()
         
+
 class BbSfrOpt(BbTraditional):
     
     def on_init(self):
         super().on_init()
         self.add_abstract_lvl(1, {'pareto type': str})
+#        self.add_panel(1, ['new', 'old'])       
         self.add_abstract_lvl(2, {'valid': bool})
-        self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
-        
-        
+#        self.add_panel(2, ['new', 'old'])
+        self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float }})
+
+    def determine_complete(self):
+        if len(self.abstract_lvls['level 1']) > 10:
+            self.log_info('Problem complete, shutting agents down')
+            for agent_name, connections in self.agent_addrs.items():
+                self.send(connections['shutdown'][0], "shutdown")
+            self._complete = True
+        else:
+            pass
+    
     def handler_writer(self, message):
         """
         Handler to determine if it is acceptable for a KA to write to the blackboard
@@ -79,16 +92,15 @@ class BbSfrOpt(BbTraditional):
     
     def connect_ka_specific(self, agent):
         """Connect a KA to the BB"""
-        if 'explore' in agent:
-            pass
-        elif 'exploit' in agent:
-            pass
+        ns = proxy.NSProxy()
+        ka = ns.proxy(agent)
+        if 'rp' in agent:
+            ka.set_attr(objectives=['cycle length', 'reactivity swing', 'burnup', 'pu mass'])
+            ka.create_sm()
         elif 'lvl3' in agent:
-            ka = run_agent(name=agent_alias, base=KABR.KaBr_lvl3)
-            ka.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 1.0)})
+            ka.set_attr(desired_results={'cycle length': (0, 1000), 'reactivity swing': (0, 7500), 'burnup': (0,200), 'pu mass': (0, 1000)})
         elif 'lvl2' in agent:
-            ka = run_agent(name=agent_alias, base=KABR.KaBr_lvl2)
-            ka.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
+            ka.set_attr(desired_results={'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'})
         else:
-            self.log_info('Agent type ({}) does not match a known agent type.'.format(agent_type))
+            self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return

@@ -68,9 +68,11 @@ class KaBr_lvl2(KaBr):
         for opt_core in lvl_1.keys():
             pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
                                                      lvl_3[opt_core]['reactor parameters'])
+
             if pareto_opt == None:
                 return (False, pareto_opt)
             else:
+                self.log_info('Core {} is {} optimal.'.format(core_name,pareto_opt))
                 return (True, pareto_opt)
 
     def determine_optimal_type(self, new_rx, opt_rx):
@@ -89,7 +91,7 @@ class KaBr_lvl2(KaBr):
         else:
             return None
     
-    def remove_entry():
+    def remove_entry(self):
         """Remove an entry that has been dominated."""
         pass
     
@@ -97,7 +99,7 @@ class KaBr_lvl2(KaBr):
         self.log_debug('Executing agent {}'.format(self.name)) 
         self.write_to_bb()
         self.remove_entry()
-        self.clear_etry()
+        self.clear_entry()
                 
 
 class KaBr_lvl3(KaBr):

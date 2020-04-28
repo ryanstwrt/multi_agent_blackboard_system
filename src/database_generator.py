@@ -14,18 +14,26 @@ def get_data(design_variables, objective_variables):
                 ind_vars.append(rx_.rx['independent variables'][var][0])
             obj_vars = []
             for var in objective_variables:
+                cycle_length = rx_.extrapolate_value('keff', 'time', 1.0)
                 if var == 'doppler':
                     obj_vars.append(rx_.get_doppler_coefficient()/300)
                 elif var == 'void':
                     obj_vars.append(rx_.get_void_coefficient())
                 elif var == 'cycle length':
-                    a = rx_.extrapolate_value('keff', 'time', 1.0)
-                    a = a.flat[0]
-                    obj_vars.append(a)
+                    obj_vars.append(cycle_length)
                 elif var == 'pu fraction':
                     obj_vars.append(rx_.rx['independent variables']['pu_fraction'][0])
                 elif var == 'keff':
                     obj_vars.append(rx_.rx_step_params['step_0']['keff'][0])
+                elif var == 'reactivity swing':
+                    rx_swing = rx_.get_reactivity_swing(1.0, cycle_length)
+                    obj_vars.append(rx_swing)
+                elif var == 'pu mass':
+                    pu_mass = rx_.get_assembly_pu_mass() * 78 / 4
+                    obj_vars.append(pu_mass)
+                elif var == 'burnup':
+                    avg_bu = rx_.get_assembly_avg(cycle_length, 'burnup')
+                    obj_vars.append(avg_bu)
             ind_var_array.append(tuple(ind_vars))
             obj_var_array.append(tuple(obj_vars))
         except:

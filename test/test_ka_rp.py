@@ -60,7 +60,7 @@ def test_karp_verify_init():
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('interp_path') == None
     assert rp.get_attr('interpolator_dict') == {}
-    assert rp.get_attr('objectives') == ['keff', 'void_coeff', 'doppler_coeff']
+    assert rp.get_attr('objectives') == ['keff', 'void', 'doppler']
     assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
                                                                      'smear': (50,70),
                                                                      'pu_content':(0,1)})
@@ -106,9 +106,9 @@ def test_karp_scout_init():
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
-    assert rp.get_attr('interp_path') == None
-    assert rp.get_attr('interpolator_dict') == {}
-    assert rp.get_attr('objectives') == ['keff', 'void_coeff', 'doppler_coeff']
+    assert rp.get_attr('_sm') == None
+    assert rp.get_attr('sm_type') == 'interpolate'
+    assert rp.get_attr('objectives') == ['keff', 'void', 'doppler']
     assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
                                                                      'smear': (50,70),
                                                                      'pu_content':(0,1)})
@@ -140,6 +140,22 @@ def test_create_sm_interpolate():
     ns.shutdown()
     time.sleep(0.1)
 
+def test_create_sm_regression():
+    """Create a test when we determine what type of SM we want to use"""
+    ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
+    
+    rp.set_attr(sm_type='lr')
+    rp.create_sm()
+    sm = rp.get_attr('_sm')
+    objs = sm.predict('lr', [[61.37,51.58,0.7340]])
+    assert round(objs[0][0], 8) == 0.99992182
+    assert sm.models['lr']['score'] == 0.93162733339492
+    assert sm.models['lr']['mse_score'] == 0.06837266660508003
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
 #----------------------------------------------------------
 # Tests fopr KA-RP-Exploit
 #----------------------------------------------------------
@@ -166,9 +182,9 @@ def test_karp_exploit_init():
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
-    assert rp.get_attr('interp_path') == None
-    assert rp.get_attr('interpolator_dict') == {}
-    assert rp.get_attr('objectives') == ['keff', 'void_coeff', 'doppler_coeff']
+    assert rp.get_attr('_sm') == None
+    assert rp.get_attr('sm_type') == 'interpolate'
+    assert rp.get_attr('objectives') == ['keff', 'void', 'doppler']
     assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
                                                                      'smear': (50,70),
                                                                      'pu_content':(0,1)})
@@ -195,10 +211,10 @@ def test_perturb_design():
     bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
     
-    proxy_addrs = proxy.NSProxy()
-    rp1 = proxy_addrs('ka_rp_exploit')
-    bb.update_abstract_lvl(1, {'core1': {'Pareto' : 'pareto'}})
-    bb.update_abstract_lvl(3, {'core1': {'reactor parameters': {'height': 60, 'smear': 70, 'pu_content': 0.2, 'keff': 1.0, 'void_coeff': -110, 'doppler_coeff': -0.6}}})
+#    proxy_addrs = proxy.NSProxy()
+ #   rp1 = proxy_addrs('ka_rp_exploit')
+  #  bb.update_abstract_lvl(1, {'core1': {'Pareto' : 'pareto'}})
+   # bb.update_abstract_lvl(3, {'core1': {'reactor parameters': {'height': 60, 'smear': 70, 'pu_content': 0.2, 'keff': 1.0, 'void_coeff': -110, 'doppler_coeff': -0.6}}})
     
     
     
