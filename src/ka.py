@@ -148,7 +148,7 @@ class KaBase(Agent):
         Parameters
         ----------
         message : str
-            String containts unused string, but required for agent communication.
+            Containts unused message, but required for agent communication.
         """
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))

@@ -27,9 +27,9 @@ class KaBr(ka.KaBase):
     def determine_validity(self):
         pass
 
-    def move_current_entry(self):
-        self.write_to_bb(self.bb_lvl_read, panel=self.old_panel)
-        self.write_to_bb(self.bb_lvl_read, panel=self.new_panel, remove=True)
+    def move_current_entry(self, bb_lvl, entry_name, entry):
+        self.write_to_bb(bb_lvl, panel=self.old_panel)
+        self.write_to_bb(bb_lvl, panel=self.new_panel, remove=True)
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
@@ -44,12 +44,13 @@ class KaBr(ka.KaBase):
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
 
     def read_bb_lvl(self):
-        if self.bb_lvl_read != 3:
-            lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        else:
-            lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-        for core_name in lvl.keys():
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        lvl = lvl[self.new_panel] if self.bb_lvl_read != 3 else lvl
+
+        for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
+            if self.bb_lvl_read !=3:
+                self.move_current_entry(self.bb_lvl_read, core_name, core_entry)
             if valid[0]:
                 self.add_entry((core_name,valid[1]))
                 return True
@@ -70,7 +71,7 @@ class KaBr_lvl2(KaBr):
         """Determine if the core is pareto optimal"""
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
         lvl_3 = self.bb.get_attr('abstract_lvls')['level 3']
-        
+
         #make a dictionary of all the cores present in the level
         all_cores = {}
         for panel in lvl.values():
@@ -82,24 +83,26 @@ class KaBr_lvl2(KaBr):
         for opt_core in all_cores.keys():
             pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
                                                      lvl_3[opt_core]['reactor parameters'])
-            if pareto_opt == None:
-                return (False, pareto_opt)
-            else:
+            if pareto_opt:
                 self.log_info('Core {} is {} optimal.'.format(core_name,pareto_opt))
                 return (True, pareto_opt)
+        return (False, pareto_opt)
 
     def determine_optimal_type(self, new_rx, opt_rx):
         """Determine if the solution is Pareto, weak, or not optimal"""
         optimal = 0
+        pareto_optimal = 0
         for param, symbol in self.desired_results.items():
             new_val = -new_rx[param] if symbol == 'gt' else new_rx[param]
             opt_val = -opt_rx[param] if symbol == 'gt' else opt_rx[param]
             if new_val <= opt_val:
                 optimal += 1
+            if new_val < opt_val:
+                pareto_optimal += 1
                 
-        if optimal == len(opt_rx.keys()):
+        if optimal == len(opt_rx.keys()) and pareto_optimal > 0:
             return 'pareto'
-        elif optimal > 0:
+        elif pareto_optimal > 0:
             return 'weak'
         else:
             return None
@@ -111,7 +114,6 @@ class KaBr_lvl2(KaBr):
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
         self.write_to_bb(self.bb_lvl, panel=self.new_panel)
-        self.move_current_entry()
         self.remove_entry()
         self.clear_entry()
                 

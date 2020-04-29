@@ -186,8 +186,14 @@ def test_kabr_lvl2_determine_validity():
     bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float}})
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.05, 'void_coeff': -150.0}})
     bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.05, 'void_coeff': -160.0}})
+    bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.00, 'void_coeff': -100.0}})
+    bb.update_abstract_lvl(3, 'core_4', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.00, 'void_coeff': -100.0}})
 
     bb.update_abstract_lvl(2, 'core_1', {'valid': True}, panel='new')
+    bb.update_abstract_lvl(2, 'core_2', {'valid': True}, panel='new')
+    bb.update_abstract_lvl(2, 'core_3', {'valid': True}, panel='new')
+    bb.update_abstract_lvl(2, 'core_4', {'valid': True}, panel='new')
+
     bol, p_type = ka_br_lvl2.determine_validity('core_1')
     assert p_type == 'pareto'
     assert bol == True
@@ -197,6 +203,11 @@ def test_kabr_lvl2_determine_validity():
     assert p_type == 'weak'
     assert bol == True
 
+    bb.update_abstract_lvl(1, 'core_2', {'pareto type': 'weak'}, panel='old')
+    bol, p_type = ka_br_lvl2.determine_validity('core_4')
+    assert p_type == None
+    assert bol == False
+    
     ns.shutdown()
     time.sleep(0.1) 
     
@@ -215,11 +226,12 @@ def test_move_curent_entry():
     bb.add_panel(2, ['new', 'old'])
 
     bb.update_abstract_lvl(2, 'core_1', {'valid': True}, panel='new')
+    # This is here until we update write to bb
     ka_br_lvl2.set_attr(_entry_name='core_1')
-    ka_br_lvl2.set_attr(_entry={'valid': True}) 
+    ka_br_lvl2.set_attr(_entry={'valid' : True})
     
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_1' : {'valid' : True}}, 'old' : {}}
-    ka_br_lvl2.move_current_entry()
+    ka_br_lvl2.move_current_entry(ka_br_lvl2.get_attr('bb_lvl_read'), 'core_1', {'valid': True})
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old' : {'core_1' : {'valid' : True}}}
     
     ns.shutdown()
@@ -235,9 +247,24 @@ def test_kabr_lvl2_determine_optimal_type():
         {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4}, 
         {'keff': 1.05, 'void_coeff': -120, 'doppler_coeff': -0.65, 'pu_content': 0.6})
     assert bool_ == 'pareto'
+
+    bool_ = ka_br_lvl2.determine_optimal_type(
+        {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4}, 
+        {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4})
+    assert bool_ == None
+    
+    bool_ = ka_br_lvl2.determine_optimal_type(
+        {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4}, 
+        {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.6})
+    assert bool_ == 'pareto'
     
     bool_ = ka_br_lvl2.determine_optimal_type(
         {'keff': 1.02, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.4}, 
+        {'keff': 1.05, 'void_coeff': -120, 'doppler_coeff': -0.65, 'pu_content': 0.6})
+    assert bool_ == 'weak'
+    
+    bool_ = ka_br_lvl2.determine_optimal_type(
+        {'keff': 1.00, 'void_coeff': -100, 'doppler_coeff': -0.55, 'pu_content': 0.4}, 
         {'keff': 1.05, 'void_coeff': -120, 'doppler_coeff': -0.65, 'pu_content': 0.6})
     assert bool_ == 'weak'
     
@@ -248,6 +275,52 @@ def test_kabr_lvl2_determine_optimal_type():
     
     ns.shutdown()
     time.sleep(0.1)
+    
+def test_kabr_lvl2_handler_executor():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
+    ka_br_lvl2.add_blackboard(bb)
+    ka_br_lvl2.connect_writer()
+    ka_br_lvl2.connect_executor()
+    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
+    
+    bb.add_abstract_lvl(1, {'pareto type': str})
+    bb.add_panel(1, ['new', 'old'])
+    bb.add_abstract_lvl(2, {'valid': bool})
+    bb.add_panel(2, ['new', 'old'])
+    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float}})
+    
+    ka_br_lvl2.set_attr(_entry_name='core 1')
+    ka_br_lvl2.set_attr(_entry={'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                       'pu_content': 0.4, 'keff': 1.05, 
+                                                       'void_coeff': -150.0}})
+    
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.4, 'keff': 1.05, 
+                                                                'void_coeff': -150.0}})
+#    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+#                                                                'pu_content': 0.4, 'keff': 1.05, 
+#                                                                'void_coeff': -160.0}})
+#    bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+#                                                                'pu_content': 0.4, 'keff': 1.00, 
+#                                                                'void_coeff': -100.0}})    
+
+    bb.update_abstract_lvl(2, 'core_1', {'valid': True}, panel='new')
+#    bb.update_abstract_lvl(2, 'core_2', {'valid': True}, panel='new')
+#    bb.update_abstract_lvl(2, 'core_3', {'valid': True}, panel='new')
+    
+#    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
+#    ka_br_lvl2.read_bb_lvl()
+
+#    bb.send_executor()
+#    time.sleep(1.1)   
+
+#    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto'}}, 'old' : {}}
+#    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 'old': {'core_1': {'valid': True}}}
+    
+    ns.shutdown()
+    time.sleep(0.1) 
     
 #-----------------------------------------
 # Test of KaBr_lvl3
