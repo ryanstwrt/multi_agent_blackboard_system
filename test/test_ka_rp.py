@@ -3,12 +3,10 @@ from osbrain import run_nameserver
 from osbrain import run_agent
 import blackboard
 import ka
-import pandas as pd
 import time
-import os
 import ka_rp
 from collections import OrderedDict
-import bb_basic
+import bb_sfr_opt as bb_sfr
 
 def test_karp_init():
     ns = run_nameserver()
@@ -206,7 +204,7 @@ def test_exploit_mc_design_variables():
     
 def test_perturb_design():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     #bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
 
     ns.shutdown()
@@ -214,7 +212,7 @@ def test_perturb_design():
 
 def test_write_to_bb():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     ka = run_agent(name='ka_rp_exploit', base=ka_rp.KaRpExploit)
     ka.add_blackboard(bb)
     ka.connect_writer()

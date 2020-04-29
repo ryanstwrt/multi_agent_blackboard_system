@@ -2,7 +2,7 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import blackboard
-import bb_basic
+import bb_sfr_opt as bb_sfr
 import time
 import os
 import ka_rp as karp
@@ -10,7 +10,7 @@ import ka_br as kabr
 
 def test_BbTraditional_init():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbTraditional)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbTraditional)
     assert bb.get_attr('agent_addrs') == {}
     assert bb.get_attr('_agent_writing') == False
     assert bb.get_attr('_new_entry') == False
@@ -32,7 +32,7 @@ def test_BbTraditional_init():
     
 def test_connect_agent():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbTraditional)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbTraditional)
     bb.connect_agent(karp.KaRp_verify, 'ka_rp')
     bb.connect_agent(kabr.KaBr_verify, 'ka_br')
     
@@ -58,7 +58,7 @@ def test_connect_agent():
     
 def test_determine_complete():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbTraditional)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbTraditional)
     bb.connect_agent(karp.KaRp_verify, 'ka_rp')
     bb.connect_agent(karp.KaRp_verify, 'ka_rp1')
     bb.connect_agent(kabr.KaBr_verify, 'ka_br')
@@ -79,7 +79,7 @@ def test_determine_complete():
     
 def test_wait_for_ka():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbTraditional)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbTraditional)
 
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
@@ -95,7 +95,7 @@ def test_wait_for_ka():
 
 def test_BbSfrOpt_init():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     assert bb.get_attr('agent_addrs') == {}
     assert bb.get_attr('_agent_writing') == False
     assert bb.get_attr('_new_entry') == False
@@ -120,7 +120,7 @@ def test_BbSfrOpt_init():
     
 def test_add_ka_specific():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.connect_agent(karp.KaRpExplore, 'ka_rp_explore')
     bb.connect_agent(karp.KaRpExploit, 'ka_rp_exploit')
     bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
@@ -143,7 +143,7 @@ def test_add_ka_specific():
 
 def test_determine_complete():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
 
     for x in range(11):
@@ -161,7 +161,7 @@ def test_determine_complete():
     
 def test_handler_writer():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     rp = run_agent(name='explore', base=karp.KaRpExplore)
     rp1 = run_agent(name='exploit', base=karp.KaRpExploit)
     rp.add_blackboard(bb)
@@ -208,7 +208,7 @@ def test_handler_writer():
 
 def test_BbSfrOpt_add_panel():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
 
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.add_panel(1, ['new', 'old'])
