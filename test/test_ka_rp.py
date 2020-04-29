@@ -230,12 +230,10 @@ def test_write_to_bb():
     ka.add_blackboard(bb)
     ka.connect_writer()
     
-    ka.set_attr(_entry_name='core1')
     core_attrs = {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                          'cycle length': 100.0, 'reactivity swing': 110.0, 
                                          'burnup': 32.0, 'pu mass': 1000.0}}
-    ka.set_attr(_entry=core_attrs)
-    ka.write_to_bb(ka.get_attr('bb_lvl'), complete=True)
+    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core1', core_attrs, complete=True)
     assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': 
                                                                  {'height': 60.0, 'smear': 70.0, 
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 
@@ -244,12 +242,10 @@ def test_write_to_bb():
     assert bb.get_attr('_new_entry') == True
     assert bb.get_attr('_agent_writing') == False
     
-    ka.set_attr(_entry_name='core2')
     core_attrs = {'reactor parameters': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2, 
                                          'cycle length': 100.0, 'reactivity swing': 110.0, 
                                          'burnup': 32.0, 'pu mass': 1000.0}}
-    ka.set_attr(_entry=core_attrs)
-    ka.write_to_bb(ka.get_attr('bb_lvl'), complete=False)
+    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core2', core_attrs, complete=False)
     assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': 
                                                                  {'height': 60.0, 'smear': 70.0, 
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 

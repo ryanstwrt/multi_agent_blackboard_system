@@ -227,14 +227,8 @@ def test_remove_bb_entry_agent():
     ka_base1.connect_writer()
     ka_base1.set_attr(bb_lvl=2)
     
-    ka_base.set_attr(_entry_name='core_1')
-    ka_base.set_attr(_entry={'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
-    
-    ka_base1.set_attr(_entry_name='core_2')
-    ka_base1.set_attr(_entry={'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
-    
-    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'))
-    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'))
+    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'), 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
+    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'), 'core_2', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                            'level 2': {'core_2': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
@@ -274,11 +268,9 @@ def test_update_abstract_lvl_agent():
     ka_base.add_blackboard(bb)
     ka_base.connect_writer()
     ka_base.set_attr(bb_lvl=1)
-    ka_base.set_attr(_entry_name='core_1')
-    ka_base.set_attr(_entry={'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
 
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'))
+    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'), 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
     ns.shutdown()
@@ -317,7 +309,7 @@ def test_update_abstract_lvl_mult():
     ns.shutdown()
     time.sleep(0.1)
 
-def test_update_abstract_lvl_agent():
+def test_update_abstract_lvl_multi_agent():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_base = run_agent(name='ka', base=ka.KaBase)
@@ -325,19 +317,15 @@ def test_update_abstract_lvl_agent():
     ka_base.add_blackboard(bb)
     ka_base.connect_writer()
     ka_base.set_attr(bb_lvl=1)
-    ka_base.set_attr(_entry_name='core_1')
-    ka_base.set_attr(_entry={'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
 
     ka_base1.add_blackboard(bb)
     ka_base1.connect_writer()
     ka_base1.set_attr(bb_lvl=2)
-    ka_base1.set_attr(_entry_name='core_2')
-    ka_base1.set_attr(_entry={'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
        
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.add_abstract_lvl(2, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'))
-    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'))
+    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'), 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
+    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'), 'core_2',{'entry 1': 'test', 'entry 2': False, 'entry 3': 2} )
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                             'level 2': {'core_2': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
@@ -352,25 +340,20 @@ def test_rewrite_bb_entry():
     ka_base.add_blackboard(bb)
     ka_base.connect_writer()
     ka_base.set_attr(bb_lvl=1)
-    ka_base.set_attr(_entry_name='core_1')
-    ka_base.set_attr(_entry={'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
     
     ka_base1.add_blackboard(bb)
     ka_base1.connect_writer()
     ka_base1.set_attr(bb_lvl=2)
-    ka_base1.set_attr(_entry_name='core_2')
-    ka_base1.set_attr(_entry={'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
     
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.add_abstract_lvl(2, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'))
-    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'))
+    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'), 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
+    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'), 'core_2', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                            'level 2': {'core_2': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
 
-    ka_base1.set_attr(_entry={'entry 1': 'test_new', 'entry 2': True, 'entry 3': 5})
-    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'))    
+    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'), 'core_2', {'entry 1': 'test_new', 'entry 2': True, 'entry 3': 5})    
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                             'level 2': {'core_2': {'entry 1': 'test_new', 'entry 2': True, 'entry 3': 5}}}
     ns.shutdown()

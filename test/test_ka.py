@@ -103,9 +103,9 @@ def test_write_to_blackboard():
     assert bb.get_attr('_agent_writing') == False
     
     ka_b.set_attr(bb_level=1)
-    ka_b.set_attr(_entry_name='core_1')
-    ka_b.set_attr(_entry={'entry 1': (0,1,0), 'entry 2': [0,1,0], 'entry 3': 'test'})
-    ka_b.write_to_bb(ka_b.get_attr('bb_lvl'))
+#    ka_b.set_attr(_entry_name='core_1')
+#    ka_b.set_attr(_entry={'entry 1': (0,1,0), 'entry 2': [0,1,0], 'entry 3': 'test'})
+    ka_b.write_to_bb(ka_b.get_attr('bb_lvl'), 'core_1', {'entry 1': (0,1,0), 'entry 2': [0,1,0], 'entry 3': 'test'})
     
     assert bb.get_attr('_agent_writing') == False
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': (0,1,0), 'entry 2': [0,1,0], 'entry 3': 'test'}}}

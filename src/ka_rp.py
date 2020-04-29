@@ -61,7 +61,7 @@ class KaRpExplore(KaRp):
         self.log_debug('Executing agent {}'.format(self.name))
         self.mc_design_variables()
         self.calc_objectives()
-        self.write_to_bb(self.bb_lvl, panel=self.new_panel)
+        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
     
     def mc_design_variables(self):
         """Determine the core design variables using a monte carlo method."""
@@ -143,7 +143,7 @@ class KaRpExploit(KaRpExplore):
         if self.lvl == {}:
             self.mc_design_variables()
             self.calc_objectives()
-            self.write_to_bb()
+            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
             self.move_entry()
         else:
             self.perturb_design()
@@ -176,7 +176,7 @@ class KaRpExploit(KaRpExplore):
                         self.calc_objectives()
                         self.perturbed_cores.append(self._entry_name)
                         completed = True if i == total_perts else False
-                        self.write_to_bb(self.bb_lvl, complete=completed, panel=self.new_panel)
+                        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed, panel=self.new_panel)
             
 class KaRp_verify(KaRpExplore):
     def on_init(self):

@@ -226,9 +226,6 @@ def test_move_curent_entry():
     bb.add_panel(2, ['new', 'old'])
 
     bb.update_abstract_lvl(2, 'core_1', {'valid': True}, panel='new')
-    # This is here until we update write to bb
-    ka_br_lvl2.set_attr(_entry_name='core_1')
-    ka_br_lvl2.set_attr(_entry={'valid' : True})
     
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_1' : {'valid' : True}}, 'old' : {}}
     ka_br_lvl2.move_current_entry(ka_br_lvl2.get_attr('bb_lvl_read'), 'core_1', {'valid': True})
