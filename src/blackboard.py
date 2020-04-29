@@ -397,7 +397,7 @@ class Blackboard(Agent):
         self.send(self._pub_trigger_alias, 'publishing trigger')
         time.sleep(3)
 
-    def remove_bb_entry(self, level, name):
+    def remove_bb_entry(self, level, name, panel=None):
         """
         Remove a BB entry on a given abstract level.
         
@@ -407,8 +407,13 @@ class Blackboard(Agent):
             Abstract level to access.
         name : str
             BB entry to remove from the abstract level.
+        panel : str
+            Panel name if present
         """
-        del self.abstract_lvls['level {}'.format(level)][name]
+        if panel:
+            del self.abstract_lvls['level {}'.format(level)][panel][name]
+        else:
+            del self.abstract_lvls['level {}'.format(level)][name]
         self.log_debug('Removing entry {} from BB abstract level {}.'.format(name, level))
         self.finish_writing_to_bb()
         

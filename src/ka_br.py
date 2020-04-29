@@ -27,13 +27,16 @@ class KaBr(ka.KaBase):
     def determine_validity(self):
         pass
 
+    def move_current_entry(self):
+        self.write_to_bb(panel=self.old_panel, remove=True)
+    
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
         self.write_to_bb(panel=self.new_panel)
         self.clear_entry()
                 
     def handler_trigger_publish(self, message):
-        """Read the BB level that it is qualified to read and determine if an entry is available."""
+        """Read the BB level and determine if an entry is available."""
         new_entry = self.read_bb_lvl()
         self._trigger_val = 10 if new_entry else 0
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
@@ -107,6 +110,7 @@ class KaBr_lvl2(KaBr):
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
         self.write_to_bb(panel=self.new_panel)
+        self.move_current_entry()
         self.remove_entry()
         self.clear_entry()
                 
