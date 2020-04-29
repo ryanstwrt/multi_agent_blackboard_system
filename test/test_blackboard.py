@@ -198,11 +198,16 @@ def test_remove_bb_entry():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-
+    bb.add_abstract_lvl(2, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
+    bb.add_panel(2, ['new', 'old'])
+    
     bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
-    assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1' : {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
+    bb.update_abstract_lvl(2, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}, panel='new')
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1' : {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}, 'level 2': {'new' : {'core_1' : {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}, 'old': {}}}
+        
     bb.remove_bb_entry(1, 'core_1')
-    assert bb.get_attr('abstract_lvls') == {'level 1': {}}
+    bb.remove_bb_entry(2, 'core_1', panel='new')
+    assert bb.get_attr('abstract_lvls') == {'level 1': {}, 'level 2': {'new':{}, 'old':{}}}
 
     ns.shutdown()
     time.sleep(0.1) 
