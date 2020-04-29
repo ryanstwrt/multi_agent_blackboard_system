@@ -300,6 +300,47 @@ class Blackboard(Agent):
                 data_dict[k] = type_
         return data_dict
          
+    def handler_trigger_response(self, message):
+        """
+        Handler for KAs trigger response, stores all responses in `trigger_evemts`.
+        
+        Parameters
+        ----------
+        message: tuple (agent_name, trigger_val)
+            agent_name : str
+                Alias for the KA
+            trigger_val : int
+                Trigger value for the agent
+        """
+        agent_name, trig_val = message
+        self.log_debug('Logging trigger response ({}) for agent {}'.format(trig_val, agent_name))
+        self._kaar[self._trigger_event].update({agent_name: trig_val})
+        
+    def handler_writer(self, message):
+        """
+        Handler to determine if it is acceptable for a KA to write to the blackboard
+        
+        Parameters
+        ----------
+        message : tuple (str, bool)
+            str : Alias for the KA sending request
+            bool : Boolean logic to determine if the KA is done writing to the BB
+            
+        Returns
+        -------
+        bool
+            True if agent can write, false if agent must wait
+        """
+        agent_name, self._new_entry = message 
+        if not self._agent_writing:
+            self._agent_writing = True
+            self.log_debug('Agent {} given permission to write'.format(agent_name))
+            return True
+        else:
+            self._new_entry = False
+            self.log_debug('Agent {} waiting to write'.format(agent_name))
+            return False
+       
     def load_dataset(self, data_name, data, data_dict):
         """
         Load the H5 data sets to their appropriate format for the blackboard
@@ -328,47 +369,7 @@ class Blackboard(Agent):
         else:
             return data_dict[data_name](data[0])
 
-    def handler_trigger_response(self, message):
-        """
-        Handler for KAs trigger response, stores all responses in `trigger_evemts`.
-        
-        Parameters
-        ----------
-        message: tuple (agent_name, trigger_val)
-            agent_name : str
-                Alias for the KA
-            trigger_val : int
-                Trigger value for the agent
-        """
-        agent_name, trig_val = message
-        self.log_debug('Logging trigger response ({}) for agent {}'.format(trig_val, agent_name))
-        self._kaar[self._trigger_event].update({agent_name: trig_val})
-        
-    def handler_writer(self, message):
-        """
-        Handler to determine if it is acceptable for a KA to write to the blackboard
-        
-        Parameters
-        ----------
-        message : str
-            Alias for the KA sending request
-            
-        Returns
-        -------
-        bool
-            True if agent can write, false if agent must wait
-        """
-        agent_name = message
-        if not self._agent_writing:
-            self._agent_writing = True
-            self._new_entry = True
-            self.log_debug('Agent {} given permission to write'.format(agent_name))
-            return True
-        else:
-            self.log_debug('Agent {} waiting to write'.format(agent_name))
-            return False
-       
-        
+    
     def load_h5(self):
         """
         Load an H5 archive of the blackboard

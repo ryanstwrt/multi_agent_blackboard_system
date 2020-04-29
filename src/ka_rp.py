@@ -48,9 +48,16 @@ class KaRpExplore(KaRp):
         self.sm_type = 'interpolate'
 
     def handler_executor(self, message):
-        """Execution handler for KA-RP.
+        """
+        Execution handler for KA-RP.
         KA-RP determines a core design and runs a physics simulation using a surrogate model.
-        Upon completion, KA-RP sends the BB a writer message to write to the BB."""
+        Upon completion, KA-RP sends the BB a writer message to write to the BB.
+        
+        Parameter
+        ---------
+        message : str
+            required message for sending communication
+        """
         self.log_debug('Executing agent {}'.format(self.name))
         self.mc_design_variables()
         self.calc_objectives()
@@ -63,7 +70,10 @@ class KaRpExplore(KaRp):
         self.log_debug('Core design variables determined: {}'.format(self.design_variables))
 
     def calc_objectives(self):
-        """Calculate the objective functions based on the core design variables."""
+        """
+        Calculate the objective functions based on the core design variables.
+        This process is performed via an interpolator or a surrogate model.
+        """
         self.log_debug('Determining core parameters based on SM')
         design = [x for x in self.design_variables.values()]
         if self.sm_type == 'interpolate':
@@ -80,8 +90,12 @@ class KaRpExplore(KaRp):
         self._entry = {'reactor parameters': a}
     
     def create_sm(self):
-        """Build the linear interpolator for estimating between known datapoints.
-        This uses scipy's LinearNDInterpolator, where we create a unique interpolator for each objective function"""
+        """
+        Build a surrogate model based on the SFR_DB.h5 dataset.
+        The data is generated using the `get_data` function and returns the design and objective variables.
+        This can be done using scipy's scipy's LinearNDInterpolator, or we use a regression model.
+        The regression model is based on scikit-learn's and accessed through the `train_surrogate_model` module
+        """
 
         design_var, objective_func = dg.get_data([x for x in self.independent_variable_ranges.keys()], self.objectives)
         if self.sm_type == 'interpolate':
@@ -143,6 +157,7 @@ class KaRpExploit(KaRpExplore):
             if core in self.perturbed_cores:
                 pass
             else:
+                self.log_debug("Perturbing core design for {}".format(core))
                 base_design_variables = {k: lvl3[core][k] for k in self.independent_variable_ranges.keys()}
                 i = 0
                 total_perts = len(base_design_variables.keys()) * len(self.permutations)
@@ -154,19 +169,7 @@ class KaRpExploit(KaRpExplore):
                         self.calc_objectives()
                         self.perturbed_cores.append(self._entry_name)
                         completed = True if i == total_perts else False
-                        self.write_to_bb(completed)
-
-    def write_to_bb(self, completed):
-        """Write the KA's entry to the BB on the specified level."""
-        self.log_debug('Sending writer trigger to BB.')
-        write = False
-        while not write:
-            time.sleep(1)
-            self.send(self._writer_alias, [self.name, completed])
-            write = self.recv(self._writer_alias)
-        else:
-            self.log_debug('Writing to BB Level {}'.format(self.bb_lvl))
-            self.bb.update_abstract_lvl(self.bb_lvl, self._entry_name, self._entry)
+                        self.write_to_bb(complete=completed)
             
 class KaRp_verify(KaRpExplore):
     def on_init(self):

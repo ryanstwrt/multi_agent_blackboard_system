@@ -31,6 +31,10 @@ class BbTraditional(blackboard.Blackboard):
             return
         
     def determine_complete(self):
+        """
+        Determine when the problem has finished to send the shutdown communication.
+        Complete for the traditional system is determined if a solution has been placed in abstract level 1 on the blackboard.
+        """
         if self.abstract_lvls['level 1'] != {}:
             self.log_info('Problem complete, shutting agents down')
             time.sleep(5)
@@ -58,6 +62,11 @@ class BbSfrOpt(BbTraditional):
         self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float }})
 
     def determine_complete(self):
+        """
+        Determine when the problem has finished to send the shutdown communication.
+        Complete for the traditional system is determined  when a set number of solutions has been placed on abstract level 1 on the blackboard.
+        """
+
         if len(self.abstract_lvls['level 1']) > 10:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
@@ -65,32 +74,16 @@ class BbSfrOpt(BbTraditional):
             self._complete = True
         else:
             pass
-    
-    def handler_writer(self, message):
+
+    def connect_ka_specific(self, agent):
         """
-        Handler to determine if it is acceptable for a KA to write to the blackboard
+        Assigns specific variables for each KA type in the SFR optimization problem.
         
         Parameters
         ----------
-        message : str
-            Alias for the KA sending request
-            
-        Returns
-        -------
-        bool
-            True if agent can write, false if agent must wait
+        agent : str
+            alias of the KA to be updated
         """
-        agent_name, self._new_entry = message if type(message) == list else (message, True)
-            
-        if not self._agent_writing:
-            self._agent_writing = True
-            self.log_info('Agent {} given permission to write'.format(agent_name))
-            return True
-        else:
-            self.log_info('Agent {} waiting to write'.format(agent_name))
-            return False
-    
-    def connect_ka_specific(self, agent):
         ns = proxy.NSProxy()
         ka = ns.proxy(agent)
         if 'rp' in agent:

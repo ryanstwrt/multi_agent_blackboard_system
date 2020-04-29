@@ -128,7 +128,6 @@ def test_mc_design_variables():
     time.sleep(0.1)
     
 def test_create_sm_interpolate():
-    """Create a test when we determine what type of SM we want to use"""
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
     
@@ -141,7 +140,6 @@ def test_create_sm_interpolate():
     time.sleep(0.1)
 
 def test_create_sm_regression():
-    """Create a test when we determine what type of SM we want to use"""
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
     
@@ -209,8 +207,51 @@ def test_exploit_mc_design_variables():
 def test_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
-    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    #bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
 
     ns.shutdown()
     time.sleep(0.1)    
+
+def test_write_to_bb():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_basic.BbSfrOpt)
+    ka = run_agent(name='ka_rp_exploit', base=ka_rp.KaRpExploit)
+    ka.add_blackboard(bb)
+    ka.connect_writer()
     
+    ka.set_attr(_entry_name='core1')
+    core_attrs = {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
+                                         'cycle length': 100.0, 'reactivity swing': 110.0, 
+                                         'burnup': 32.0, 'pu mass': 1000.0}}
+    ka.set_attr(_entry=core_attrs)
+    ka.write_to_bb(True)
+    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': 
+                                                                 {'height': 60.0, 'smear': 70.0, 
+                                                                  'pu_content': 0.2, 'cycle length': 100.0, 
+                                                                  'reactivity swing': 110.0, 'burnup': 32.0, 
+                                                                  'pu mass': 1000.0}}}
+    assert bb.get_attr('_new_entry') == True
+    assert bb.get_attr('_agent_writing') == False
+    
+    ka.set_attr(_entry_name='core2')
+    core_attrs = {'reactor parameters': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2, 
+                                         'cycle length': 100.0, 'reactivity swing': 110.0, 
+                                         'burnup': 32.0, 'pu mass': 1000.0}}
+    ka.set_attr(_entry=core_attrs)
+    ka.write_to_bb(False)
+    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': 
+                                                                 {'height': 60.0, 'smear': 70.0, 
+                                                                  'pu_content': 0.2, 'cycle length': 100.0, 
+                                                                  'reactivity swing': 110.0, 'burnup': 32.0, 
+                                                                  'pu mass': 1000.0}},
+                                                       'core2': {'reactor parameters': 
+                                                                 {'height': 70.0, 'smear': 70.0, 
+                                                                  'pu_content': 0.2, 'cycle length': 100.0, 
+                                                                  'reactivity swing': 110.0, 'burnup': 32.0, 
+                                                                  'pu mass': 1000.0}}}
+    assert bb.get_attr('_new_entry') == False
+    assert bb.get_attr('_agent_writing') == False
+
+
+    ns.shutdown()
+    time.sleep(0.1)
