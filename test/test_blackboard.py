@@ -233,8 +233,8 @@ def test_remove_bb_entry_agent():
     ka_base1.set_attr(_entry_name='core_2')
     ka_base1.set_attr(_entry={'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
     
-    ka_base.write_to_bb()
-    ka_base1.write_to_bb()
+    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'))
+    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'))
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                            'level 2': {'core_2': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
@@ -278,7 +278,7 @@ def test_update_abstract_lvl_agent():
     ka_base.set_attr(_entry={'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
 
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-    ka_base.write_to_bb()
+    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'))
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
     ns.shutdown()
@@ -336,8 +336,8 @@ def test_update_abstract_lvl_agent():
        
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.add_abstract_lvl(2, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-    ka_base.write_to_bb()
-    ka_base1.write_to_bb()
+    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'))
+    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'))
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                             'level 2': {'core_2': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
@@ -363,14 +363,14 @@ def test_rewrite_bb_entry():
     
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.add_abstract_lvl(2, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-    ka_base.write_to_bb()
-    ka_base1.write_to_bb()
+    ka_base.write_to_bb(ka_base.get_attr('bb_lvl'))
+    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'))
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                            'level 2': {'core_2': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
 
     ka_base1.set_attr(_entry={'entry 1': 'test_new', 'entry 2': True, 'entry 3': 5})
-    ka_base1.write_to_bb()    
+    ka_base1.write_to_bb(ka_base1.get_attr('bb_lvl'))    
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                             'level 2': {'core_2': {'entry 1': 'test_new', 'entry 2': True, 'entry 3': 5}}}
     ns.shutdown()

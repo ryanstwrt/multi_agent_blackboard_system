@@ -199,6 +199,31 @@ def test_kabr_lvl2_determine_validity():
 
     ns.shutdown()
     time.sleep(0.1) 
+    
+def test_move_curent_entry():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
+    ka_br_lvl2.add_blackboard(bb)
+    ka_br_lvl2.connect_writer()
+
+    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
+    
+    bb.add_abstract_lvl(1, {'pareto type': str})
+    bb.add_panel(1, ['new', 'old'])
+    bb.add_abstract_lvl(2, {'valid': bool})
+    bb.add_panel(2, ['new', 'old'])
+
+    bb.update_abstract_lvl(2, 'core_1', {'valid': True}, panel='new')
+    ka_br_lvl2.set_attr(_entry_name='core_1')
+    ka_br_lvl2.set_attr(_entry={'valid': True}) 
+    
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_1' : {'valid' : True}}, 'old' : {}}
+    ka_br_lvl2.move_current_entry()
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old' : {'core_1' : {'valid' : True}}}
+    
+    ns.shutdown()
+    time.sleep(0.1)
 
 def test_kabr_lvl2_determine_optimal_type():
     ns = run_nameserver()

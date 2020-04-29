@@ -153,10 +153,14 @@ class KaBase(Agent):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
     
-    def write_to_bb(self, complete=True, panel=None, remove=False):
+    def write_to_bb(self, bb_lvl, complete=True, panel=None, remove=False):
         """
         Write the KA's entry to the BB on the specified level.
         
+        Parameters
+        ----------
+        bb_lvl : int
+            Abstract level for writing to
         complete : bool
             Used to determine if the KA is done writing to the BB
         panel : str
@@ -172,8 +176,8 @@ class KaBase(Agent):
             time.sleep(0.5)
         else:
             if remove:
-                self.log_debug('Removing BB Entry {} on BB Level {}, panel {}'.format(self._entry_name,self.bb_lvl,panel))
-                self.bb.remove_bb_entry(self.bb_lvl, self._entry_name, panel=panel)
+                self.log_debug('Removing BB Entry {} on BB Level {}, panel {}'.format(self._entry_name, bb_lvl, panel))
+                self.bb.remove_bb_entry(bb_lvl, self._entry_name, panel=panel)
             else:
-                self.log_debug('Writing to BB Level {}'.format(self.bb_lvl))
-                self.bb.update_abstract_lvl(self.bb_lvl, self._entry_name, self._entry, panel=panel)
+                self.log_debug('Writing to BB Level {}'.format(bb_lvl))
+                self.bb.update_abstract_lvl(bb_lvl, self._entry_name, self._entry, panel=panel)

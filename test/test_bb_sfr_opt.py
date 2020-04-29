@@ -172,14 +172,14 @@ def test_handler_writer():
     rp.set_attr(_entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                                'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}})
     rp.set_attr(_entry_name='core1')
-    rp.write_to_bb()
+    rp.write_to_bb(rp.get_attr('bb_lvl'))
     assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                                                                         'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
 
     rp1.set_attr(_entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                                 'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}})
     rp1.set_attr(_entry_name='core2')
-    rp1.write_to_bb(True)
+    rp1.write_to_bb(rp1.get_attr('bb_lvl'), complete=True)
     
     assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                                                                         'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
@@ -191,7 +191,7 @@ def test_handler_writer():
 
     assert bb.get_attr('_new_entry') == True
     bb.set_attr(_new_entry=False)
-    rp1.write_to_bb(False)
+    rp1.write_to_bb(rp1.get_attr('bb_lvl'), complete=False)
     assert bb.get_attr('_new_entry') == False
 
     

@@ -235,7 +235,7 @@ def test_write_to_bb():
                                          'cycle length': 100.0, 'reactivity swing': 110.0, 
                                          'burnup': 32.0, 'pu mass': 1000.0}}
     ka.set_attr(_entry=core_attrs)
-    ka.write_to_bb(True)
+    ka.write_to_bb(ka.get_attr('bb_lvl'), complete=True)
     assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': 
                                                                  {'height': 60.0, 'smear': 70.0, 
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 
@@ -249,7 +249,7 @@ def test_write_to_bb():
                                          'cycle length': 100.0, 'reactivity swing': 110.0, 
                                          'burnup': 32.0, 'pu mass': 1000.0}}
     ka.set_attr(_entry=core_attrs)
-    ka.write_to_bb(False)
+    ka.write_to_bb(ka.get_attr('bb_lvl'), complete=False)
     assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': 
                                                                  {'height': 60.0, 'smear': 70.0, 
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 

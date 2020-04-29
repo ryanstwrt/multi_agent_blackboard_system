@@ -28,11 +28,12 @@ class KaBr(ka.KaBase):
         pass
 
     def move_current_entry(self):
-        self.write_to_bb(panel=self.old_panel, remove=True)
+        self.write_to_bb(self.bb_lvl_read, panel=self.old_panel)
+        self.write_to_bb(self.bb_lvl_read, panel=self.new_panel, remove=True)
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
-        self.write_to_bb(panel=self.new_panel)
+        self.write_to_bb(self.bb_lvl, panel=self.new_panel)
         self.clear_entry()
                 
     def handler_trigger_publish(self, message):
@@ -109,7 +110,7 @@ class KaBr_lvl2(KaBr):
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
-        self.write_to_bb(panel=self.new_panel)
+        self.write_to_bb(self.bb_lvl, panel=self.new_panel)
         self.move_current_entry()
         self.remove_entry()
         self.clear_entry()
@@ -162,7 +163,7 @@ class KaBr_verify(KaBr):
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name))
         self.read_bb_lvl()
-        self.write_to_bb()
+        self.write_to_bb(self.bb_lvl)
 
     def read_bb_lvl(self):
         """Read the information from the blackboard and determine if a new solution is better thatn the previous"""
