@@ -105,13 +105,17 @@ def test_karp_scout_init():
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('_sm') == None
+    assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('sm_type') == 'interpolate'
-    assert rp.get_attr('objectives') == ['keff', 'void', 'doppler']
+    assert rp.get_attr('objectives') == []
     assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
                                                                      'smear': (50,70),
                                                                      'pu_content':(0,1)})
     ns.shutdown()
     time.sleep(0.1)
+    
+def test_handler_executor_explore():
+    pass
     
 def test_mc_design_variables():
     ns = run_nameserver()
@@ -129,6 +133,7 @@ def test_create_sm_interpolate():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
     
+    rp.set_attr(objectives=['keff','void','doppler'])
     rp.create_sm()
     sm = rp.get_attr('_sm')
     keff = sm['keff']((61.37,51.58,0.7340))
@@ -142,6 +147,7 @@ def test_create_sm_regression():
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
     
     rp.set_attr(sm_type='lr')
+    rp.set_attr(objectives=['keff','void','doppler'])
     rp.create_sm()
     sm = rp.get_attr('_sm')
     objs = sm.predict('lr', [[61.37,51.58,0.7340]])
@@ -178,17 +184,24 @@ def test_karp_exploit_init():
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('bb_lvl_read') == 1
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
-    assert rp.get_attr('objectives') == ['keff', 'void', 'doppler']
+    assert rp.get_attr('objectives') == []
     assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
                                                                      'smear': (50,70),
                                                                      'pu_content':(0,1)})
     assert rp.get_attr('perturbations') == [0.99, 1.01]
     assert rp.get_attr('perturbed_cores') == {}
-    assert rp.get_attr('lvl1') == {}
+    assert rp.get_attr('lvl') == {}
+    assert rp.get_attr('new_panel') == 'new'
+    assert rp.get_attr('old_panel') == 'old'
     ns.shutdown()
     time.sleep(0.1)
+
+def test_handler_executor_exploit():
+    pass
     
 def test_exploit_mc_design_variables():
     ns = run_nameserver()

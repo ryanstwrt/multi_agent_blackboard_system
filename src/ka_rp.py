@@ -42,7 +42,7 @@ class KaRpExplore(KaRp):
         self.interpolator_dict = {}
         self.interp_path = None
         self.bb_lvl = 3
-        self.objectives = ['keff', 'void', 'doppler']
+        self.objectives = []
         self.independent_variable_ranges = OrderedDict({'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
         self._sm = None
         self.sm_type = 'interpolate'
@@ -61,7 +61,7 @@ class KaRpExplore(KaRp):
         self.log_debug('Executing agent {}'.format(self.name))
         self.mc_design_variables()
         self.calc_objectives()
-        self.write_to_bb()
+        self.write_to_bb(panel=self.new_panel)
     
     def mc_design_variables(self):
         """Determine the core design variables using a monte carlo method."""
@@ -128,22 +128,29 @@ class KaRpExploit(KaRpExplore):
     def on_init(self):
         super().on_init()
         self.perturbed_cores = {}
-        self.lvl1 = {}
+        self.lvl = {}
+        self.bb_lvl_read = 1
         self.perturbations = [0.99, 1.01]
+        self.new_panel = 'new'
+        self.old_panel = 'old'
     
     def handler_executor(self, message):
         """Execution handler for KA-RP.
         KA-RP determines a core design and runs a physics simulation using a surrogate model.
         Upon completion, KA-RP sends the BB a writer message to write to the BB."""
         self.log_debug('Executing agent {}'.format(self.name))
-        self.lvl1 = self.bb.get_attr('abstract_lvls')['level 1']
-        if self.lvl1 == {}:
+        self.lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        if self.lvl == {}:
             self.mc_design_variables()
             self.calc_objectives()
             self.write_to_bb()
+            self.move_entry()
         else:
             self.perturb_design()
 
+    def move_entry(self):
+        pass
+            
     def perturb_design(self):
         """
         Perturb a core design
@@ -152,7 +159,7 @@ class KaRpExploit(KaRpExplore):
         It then perturbs each design variable independent by the values in self.perturbations
         These results are written to the BB level 3, so there should be design_vars * pert added to level 3.
         """
-        lvl3 = self.bb.get_attr('abstract_lvls')['level 3']
+        lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
         for core in self.lvl1.keys():
             if core in self.perturbed_cores:
                 pass
@@ -169,7 +176,7 @@ class KaRpExploit(KaRpExplore):
                         self.calc_objectives()
                         self.perturbed_cores.append(self._entry_name)
                         completed = True if i == total_perts else False
-                        self.write_to_bb(complete=completed)
+                        self.write_to_bb(complete=completed, panel=self.new_panel)
             
 class KaRp_verify(KaRpExplore):
     def on_init(self):

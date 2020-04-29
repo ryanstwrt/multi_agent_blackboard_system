@@ -16,6 +16,8 @@ class KaBr(ka.KaBase):
     def on_init(self):
         super().on_init()
         self.bb_lvl_read = 0
+        self.new_panel = 'new'
+        self.old_panel = 'old'
     
     def clear_entry(self):
         """Clear the KA entry"""
@@ -27,7 +29,7 @@ class KaBr(ka.KaBase):
 
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
-        self.write_to_bb()
+        self.write_to_bb(panel=self.new_panel)
         self.clear_entry()
                 
     def handler_trigger_publish(self, message):
@@ -38,7 +40,10 @@ class KaBr(ka.KaBase):
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
 
     def read_bb_lvl(self):
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        if self.bb_lvl_read != 3:
+            lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        else:
+            lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
         for core_name in lvl.keys():
             valid = self.determine_validity(core_name)
             if valid[0]:
@@ -59,13 +64,18 @@ class KaBr_lvl2(KaBr):
         
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
-        lvl_1 = self.bb.get_attr('abstract_lvls')['level 1']
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
         lvl_3 = self.bb.get_attr('abstract_lvls')['level 3']
         
-        if lvl_1 == {}:
+        #make a dictionary of all the cores present in the level
+        all_cores = {}
+        for panel in lvl.values():
+            all_cores.update(panel)
+            
+        if all_cores == {}:
             return (True, 'pareto')
             
-        for opt_core in lvl_1.keys():
+        for opt_core in all_cores.keys():
             pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
                                                      lvl_3[opt_core]['reactor parameters'])
             if pareto_opt == None:
@@ -96,7 +106,7 @@ class KaBr_lvl2(KaBr):
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
-        self.write_to_bb()
+        self.write_to_bb(panel=self.new_panel)
         self.remove_entry()
         self.clear_entry()
                 
@@ -111,7 +121,7 @@ class KaBr_lvl3(KaBr):
         
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""
-        lvl_3 = self.bb.get_attr('abstract_lvls')['level 3']
+        lvl_3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
         rx_params = lvl_3[core_name]['reactor parameters']
 
         for param_name, param_range in self.desired_results.items():            

@@ -153,7 +153,7 @@ class KaBase(Agent):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
     
-    def write_to_bb(self, complete=True):
+    def write_to_bb(self, complete=True, panel=None):
         """Write the KA's entry to the BB on the specified level."""
         self.log_debug('Sending writer trigger to BB.')
         write = False
@@ -163,4 +163,4 @@ class KaBase(Agent):
             time.sleep(0.5)
         else:
             self.log_debug('Writing to BB Level {}'.format(self.bb_lvl))
-            self.bb.update_abstract_lvl(self.bb_lvl, self._entry_name, self._entry)
+            self.bb.update_abstract_lvl(self.bb_lvl, self._entry_name, self._entry, panel=panel)

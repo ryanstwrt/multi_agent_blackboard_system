@@ -102,11 +102,11 @@ def test_BbSfrOpt_init():
     assert bb.get_attr('archive_name') == 'blackboard_archive.h5'
     assert bb.get_attr('_sleep_limit') == 10
 
-    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str},
-                                            'level 2': {'valid': bool},
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str}, 'old':{'pareto type': str}},
+                                            'level 2': {'new': {'valid': bool}, 'old': {'valid': bool}},
                                             'level 3': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}
 
-    assert bb.get_attr('abstract_lvls') == {'level 1': {}, 'level 2': {}, 'level 3': {}}
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 'level 2': {'new':{}, 'old':{}}, 'level 3': {}}
     
     assert bb.get_attr('_ka_to_execute') == (None, 0) 
     assert bb.get_attr('_trigger_event') == 0
@@ -149,7 +149,7 @@ def test_determine_complete():
     for x in range(11):
         name = 'core{}'.format(x)
         entry = {'pareto type': 'pareto'}
-        bb.update_abstract_lvl(1, name, entry)
+        bb.update_abstract_lvl(1, name, entry, panel='new')
     assert bb.get_attr('_complete') == False
     bb.determine_complete()
     time.sleep(0.1)

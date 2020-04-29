@@ -56,9 +56,9 @@ class BbSfrOpt(BbTraditional):
     def on_init(self):
         super().on_init()
         self.add_abstract_lvl(1, {'pareto type': str})
-#        self.add_panel(1, ['new', 'old'])       
+        self.add_panel(1, ['new', 'old'])       
         self.add_abstract_lvl(2, {'valid': bool})
-#        self.add_panel(2, ['new', 'old'])
+        self.add_panel(2, ['new', 'old'])
         self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float }})
 
     def determine_complete(self):
@@ -66,8 +66,12 @@ class BbSfrOpt(BbTraditional):
         Determine when the problem has finished to send the shutdown communication.
         Complete for the traditional system is determined  when a set number of solutions has been placed on abstract level 1 on the blackboard.
         """
-
-        if len(self.abstract_lvls['level 1']) > 10:
+        pareto_solutions = 0
+        for panel in self.abstract_lvls['level 1'].values():
+            for core in panel.values():
+                pareto_solutions += 1 if core['pareto type'] == 'pareto' else 0
+        
+        if pareto_solutions > 10:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 self.send(connections['shutdown'][0], "shutdown")
