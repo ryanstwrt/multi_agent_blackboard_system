@@ -73,6 +73,7 @@ class KaBr_lvl2(KaBr):
             return (True, 'pareto')
             
         for opt_core in all_cores.keys():
+            self.log_info(core_name)
             pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
                                                      lvl_3[opt_core]['reactor parameters'])
             if pareto_opt:
