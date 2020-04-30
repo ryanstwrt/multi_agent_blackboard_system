@@ -109,13 +109,30 @@ def test_karp_scout_init():
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('objectives') == []
     assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
-                                                                     'smear': (50,70),
-                                                                     'pu_content':(0,1)})
+                                                                      'smear': (50,70),
+                                                                      'pu_content':(0,1)})
     ns.shutdown()
     time.sleep(0.1)
     
 def test_handler_executor_explore():
-    pass
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
+    
+    rp = ns.proxy('ka_rp_explore')
+    bb.set_attr(_ka_to_execute=('ka_rp_explore', 2.0))
+    bb.send_executor()
+
+    time.sleep(2.0)
+    
+    entry = rp.get_attr('_entry')
+    core_name = rp.get_attr('_entry_name')
+    bb_entry = {core_name: entry}
+    
+    assert bb.get_attr('abstract_lvls')['level 3'] == bb_entry
+
+    ns.shutdown()
+    time.sleep(0.1)
     
 def test_mc_design_variables():
     ns = run_nameserver()
@@ -201,7 +218,43 @@ def test_karp_exploit_init():
     time.sleep(0.1)
 
 def test_handler_executor_exploit():
-    pass
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    
+    rp = ns.proxy('ka_rp_exploit')
+    bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
+    bb.send_executor()
+
+    time.sleep(0.75)
+    
+    entry = rp.get_attr('_entry')
+    core_name = rp.get_attr('_entry_name')
+    bb_entry = {core_name: entry}
+    
+    assert bb.get_attr('abstract_lvls')['level 3'] == bb_entry
+    
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.4, 'cycle length': 365.0, 
+                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
+                                                                'burnup' : 50.0}})
+    bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto'}, panel='new')
+    bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
+    bb.send_executor()  
+    
+    time.sleep(5)
+
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3'].keys()] == [core_name, 'core_1',
+                                                           'core_[64.35, 65.0, 0.4]',
+                                                           'core_[65.65, 65.0, 0.4]',
+                                                           'core_[65.0, 64.35, 0.4]',
+                                                           'core_[65.0, 65.65, 0.4]',
+                                                           'core_[65.0, 65.0, 0.396]', 
+                                                           'core_[65.0, 65.0, 0.404]',]
+
+    
+    ns.shutdown()
+    time.sleep(0.1)
     
 def test_exploit_mc_design_variables():
     ns = run_nameserver()

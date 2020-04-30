@@ -9,6 +9,7 @@ import ka
 import time
 from itertools import permutations
 import train_surrogate_models as tm
+import copy
 
 class KaRp(ka.KaBase):
     """
@@ -61,7 +62,7 @@ class KaRpExplore(KaRp):
         self.log_debug('Executing agent {}'.format(self.name))
         self.mc_design_variables()
         self.calc_objectives()
-        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
+        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
     
     def mc_design_variables(self):
         """Determine the core design variables using a monte carlo method."""
@@ -85,7 +86,7 @@ class KaRpExplore(KaRp):
                 self.objective_functions[obj] = float(obj_list[0][num])
         a = self.design_variables.copy()
         a.update(self.objective_functions)
-        self.log_info('Core Design & Objectives: {}'.format([(x,y) for x,y in a.items()]))
+        #self.log_info('Core Design & Objectives: {}'.format([(x,y) for x,y in a.items()]))
         self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
         self._entry = {'reactor parameters': a}
     
@@ -127,7 +128,7 @@ class KaRpExploit(KaRpExplore):
 
     def on_init(self):
         super().on_init()
-        self.perturbed_cores = {}
+        self.perturbed_cores = []
         self.lvl = {}
         self.bb_lvl_read = 1
         self.perturbations = [0.99, 1.01]
@@ -135,18 +136,21 @@ class KaRpExploit(KaRpExplore):
         self.old_panel = 'old'
     
     def handler_executor(self, message):
-        """Execution handler for KA-RP.
+        """
+        Execution handler for KA-RP.
         KA-RP determines a core design and runs a physics simulation using a surrogate model.
-        Upon completion, KA-RP sends the BB a writer message to write to the BB."""
+        Upon completion, KA-RP sends the BB a writer message to write to the BB.
+        """
         self.log_debug('Executing agent {}'.format(self.name))
+        
         self.lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         if self.lvl == {}:
             self.mc_design_variables()
             self.calc_objectives()
             self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
-            self.move_entry()
         else:
             self.perturb_design()
+            self.move_entry()
 
     def move_entry(self):
         pass
@@ -160,23 +164,25 @@ class KaRpExploit(KaRpExplore):
         These results are written to the BB level 3, so there should be design_vars * pert added to level 3.
         """
         lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-        for core in self.lvl1.keys():
+        for core in self.lvl.keys():
             if core in self.perturbed_cores:
                 pass
             else:
-                self.log_debug("Perturbing core design for {}".format(core))
-                base_design_variables = {k: lvl3[core][k] for k in self.independent_variable_ranges.keys()}
+                self.log_info("Perturbing core design for {}".format(core))
+                base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.independent_variable_ranges.keys()}
                 i = 0
-                total_perts = len(base_design_variables.keys()) * len(self.permutations)
+                total_perts = len(base_design_variables.keys()) * len(self.perturbations)
                 for var_name, var_value in base_design_variables.items():
                     for pert in self.perturbations:
                         i += 1
-                        self.design_variables = base_design_variables
+                        self.design_variables = copy.copy(base_design_variables)
                         self.design_variables[var_name] = var_value * pert
+                        self.log_info('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
+
                         self.calc_objectives()
                         self.perturbed_cores.append(self._entry_name)
                         completed = True if i == total_perts else False
-                        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed, panel=self.new_panel)
+                        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed)
             
 class KaRp_verify(KaRpExplore):
     def on_init(self):
