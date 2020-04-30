@@ -151,9 +151,9 @@ def test_create_sm_regression():
     rp.create_sm()
     sm = rp.get_attr('_sm')
     objs = sm.predict('lr', [[61.37,51.58,0.7340]])
-    assert round(objs[0][0], 8) == 0.99992182
-    assert sm.models['lr']['score'] == 0.93162733339492
-    assert sm.models['lr']['mse_score'] == 0.06837266660508003
+    assert round(objs[0][0], 8) == 1.00290541
+    assert sm.models['lr']['score'] == 0.8690755311077457
+    assert sm.models['lr']['mse_score'] == 0.13092446889225426
     
     ns.shutdown()
     time.sleep(0.1)

@@ -78,6 +78,7 @@ class KaBr_lvl2(KaBr):
             all_cores.update(panel)
             
         if all_cores == {}:
+            self.log_info('Core {} is initial core for level 1.'.format(core_name))
             return (True, 'pareto')
             
         for opt_core in all_cores.keys():
@@ -99,8 +100,8 @@ class KaBr_lvl2(KaBr):
                 optimal += 1
             if new_val < opt_val:
                 pareto_optimal += 1
-                
-        if optimal == len(opt_rx.keys()) and pareto_optimal > 0:
+        self.log_info('Optimal: {}, Pareto Optimal: {}, Objectives: {}'.format(optimal, pareto_optimal, len(opt_rx.keys())))
+        if optimal == len(self.desired_results.keys()) and pareto_optimal > 0:
             return 'pareto'
         elif pareto_optimal > 0:
             return 'weak'
