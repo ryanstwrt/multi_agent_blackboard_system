@@ -42,18 +42,9 @@ class KaBr(ka.KaBase):
         self._trigger_val = 10 if new_entry else 0
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
-
+        
     def read_bb_lvl(self):
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-        lvl = lvl[self.new_panel] if self.bb_lvl_read != 3 else lvl
-
-        for core_name, core_entry in lvl.items():
-            valid = self.determine_validity(core_name)
-            if self.bb_lvl_read !=3:
-                self.move_current_entry(self.bb_lvl_read, core_name, core_entry)
-            if valid[0]:
-                self.add_entry((core_name,valid[1]))
-                return True
+        pass
         
 class KaBr_lvl2(KaBr):
     """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
@@ -117,7 +108,16 @@ class KaBr_lvl2(KaBr):
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
         self.remove_entry()
         self.clear_entry()
-                
+    
+    def read_bb_lvl(self):
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+
+        for core_name, core_entry in lvl.items():
+            valid = self.determine_validity(core_name)
+            self.move_current_entry(self.bb_lvl_read, core_name, core_entry)
+            if valid[0]:
+                self.add_entry((core_name,valid[1]))
+                return True        
 
 class KaBr_lvl3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
@@ -126,6 +126,7 @@ class KaBr_lvl3(KaBr):
         self.bb_lvl = 2
         self.bb_lvl_read = 3
         self.desired_results = None
+        self.read_results = []
         
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""
@@ -141,6 +142,18 @@ class KaBr_lvl3(KaBr):
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
         self._entry = {'valid': True}
+    
+    def read_bb_lvl(self):
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+
+        for core_name, core_entry in lvl.items():
+            valid = self.determine_validity(core_name)
+            if valid[0] and core_name not in self.read_results:
+                self.add_entry((core_name,valid[1]))
+                self.read_results.append(core_name)
+                return True
+            else:
+                self.read_results.append(core_name)
         
             
 class KaBr_verify(KaBr):

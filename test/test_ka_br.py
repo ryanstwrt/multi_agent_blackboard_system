@@ -440,16 +440,30 @@ def test_kabr_lvl3_handler_executor():
     bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
     
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}})
-    
+    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80}})
+    bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 0.9, 'void_coeff': -150.0, 'doppler_coeff': -0.75}})
 
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
     ka_br_lvl3.read_bb_lvl()
-
     bb.send_executor()
     time.sleep(1.1)    
     
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True}}, 'old': {}}
+
+    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
+    ka_br_lvl3.read_bb_lvl()
+    bb.send_executor()
+    time.sleep(1.1)    
     
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True},
+                                                              'core_2': {'valid': True}}, 'old': {}}
+    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
+    ka_br_lvl3.read_bb_lvl()
+    bb.send_executor()
+    time.sleep(1.1)    
+    
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True},
+                                                              'core_2': {'valid': True}}, 'old': {}}
     ns.shutdown()
     time.sleep(0.1) 
 
