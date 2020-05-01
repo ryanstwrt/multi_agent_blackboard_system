@@ -302,8 +302,28 @@ def test_exploit_handler_trigger_publish():
 def test_exploit_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    #bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
 
+    rp = ns.proxy('ka_rp_exploit')
+    
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.4, 'cycle length': 365.0, 
+                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
+                                                                'burnup' : 50.0}})
+    bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto'}, panel='new')
+ 
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto'}}, 'old': {}}
+    rp.perturb_design()
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3'].keys()] == ['core_1',
+                                                           'core_[64.35, 65.0, 0.4]',
+                                                           'core_[65.65, 65.0, 0.4]',
+                                                           'core_[65.0, 64.35, 0.4]',
+                                                           'core_[65.0, 65.65, 0.4]',
+                                                           'core_[65.0, 65.0, 0.396]', 
+                                                           'core_[65.0, 65.0, 0.404]',]
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto'}}}
+
+    
     ns.shutdown()
     time.sleep(0.1)
     
