@@ -6,6 +6,7 @@ import ka
 import time
 import os
 import ka_br
+import bb_sfr_opt as bb_sfr
 
 def test_kabr_init():
     ns = run_nameserver()
@@ -277,7 +278,31 @@ def test_kabr_lvl2_determine_optimal_type():
     
     ns.shutdown()
     time.sleep(0.1)
+
+def test_kabr_lvl2_handler_trigger_publish():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    br = run_agent(name='ka_br_lvl2', base=ka_br.KaBr_lvl2)
+    br.add_blackboard(bb)
+    br.connect_trigger()
+    br.connect_writer()
     
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl2': 0}}
+    assert bb.get_attr('_ka_to_execute') == (None, 0)
+    
+    bb.update_abstract_lvl(2, 'core 1', {'valid' : True}, panel='new')
+    bb.publish_trigger()
+    time.sleep(1.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl2': 0}, 2: {'ka_br_lvl2': 10}}   
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl2', 10)
+    
+    ns.shutdown()
+    time.sleep(0.1)
+
 def test_kabr_lvl2_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)

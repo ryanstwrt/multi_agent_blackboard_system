@@ -214,6 +214,7 @@ class Blackboard(Agent):
         self.log_debug('Determining which KA to execute')
         self._ka_to_execute = (None, 0)
         for k,v in self._kaar[self._trigger_event].items():
+            print(k,v)
             if v > self._ka_to_execute[1]:
                 self._ka_to_execute = (k,v)                
                 

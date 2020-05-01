@@ -274,8 +274,30 @@ def test_exploit_mc_design_variables():
     ns.shutdown()
     time.sleep(0.1)
     
-def test_exploit_handler_triffer_publish():
-    pass
+def test_exploit_handler_trigger_publish():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
+    rp.add_blackboard(bb)
+    rp.connect_trigger()
+    
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}}
+    assert bb.get_attr('_ka_to_execute') == (None, 0)
+    
+    bb.update_abstract_lvl(1, 'core 1', {'pareto type' : 'pareto'}, panel='new')
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}, 2: {'ka_rp':2}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 2)
+    
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
     
 def test_exploit_perturb_design():
     ns = run_nameserver()
