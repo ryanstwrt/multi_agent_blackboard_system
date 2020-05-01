@@ -72,8 +72,8 @@ def test_mc_design_variables():
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('_entry_name') == None
     rp.mc_design_variables()
+    print(rp.get_attr('design_variables'))
     assert rp.get_attr('design_variables') != {}
-    assert rp.get_attr('_entry_name') == 'core_{}'.format([x for x in rp.get_attr('design_variables').values()])
     
     ns.shutdown()
     time.sleep(0.1)
@@ -82,7 +82,7 @@ def test_mc_design_variables():
 # Tests fopr KA-RP-Explore
 #----------------------------------------------------------
 
-def test_karp_scout_init():
+def test_karp_explore_init():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
     
@@ -114,7 +114,7 @@ def test_karp_scout_init():
     ns.shutdown()
     time.sleep(0.1)
     
-def test_handler_executor_explore():
+def test_explore_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
@@ -134,7 +134,7 @@ def test_handler_executor_explore():
     ns.shutdown()
     time.sleep(0.1)
     
-def test_mc_design_variables():
+def test_explore_mc_design_variables():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
     
@@ -201,7 +201,6 @@ def test_karp_exploit_init():
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
-    assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('bb_lvl_read') == 1
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
@@ -210,29 +209,23 @@ def test_karp_exploit_init():
                                                                      'smear': (50,70),
                                                                      'pu_content':(0,1)})
     assert rp.get_attr('perturbations') == [0.99, 1.01]
-    assert rp.get_attr('perturbed_cores') == {}
-    assert rp.get_attr('lvl') == {}
+    assert rp.get_attr('perturbed_cores') == []
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
     ns.shutdown()
     time.sleep(0.1)
 
-def test_handler_executor_exploit():
+def test_exploit_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
-    bb.send_executor()
-
+    bb.send_executor()  
     time.sleep(0.75)
     
-    entry = rp.get_attr('_entry')
-    core_name = rp.get_attr('_entry_name')
-    bb_entry = {core_name: entry}
-    
-    assert bb.get_attr('abstract_lvls')['level 3'] == bb_entry
+    assert bb.get_attr('abstract_lvls')['level 3'] == {}
     
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
                                                                 'pu_content': 0.4, 'cycle length': 365.0, 
@@ -240,17 +233,30 @@ def test_handler_executor_exploit():
                                                                 'burnup' : 50.0}})
     bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto'}, panel='new')
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
-    bb.send_executor()  
-    
+    bb.send_executor()      
     time.sleep(5)
-
-    assert [core for core in bb.get_attr('abstract_lvls')['level 3'].keys()] == [core_name, 'core_1',
+    
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3'].keys()] == ['core_1',
                                                            'core_[64.35, 65.0, 0.4]',
                                                            'core_[65.65, 65.0, 0.4]',
                                                            'core_[65.0, 64.35, 0.4]',
                                                            'core_[65.0, 65.65, 0.4]',
                                                            'core_[65.0, 65.0, 0.396]', 
                                                            'core_[65.0, 65.0, 0.404]',]
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto'}}}
+    
+    bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
+    bb.send_executor()  
+    time.sleep(1.0)
+    
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3'].keys()] == ['core_1',
+                                                           'core_[64.35, 65.0, 0.4]',
+                                                           'core_[65.65, 65.0, 0.4]',
+                                                           'core_[65.0, 64.35, 0.4]',
+                                                           'core_[65.0, 65.65, 0.4]',
+                                                           'core_[65.0, 65.0, 0.396]', 
+                                                           'core_[65.0, 65.0, 0.404]',]
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto'}}}
 
     
     ns.shutdown()
@@ -268,15 +274,36 @@ def test_exploit_mc_design_variables():
     ns.shutdown()
     time.sleep(0.1)
     
-def test_perturb_design():
+def test_exploit_handler_triffer_publish():
+    pass
+    
+def test_exploit_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     #bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
 
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.1)
+    
+def test_exploit_move_entry():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
+    rp.add_blackboard(bb)
+    rp.connect_writer()
+    
+    bb.add_abstract_lvl(1, {'pareto type' : str})
+    bb.add_panel(1, ['new', 'old'])
+    
+    bb.update_abstract_lvl(1, 'core 1', {'pareto type' : 'weak'}, panel='new')
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {'core 1' : {'pareto type' : 'weak'}}, 'old' : {}}    
+    rp.move_entry(rp.get_attr('bb_lvl_read'), 'core 1', {'pareto type' : 'weak'})
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old' : {'core 1' : {'pareto type' : 'weak'}}}    
 
-def test_write_to_bb():
+    ns.shutdown()
+    time.sleep(0.1)
+    
+def test_exploit_write_to_bb():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     ka = run_agent(name='ka_rp_exploit', base=ka_rp.KaRpExploit)

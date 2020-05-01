@@ -129,7 +129,6 @@ class KaRpExploit(KaRpExplore):
     def on_init(self):
         super().on_init()
         self.perturbed_cores = []
-        self.lvl = {}
         self.bb_lvl_read = 1
         self.perturbations = [0.99, 1.01]
         self.new_panel = 'new'
@@ -142,18 +141,18 @@ class KaRpExploit(KaRpExplore):
         Upon completion, KA-RP sends the BB a writer message to write to the BB.
         """
         self.log_debug('Executing agent {}'.format(self.name))
-        
-        self.lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        if self.lvl == {}:
-            self.mc_design_variables()
-            self.calc_objectives()
-            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
-        else:
-            self.perturb_design()
-            self.move_entry()
+        self.perturb_design()
 
-    def move_entry(self):
-        pass
+    def handler_trigger_publish(self, message):
+        """Read the BB level and determine if an entry is available."""
+        new_entry = self.read_bb_lvl()
+        self._trigger_val = 2.0 if new_entry else 0
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+            
+    def move_entry(self, bb_lvl, entry_name, entry):
+        self.write_to_bb(bb_lvl, entry_name, entry, panel=self.old_panel)
+        self.write_to_bb(bb_lvl, entry_name, entry, panel=self.new_panel, remove=True)
             
     def perturb_design(self):
         """
@@ -163,26 +162,31 @@ class KaRpExploit(KaRpExplore):
         It then perturbs each design variable independent by the values in self.perturbations
         These results are written to the BB level 3, so there should be design_vars * pert added to level 3.
         """
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-        for core in self.lvl.keys():
-            if core in self.perturbed_cores:
-                pass
-            else:
-                self.log_info("Perturbing core design for {}".format(core))
-                base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.independent_variable_ranges.keys()}
-                i = 0
-                total_perts = len(base_design_variables.keys()) * len(self.perturbations)
-                for var_name, var_value in base_design_variables.items():
-                    for pert in self.perturbations:
-                        i += 1
-                        self.design_variables = copy.copy(base_design_variables)
-                        self.design_variables[var_name] = var_value * pert
-                        self.log_info('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
+        
+        for core, entry in lvl.items():
+            self.log_info("Perturbing core design for {}".format(core))
+            base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.independent_variable_ranges.keys()}
+            i = 0
+            total_perts = len(base_design_variables.keys()) * len(self.perturbations)
+            for var_name, var_value in base_design_variables.items():
+                for pert in self.perturbations:
+                    i += 1
+                    self.design_variables = copy.copy(base_design_variables)
+                    self.design_variables[var_name] = var_value * pert
+                    self.log_info('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
+                    self.calc_objectives()
+                    completed = True if i == total_perts else False
+                    self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed)
+            self.move_entry(self.bb_lvl_read, core, entry)
+            return
+                        
+    def read_bb_lvl(self):
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
 
-                        self.calc_objectives()
-                        self.perturbed_cores.append(self._entry_name)
-                        completed = True if i == total_perts else False
-                        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed)
+        if lvl != {}:
+            return True
             
 class KaRp_verify(KaRpExplore):
     def on_init(self):
