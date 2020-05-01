@@ -7,6 +7,11 @@ from osbrain import run_agent
 import time
 import os 
 import glob
+import database_generator as dg
+import numpy as np
+import train_surrogate_models as tm
+import scipy.interpolate
+
 
 cur_dir = os.path.dirname(__file__)
 test_path = os.path.join(cur_dir, '../test/')
@@ -60,7 +65,15 @@ class BbSfrOpt(BbTraditional):
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
         self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float }})
-
+        
+        self.objectives = ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
+        self.objective_ranges = {'cycle length': (0, 1000), 'reactivity swing': (0, 7500), 'burnup': (0,200), 'pu mass': (0, 1000)}
+        self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'}
+        self.independent_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
+        
+        self._sm = None
+        self.sm_type = 'interpolate'
+        
     def determine_complete(self):
         """
         Determine when the problem has finished to send the shutdown communication.
@@ -91,12 +104,27 @@ class BbSfrOpt(BbTraditional):
         ns = proxy.NSProxy()
         ka = ns.proxy(agent)
         if 'rp' in agent:
-            ka.set_attr(objectives=['cycle length', 'reactivity swing', 'burnup', 'pu mass'])
-            ka.create_sm()
+            ka.set_attr(objectives=self.objectives)
+            #ka.create_sm()
+            ka.set_attr(_sm=self._sm)
+            ka.set_attr(sm_type=self.sm_type)
         elif 'lvl3' in agent:
-            ka.set_attr(desired_results={'cycle length': (0, 1000), 'reactivity swing': (0, 7500), 'burnup': (0,200), 'pu mass': (0, 1000)})
+            ka.set_attr(desired_results=self.objective_ranges)
         elif 'lvl2' in agent:
-            ka.set_attr(desired_results={'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'})
+            ka.set_attr(desired_results=self.objective_goals)
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return
+    
+    def generate_sm(self):
+        design_var, objective_func = dg.get_data([x for x in self.independent_variable_ranges.keys()], self.objectives)
+        if self.sm_type == 'interpolate':
+            self._sm = {}
+            design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
+            for num, objective in enumerate(self.objectives):
+                self._sm[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
+        else:
+            self._sm = tm.Surrogate_Models()
+            self._sm.random = 0
+            self._sm.update_database(design_var, objective_func)
+            self._sm.optimize_model(self.sm_type)        

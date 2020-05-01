@@ -117,6 +117,7 @@ def test_karp_explore_init():
 def test_explore_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
     
     rp = ns.proxy('ka_rp_explore')
@@ -148,11 +149,11 @@ def test_explore_mc_design_variables():
     
 def test_create_sm_interpolate():
     ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.set_attr(objectives=['keff','void','doppler'])
+    bb.generate_sm()
     
-    rp.set_attr(objectives=['keff','void','doppler'])
-    rp.create_sm()
-    sm = rp.get_attr('_sm')
+    sm = bb.get_attr('_sm')
     keff = sm['keff']((61.37,51.58,0.7340))
     assert keff == 0.9992587833657331
     
@@ -161,12 +162,12 @@ def test_create_sm_interpolate():
 
 def test_create_sm_regression():
     ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.set_attr(objectives=['keff','void','doppler'])
+    bb.set_attr(sm_type='lr')
+    bb.generate_sm()
     
-    rp.set_attr(sm_type='lr')
-    rp.set_attr(objectives=['keff','void','doppler'])
-    rp.create_sm()
-    sm = rp.get_attr('_sm')
+    sm = bb.get_attr('_sm')
     objs = sm.predict('lr', [[61.37,51.58,0.7340]])
     assert round(objs[0][0], 8) == 1.00290541
     assert sm.models['lr']['score'] == 0.8690755311077457
@@ -218,6 +219,7 @@ def test_karp_exploit_init():
 def test_exploit_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
@@ -277,9 +279,8 @@ def test_exploit_mc_design_variables():
 def test_exploit_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
-    rp.add_blackboard(bb)
-    rp.connect_trigger()
+    bb.generate_sm()
+    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp')
     
     bb.publish_trigger()
     time.sleep(0.25)
@@ -302,6 +303,7 @@ def test_exploit_handler_trigger_publish():
 def test_exploit_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
 
     rp = ns.proxy('ka_rp_exploit')

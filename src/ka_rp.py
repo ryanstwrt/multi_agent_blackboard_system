@@ -89,26 +89,6 @@ class KaRpExplore(KaRp):
         #self.log_info('Core Design & Objectives: {}'.format([(x,y) for x,y in a.items()]))
         self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
         self._entry = {'reactor parameters': a}
-    
-    def create_sm(self):
-        """
-        Build a surrogate model based on the SFR_DB.h5 dataset.
-        The data is generated using the `get_data` function and returns the design and objective variables.
-        This can be done using scipy's scipy's LinearNDInterpolator, or we use a regression model.
-        The regression model is based on scikit-learn's and accessed through the `train_surrogate_model` module
-        """
-
-        design_var, objective_func = dg.get_data([x for x in self.independent_variable_ranges.keys()], self.objectives)
-        if self.sm_type == 'interpolate':
-            self._sm = {}
-            design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
-            for num, objective in enumerate(self.objectives):
-                self._sm[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
-        else:
-            self._sm = tm.Surrogate_Models()
-            self._sm.random = 0
-            self._sm.update_database(design_var, objective_func)
-            self._sm.optimize_model(self.sm_type)
 
 
 class KaRpExploit(KaRpExplore):
@@ -203,3 +183,23 @@ class KaRp_verify(KaRpExplore):
         a = self.design_variables.copy()
         a.update(self.objective_functions)
         self._entry = {'reactor parameters': a}
+
+    def create_sm(self):
+        """
+        Build a surrogate model based on the SFR_DB.h5 dataset.
+        The data is generated using the `get_data` function and returns the design and objective variables.
+        This can be done using scipy's scipy's LinearNDInterpolator, or we use a regression model.
+        The regression model is based on scikit-learn's and accessed through the `train_surrogate_model` module
+        """
+
+        design_var, objective_func = dg.get_data([x for x in self.independent_variable_ranges.keys()], self.objectives)
+        if self.sm_type == 'interpolate':
+            self._sm = {}
+            design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
+            for num, objective in enumerate(self.objectives):
+                self._sm[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
+        else:
+            self._sm = tm.Surrogate_Models()
+            self._sm.random = 0
+            self._sm.update_database(design_var, objective_func)
+            self._sm.optimize_model(self.sm_type)
