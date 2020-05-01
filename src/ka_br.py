@@ -150,13 +150,16 @@ class KaBr_lvl3(KaBr):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
 
         for core_name, core_entry in lvl.items():
-            valid = self.determine_validity(core_name)
-            if valid[0] and core_name not in self.read_results:
-                self.add_entry((core_name,valid[1]))
+            if core_name not in self.read_results:
+                valid = self.determine_validity(core_name)
                 self.read_results.append(core_name)
-                return True
-            else:
-                self.read_results.append(core_name)
+                if valid[0]:
+                    self.add_entry((core_name,valid[1]))
+                    self.read_results.append(core_name)
+                    return True
+                else:
+                    return False
+        return False
         
             
 class KaBr_verify(KaBr):

@@ -448,7 +448,48 @@ def test_kabr_lvl3_read_bb_lvl():
 
     ns.shutdown()
     time.sleep(0.1)    
+
+def test_kabr_lvl3_handler_trigger_publish():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    br = run_agent(name='ka_br_lvl3', base=ka_br.KaBr_lvl3)
+    br.add_blackboard(bb)
+    br.connect_trigger()
+    br.connect_writer()
+    br.set_attr(desired_results={'cycle length' : (300, 400), 
+                                 'pu mass' : (0, 1000),
+                                 'reactivity swing': (500, 1000),
+                                  'burnup': (25, 75)})
     
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}}
+    assert bb.get_attr('_ka_to_execute') == (None, 0)
+    
+    
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.4, 'cycle length': 365.0, 
+                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
+                                                                'burnup' : 50.0}})
+    bb.publish_trigger()
+    time.sleep(1.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}, 2: {'ka_br_lvl3': 10}}   
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 10)
+
+    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.4, 'cycle length': 250.0, 
+                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
+                                                                'burnup' : 50.0}})
+    bb.publish_trigger()
+    time.sleep(1.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}, 2: {'ka_br_lvl3': 10}, 3:{'ka_br_lvl3':0}}   
+    assert bb.get_attr('_ka_to_execute') == (None, 0)
+    
+    ns.shutdown()
+    time.sleep(0.1)
     
 def test_kabr_lvl3_handler_executor():
     ns = run_nameserver()
