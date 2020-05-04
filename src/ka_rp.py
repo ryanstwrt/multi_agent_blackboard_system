@@ -6,7 +6,6 @@ import scipy.interpolate
 import database_generator as dg
 from collections import OrderedDict
 import ka
-import time
 from itertools import permutations
 import train_surrogate_models as tm
 import copy
@@ -142,29 +141,27 @@ class KaRpExploit(KaRpExplore):
         """
         Perturb a core design
         
-        This first finds a core in BB level 1 that it has not examined yet.
+        This first selects a core at random from abstract level 1 (from the 'new' panel).
         It then perturbs each design variable independent by the values in self.perturbations
         These results are written to the BB level 3, so there should be design_vars * pert added to level 3.
         """
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
         
-        for core, entry in lvl.items():
-            self.log_debug("Perturbing core design for {}".format(core))
-            base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.independent_variable_ranges.keys()}
-            i = 0
-            total_perts = len(base_design_variables.keys()) * len(self.perturbations)
-            for var_name, var_value in base_design_variables.items():
-                for pert in self.perturbations:
-                    i += 1
-                    self.design_variables = copy.copy(base_design_variables)
-                    self.design_variables[var_name] = var_value * pert
-                    self.log_debug('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
-                    self.calc_objectives()
-                    completed = True if i == total_perts else False
-                    self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed, panel='new')
-            self.move_entry(self.bb_lvl_read, core, entry)
-            return
+        core, entry = random.choice(list(lvl.items()))
+        base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.independent_variable_ranges.keys()}
+        total_perts = len(base_design_variables.keys()) * len(self.perturbations)
+        i = 0
+        for var_name, var_value in base_design_variables.items():
+            for pert in self.perturbations:
+                i += 1
+                self.design_variables = copy.copy(base_design_variables)
+                self.design_variables[var_name] = round(var_value * pert, 4)
+                self.log_debug('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
+                self.calc_objectives()
+                completed = True if i == total_perts else False
+                self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed, panel='new')
+        self.move_entry(self.bb_lvl_read, core, entry)
                         
     def read_bb_lvl(self):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]

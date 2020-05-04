@@ -103,6 +103,7 @@ def test_combined_kabr_karp():
 
     # Test first trigger publish (ka_rp_explore)
     bb.publish_trigger()
+    time.sleep(1.0)
     assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 0}}
     time.sleep(1.0)
@@ -113,6 +114,7 @@ def test_combined_kabr_karp():
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'cycle length': 375.0, 'reactivity swing': 750.0, 'burnup': 30.0, 'pu mass': 750.0}}, panel='new')
     
     bb.publish_trigger()
+    time.sleep(1.0)
     assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 0},
                                     2: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,

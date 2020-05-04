@@ -211,7 +211,6 @@ class Blackboard(Agent):
         
     def controller(self):
         """Determines which KA to select after a trigger event."""
-        time.sleep(5)
         self.log_debug('Determining which KA to execute')
         self._ka_to_execute = (None, 0)
         for k,v in self._kaar[self._trigger_event].items():
@@ -396,7 +395,7 @@ class Blackboard(Agent):
         self._trigger_event += 1
         self._kaar[self._trigger_event] = {}
         self.send(self._pub_trigger_alias, 'publishing trigger')
-        time.sleep(3)
+#        time.sleep(2)
 
     def remove_bb_entry(self, level, name, panel=None):
         """

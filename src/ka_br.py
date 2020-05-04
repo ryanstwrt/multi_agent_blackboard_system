@@ -1,8 +1,5 @@
 import osbrain
 from osbrain import Agent
-import time
-import random
-import os
 import ka
 
 class KaBr(ka.KaBase):
@@ -36,6 +33,13 @@ class KaBr(ka.KaBase):
     def handler_executor(self, message):
         self.log_info('Executing agent {}'.format(self.name)) 
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
+#        lvl3 = len(self.bb.get_attr('abstract_lvls')['level 3']['new'].keys())
+#        lvl2 = len(self.bb.get_attr('abstract_lvls')['level 2']['new'].keys())
+#        lvl1 = len(self.bb.get_attr('abstract_lvls')['level 1']['new'].keys())
+#        lvl3o = len(self.bb.get_attr('abstract_lvls')['level 3']['old'].keys())
+#        lvl2o = len(self.bb.get_attr('abstract_lvls')['level 2']['old'].keys())
+#        lvl1o = len(self.bb.get_attr('abstract_lvls')['level 1']['old'].keys())        
+#        self.log_info(' Number of entries in \n Level 3: {}, {} \n Level 2: {}, {} \n Level 1: {}, {}'.format(lvl3, lvl3o, lvl2, lvl2o, lvl1, lvl1o))
         entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
         self.move_entry(self.bb_lvl_read, self._entry_name, entry)
         self.clear_entry()
@@ -82,8 +86,7 @@ class KaBr_lvl2(KaBr):
             pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
                                                      lvl_3[opt_core]['reactor parameters'])
             if pareto_opt:
-                self.log_debug('Core {} is {} optimal.'.format(core_name,pareto_opt))
-                self.log_info('Level 1: \n {}'.format(lvl))
+                self.log_info('Core {} is {} optimal.'.format(core_name,pareto_opt))
                 return (True, pareto_opt)
         return (False, pareto_opt)
 
@@ -160,6 +163,7 @@ class KaBr_lvl3(KaBr):
                 self.add_entry((core_name,valid[1]))
                 return True
             else:
+                self.log_debug('Moving entry {}'.format(core_name))
                 self.move_entry(self.bb_lvl_read, core_name, core_entry)
         return False
         

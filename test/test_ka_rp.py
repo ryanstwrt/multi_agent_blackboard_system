@@ -224,8 +224,6 @@ def test_exploit_handler_executor():
     
     rp = ns.proxy('ka_rp_exploit')
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
-    bb.send_executor()  
-    time.sleep(0.75)
     
     assert bb.get_attr('abstract_lvls')['level 3'] == {'new':{},'old':{}}
     

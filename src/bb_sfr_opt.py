@@ -69,7 +69,7 @@ class BbSfrOpt(BbTraditional):
         # Add panel for level 3
         
         self.objectives = ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
-        self.objective_ranges = {'cycle length': (0, 1500), 'reactivity swing': (0, 1750), 'burnup': (0,175), 'pu mass': (0, 1750)}
+        self.objective_ranges = {'cycle length': (0, 1500), 'reactivity swing': (0, 7500), 'burnup': (0,175), 'pu mass': (0, 1750)}
         self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'}
         self.independent_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
         
