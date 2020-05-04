@@ -65,9 +65,10 @@ class BbSfrOpt(BbTraditional):
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
         self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float }})
+        # Add panel for level 3
         
         self.objectives = ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
-        self.objective_ranges = {'cycle length': (0, 1000), 'reactivity swing': (0, 7500), 'burnup': (0,200), 'pu mass': (0, 1000)}
+        self.objective_ranges = {'cycle length': (0, 1500), 'reactivity swing': (0, 1750), 'burnup': (0,175), 'pu mass': (0, 1750)}
         self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'}
         self.independent_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
         
@@ -84,7 +85,7 @@ class BbSfrOpt(BbTraditional):
             for core in panel.values():
                 pareto_solutions += 1 if core['pareto type'] == 'pareto' else 0
         
-        if pareto_solutions > 10:
+        if pareto_solutions > 2:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 self.send(connections['shutdown'][0], "shutdown")

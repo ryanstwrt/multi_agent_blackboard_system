@@ -37,11 +37,13 @@ class KaBr(ka.KaBase):
         self.log_info('Executing agent {}'.format(self.name)) 
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
         self.clear_entry()
+        self._trigger_val = 0
                 
     def handler_trigger_publish(self, message):
         """Read the BB level and determine if an entry is available."""
         new_entry = self.read_bb_lvl()
-        self._trigger_val = 10 if new_entry else 0
+        val = 1.0 if new_entry else 0
+        self._trigger_val = 10.0 if new_entry else 0
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         
@@ -71,15 +73,15 @@ class KaBr_lvl2(KaBr):
             all_cores.update(panel)
             
         if all_cores == {}:
-            self.log_info('Core {} is initial core for level 1.'.format(core_name))
+            self.log_debug('Core {} is initial core for level 1.'.format(core_name))
             return (True, 'pareto')
             
         for opt_core in all_cores.keys():
-            self.log_info(core_name)
             pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
                                                      lvl_3[opt_core]['reactor parameters'])
             if pareto_opt:
-                self.log_info('Core {} is {} optimal.'.format(core_name,pareto_opt))
+                self.log_debug('Core {} is {} optimal.'.format(core_name,pareto_opt))
+                self.log_info('Level 1: \n {}'.format(lvl))
                 return (True, pareto_opt)
         return (False, pareto_opt)
 
@@ -94,7 +96,6 @@ class KaBr_lvl2(KaBr):
                 optimal += 1
             if new_val < opt_val:
                 pareto_optimal += 1
-        self.log_info('Optimal: {}, Pareto Optimal: {}, Objectives: {}'.format(optimal, pareto_optimal, len(opt_rx.keys())))
         if optimal == len(self.desired_results.keys()) and pareto_optimal > 0:
             return 'pareto'
         elif pareto_optimal > 0:
@@ -111,15 +112,18 @@ class KaBr_lvl2(KaBr):
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
         self.remove_entry()
         self.clear_entry()
+        self._trigger_val = 0
     
     def read_bb_lvl(self):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
 
+        #self.valid_cores = 0
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
             self.move_current_entry(self.bb_lvl_read, core_name, core_entry)
             if valid[0]:
                 self.add_entry((core_name,valid[1]))
+                #self.\valid_cores += 1
                 return True        
 
 class KaBr_lvl3(KaBr):
@@ -136,8 +140,9 @@ class KaBr_lvl3(KaBr):
         lvl_3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
         rx_params = lvl_3[core_name]['reactor parameters']
 
-        for param_name, param_range in self.desired_results.items():            
+        for param_name, param_range in self.desired_results.items():     
             param = rx_params[param_name]
+            print(param_name, param, param_range[0], param_range[1])
             if param < param_range[0] or param > param_range[1]:
                 return (False, None)
         return (True, None)
@@ -148,7 +153,6 @@ class KaBr_lvl3(KaBr):
     
     def read_bb_lvl(self):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-
         for core_name, core_entry in lvl.items():
             if core_name not in self.read_results:
                 valid = self.determine_validity(core_name)
@@ -157,8 +161,6 @@ class KaBr_lvl3(KaBr):
                     self.add_entry((core_name,valid[1]))
                     self.read_results.append(core_name)
                     return True
-                else:
-                    return False
         return False
         
             

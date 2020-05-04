@@ -35,6 +35,9 @@ class KaRpExplore(KaRp):
       objectives       (list)            - List of the desired objective functions to be examined
       design_variables (list)            - List of the design variables to be used
     """
+    
+    
+    # Create a unique trigger handler to determine the number of entries on level 3 new and decrease the trigger value to 0 if there are too many.
 
     def on_init(self):
         super().on_init()
@@ -86,7 +89,7 @@ class KaRpExplore(KaRp):
                 self.objective_functions[obj] = float(obj_list[0][num])
         a = self.design_variables.copy()
         a.update(self.objective_functions)
-        #self.log_info('Core Design & Objectives: {}'.format([(x,y) for x,y in a.items()]))
+        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y,2)) for x,y in a.items()]))
         self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
         self._entry = {'reactor parameters': a}
 
@@ -109,6 +112,7 @@ class KaRpExploit(KaRpExplore):
     def on_init(self):
         super().on_init()
         self.perturbed_cores = []
+        self._trigger_val = 0.0
         self.bb_lvl_read = 1
         self.perturbations = [0.99, 1.01]
         self.new_panel = 'new'
@@ -146,7 +150,7 @@ class KaRpExploit(KaRpExplore):
         lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
         
         for core, entry in lvl.items():
-            self.log_info("Perturbing core design for {}".format(core))
+            self.log_debug("Perturbing core design for {}".format(core))
             base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.independent_variable_ranges.keys()}
             i = 0
             total_perts = len(base_design_variables.keys()) * len(self.perturbations)
@@ -155,7 +159,7 @@ class KaRpExploit(KaRpExplore):
                     i += 1
                     self.design_variables = copy.copy(base_design_variables)
                     self.design_variables[var_name] = var_value * pert
-                    self.log_info('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
+                    self.log_debug('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
                     self.calc_objectives()
                     completed = True if i == total_perts else False
                     self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed)

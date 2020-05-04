@@ -34,6 +34,7 @@ def test_combined_kabr_handler_executor():
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
     bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
+
     
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}})
     bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80}})
@@ -91,6 +92,7 @@ def test_combined_kabr_handler_executor():
 def test_combined_kabr_karp():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.set_attr(objective_ranges={'cycle length': (0, 1500), 'reactivity swing': (0, 6000), 'burnup': (0,175), 'pu mass': (0, 1750)})
     bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')

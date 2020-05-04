@@ -198,7 +198,7 @@ def test_karp_exploit_init():
     assert rp.get_attr('_trigger_publish_alias') == None
     assert rp.get_attr('_shutdown_alias') == None
     assert rp.get_attr('_shutdown_addr') == None
-    assert rp.get_attr('_trigger_val') == 1.0
+    assert rp.get_attr('_trigger_val') == 0.0
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
