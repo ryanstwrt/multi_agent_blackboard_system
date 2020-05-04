@@ -130,7 +130,7 @@ def test_explore_handler_executor():
     core_name = rp.get_attr('_entry_name')
     bb_entry = {core_name: entry}
     
-    assert bb.get_attr('abstract_lvls')['level 3'] == bb_entry
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == bb_entry
 
     ns.shutdown()
     time.sleep(0.1)
@@ -227,18 +227,18 @@ def test_exploit_handler_executor():
     bb.send_executor()  
     time.sleep(0.75)
     
-    assert bb.get_attr('abstract_lvls')['level 3'] == {}
+    assert bb.get_attr('abstract_lvls')['level 3'] == {'new':{},'old':{}}
     
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
                                                                 'pu_content': 0.4, 'cycle length': 365.0, 
                                                                 'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}})
+                                                                'burnup' : 50.0}}, panel='old')
     bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto'}, panel='new')
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
     bb.send_executor()      
     time.sleep(5)
     
-    assert [core for core in bb.get_attr('abstract_lvls')['level 3'].keys()] == ['core_1',
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
                                                            'core_[64.35, 65.0, 0.4]',
                                                            'core_[65.65, 65.0, 0.4]',
                                                            'core_[65.0, 64.35, 0.4]',
@@ -251,7 +251,7 @@ def test_exploit_handler_executor():
     bb.send_executor()  
     time.sleep(1.0)
     
-    assert [core for core in bb.get_attr('abstract_lvls')['level 3'].keys()] == ['core_1',
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
                                                            'core_[64.35, 65.0, 0.4]',
                                                            'core_[65.65, 65.0, 0.4]',
                                                            'core_[65.0, 64.35, 0.4]',
@@ -311,12 +311,12 @@ def test_exploit_perturb_design():
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
                                                                 'pu_content': 0.4, 'cycle length': 365.0, 
                                                                 'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}})
+                                                                'burnup' : 50.0}}, panel='old')
     bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto'}, panel='new')
  
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto'}}, 'old': {}}
     rp.perturb_design()
-    assert [core for core in bb.get_attr('abstract_lvls')['level 3'].keys()] == ['core_1',
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
                                                            'core_[64.35, 65.0, 0.4]',
                                                            'core_[65.65, 65.0, 0.4]',
                                                            'core_[65.0, 64.35, 0.4]',
@@ -325,7 +325,6 @@ def test_exploit_perturb_design():
                                                            'core_[65.0, 65.0, 0.404]',]
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto'}}}
 
-    
     ns.shutdown()
     time.sleep(0.1)
     
@@ -357,8 +356,8 @@ def test_exploit_write_to_bb():
     core_attrs = {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                          'cycle length': 100.0, 'reactivity swing': 110.0, 
                                          'burnup': 32.0, 'pu mass': 1000.0}}
-    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core1', core_attrs, complete=True)
-    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': 
+    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core1', core_attrs, complete=True, panel='new')
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': 
                                                                  {'height': 60.0, 'smear': 70.0, 
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 
                                                                   'reactivity swing': 110.0, 'burnup': 32.0, 
@@ -369,13 +368,13 @@ def test_exploit_write_to_bb():
     core_attrs = {'reactor parameters': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2, 
                                          'cycle length': 100.0, 'reactivity swing': 110.0, 
                                          'burnup': 32.0, 'pu mass': 1000.0}}
-    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core2', core_attrs, complete=False)
-    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': 
+    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core2', core_attrs, complete=False, panel='new')
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': 
                                                                  {'height': 60.0, 'smear': 70.0, 
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 
                                                                   'reactivity swing': 110.0, 'burnup': 32.0, 
                                                                   'pu mass': 1000.0}},
-                                                       'core2': {'reactor parameters': 
+                                                               'core2': {'reactor parameters': 
                                                                  {'height': 70.0, 'smear': 70.0, 
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 
                                                                   'reactivity swing': 110.0, 'burnup': 32.0, 

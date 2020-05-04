@@ -34,11 +34,13 @@ def test_combined_kabr_handler_executor():
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
     bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
+    bb.add_panel(3, ['new', 'old'])
+
 
     
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}})
-    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80}})
-    bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.15, 'void_coeff': -150.0, 'doppler_coeff': -0.70}})
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.15, 'void_coeff': -150.0, 'doppler_coeff': -0.70}}, panel='new')
 
     bb.set_attr(_ka_to_execute=('ka_br_lvl3', 10.0))
     ka_br_lvl3.read_bb_lvl()
@@ -103,12 +105,12 @@ def test_combined_kabr_karp():
     bb.publish_trigger()
     assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 0}}
-    time.sleep(0.25)
+    time.sleep(1.0)
     bb.controller()
     assert bb.get_attr('_ka_to_execute') == ('ka_rp_explore', 1.0)
 
     # Generate core and test second trigger publish (ka_br_lvl3)
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'cycle length': 375.0, 'reactivity swing': 750.0, 'burnup': 30.0, 'pu mass': 750.0}})
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'cycle length': 375.0, 'reactivity swing': 750.0, 'burnup': 30.0, 'pu mass': 750.0}}, panel='new')
     
     bb.publish_trigger()
     assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
@@ -123,7 +125,7 @@ def test_combined_kabr_karp():
     
     # Test third trigger publish (ka_br_lvl2)
     bb.publish_trigger()
-    time.sleep(1.25)
+    time.sleep(2.5)
     assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 0},
                                     2: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
@@ -156,7 +158,7 @@ def test_combined_kabr_karp():
     assert bb.get_attr('_ka_to_execute') == ('ka_rp_exploit', 2.0)    
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old': {'core_1': {'pareto type' : 'pareto'}}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old': {'core_1': {'valid' : True}}}   
-    assert [core for core in bb.get_attr('abstract_lvls')['level 3'].keys()] == ['core_1',
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
                                                            'core_[64.35, 65.0, 0.4]',
                                                            'core_[65.65, 65.0, 0.4]',
                                                            'core_[65.0, 64.35, 0.4]',

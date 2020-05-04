@@ -104,9 +104,12 @@ def test_BbSfrOpt_init():
 
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str}, 'old':{'pareto type': str}},
                                             'level 2': {'new': {'valid': bool}, 'old': {'valid': bool}},
-                                            'level 3': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}
+                                            'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
+                                                       'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
 
-    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 'level 2': {'new':{}, 'old':{}}, 'level 3': {}}
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 
+                                            'level 2': {'new':{}, 'old':{}}, 
+                                            'level 3': {'new': {}, 'old': {}}}
     
     assert bb.get_attr('_ka_to_execute') == (None, 0) 
     assert bb.get_attr('_trigger_event') == 0
@@ -133,7 +136,9 @@ def test_add_ka_specific():
             assert agent.get_attr('sm_type') == 'interpolate'
         elif 'lvl3' in alias:
             assert agent.get_attr('desired_results') == {'cycle length': (0, 1500), 
-                                                         'reactivity swing': (0, 1750), 'burnup': (0,175), 'pu mass': (0, 1750)}
+                                                         'reactivity swing': (0, 1750), 
+                                                         'burnup': (0,175), 
+                                                         'pu mass': (0, 1750)}
         elif 'lvl2' in alias:
             assert agent.get_attr('desired_results') == {'cycle length': 'gt', 
                                                          'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'}
@@ -172,15 +177,15 @@ def test_handler_writer():
     entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                   'cycle length': 100.0, 'reactivity swing': 110.0, 
                                   'burnup': 32.0, 'pu mass': 1000.0}}
-    rp.write_to_bb(rp.get_attr('bb_lvl'), 'core1', entry)
-    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
+    rp.write_to_bb(rp.get_attr('bb_lvl'), 'core1', entry, panel='new')
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                                                                         'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
 
     entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                   'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}
-    rp1.write_to_bb(rp1.get_attr('bb_lvl'), 'core2', entry, complete=True)
+    rp1.write_to_bb(rp1.get_attr('bb_lvl'), 'core2', entry, complete=True, panel='new')
     
-    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                                                                         'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
                                                        'core2': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
 
@@ -189,11 +194,11 @@ def test_handler_writer():
 
     assert bb.get_attr('_new_entry') == True
     bb.set_attr(_new_entry=False)
-    rp1.write_to_bb(rp1.get_attr('bb_lvl'), 'core3', entry, complete=False)
+    rp1.write_to_bb(rp1.get_attr('bb_lvl'), 'core3', entry, complete=False, panel='new')
     assert bb.get_attr('_new_entry') == False
 
     
-    assert bb.get_attr('abstract_lvls')['level 3'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                                                                         'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
                                                        'core2': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                                                                         'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}},
@@ -201,16 +206,5 @@ def test_handler_writer():
                                                                                         'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
     
     
-    ns.shutdown()
-    time.sleep(0.1)          
-
-def test_BbSfrOpt_add_panel():
-    ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-
-    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-    bb.add_panel(1, ['new', 'old'])
-    print(bb.get_attr('abstract_lvls'))
-
     ns.shutdown()
     time.sleep(0.1)

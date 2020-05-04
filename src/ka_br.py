@@ -27,7 +27,7 @@ class KaBr(ka.KaBase):
     def determine_validity(self):
         pass
 
-    def move_current_entry(self, bb_lvl, entry_name, entry):
+    def move_entry(self, bb_lvl, entry_name, entry):
         self.write_to_bb(bb_lvl, entry_name, entry, panel=self.old_panel)
         self.write_to_bb(bb_lvl, entry_name, entry, panel=self.new_panel, remove=True)
         self.log_debug("Moved entry {} on level {} from old to new".format(entry_name, bb_lvl))
@@ -36,6 +36,8 @@ class KaBr(ka.KaBase):
     def handler_executor(self, message):
         self.log_info('Executing agent {}'.format(self.name)) 
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
+        entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+        self.move_entry(self.bb_lvl_read, self._entry_name, entry)
         self.clear_entry()
         self._trigger_val = 0
                 
@@ -65,7 +67,7 @@ class KaBr_lvl2(KaBr):
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-        lvl_3 = self.bb.get_attr('abstract_lvls')['level 3']
+        lvl_3 = self.bb.get_attr('abstract_lvls')['level 3']['old']
 
         #make a dictionary of all the cores present in the level
         all_cores = {}
@@ -120,10 +122,10 @@ class KaBr_lvl2(KaBr):
         #self.valid_cores = 0
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
-            self.move_current_entry(self.bb_lvl_read, core_name, core_entry)
+            self.move_entry(self.bb_lvl_read, core_name, core_entry)
             if valid[0]:
                 self.add_entry((core_name,valid[1]))
-                #self.\valid_cores += 1
+                #self.valid_cores += 1
                 return True        
 
 class KaBr_lvl3(KaBr):
@@ -137,12 +139,11 @@ class KaBr_lvl3(KaBr):
         
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""
-        lvl_3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        lvl_3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new']
         rx_params = lvl_3[core_name]['reactor parameters']
 
         for param_name, param_range in self.desired_results.items():     
             param = rx_params[param_name]
-            print(param_name, param, param_range[0], param_range[1])
             if param < param_range[0] or param > param_range[1]:
                 return (False, None)
         return (True, None)
@@ -152,15 +153,14 @@ class KaBr_lvl3(KaBr):
         self._entry = {'valid': True}
     
     def read_bb_lvl(self):
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new']
         for core_name, core_entry in lvl.items():
-            if core_name not in self.read_results:
-                valid = self.determine_validity(core_name)
-                self.read_results.append(core_name)
-                if valid[0]:
-                    self.add_entry((core_name,valid[1]))
-                    self.read_results.append(core_name)
-                    return True
+            valid = self.determine_validity(core_name)
+            if valid[0]:
+                self.add_entry((core_name,valid[1]))
+                return True
+            else:
+                self.move_entry(self.bb_lvl_read, core_name, core_entry)
         return False
         
             

@@ -65,7 +65,7 @@ class KaRpExplore(KaRp):
         self.log_debug('Executing agent {}'.format(self.name))
         self.mc_design_variables()
         self.calc_objectives()
-        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
+        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
     
     def mc_design_variables(self):
         """Determine the core design variables using a monte carlo method."""
@@ -147,7 +147,7 @@ class KaRpExploit(KaRpExplore):
         These results are written to the BB level 3, so there should be design_vars * pert added to level 3.
         """
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
+        lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
         
         for core, entry in lvl.items():
             self.log_debug("Perturbing core design for {}".format(core))
@@ -162,7 +162,7 @@ class KaRpExploit(KaRpExplore):
                     self.log_debug('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
                     self.calc_objectives()
                     completed = True if i == total_perts else False
-                    self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed)
+                    self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed, panel='new')
             self.move_entry(self.bb_lvl_read, core, entry)
             return
                         
