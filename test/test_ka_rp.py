@@ -337,7 +337,7 @@ def test_exploit_move_entry():
     
     bb.update_abstract_lvl(1, 'core 1', {'pareto type' : 'weak'}, panel='new')
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {'core 1' : {'pareto type' : 'weak'}}, 'old' : {}}    
-    rp.move_entry(rp.get_attr('bb_lvl_read'), 'core 1', {'pareto type' : 'weak'})
+    rp.move_entry(rp.get_attr('bb_lvl_read'), 'core 1', {'pareto type' : 'weak'}, rp.get_attr('old_panel'), rp.get_attr('new_panel'))
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old' : {'core 1' : {'pareto type' : 'weak'}}}    
 
     ns.shutdown()

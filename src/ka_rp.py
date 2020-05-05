@@ -175,9 +175,9 @@ class KaRpExploit(KaRpExplore):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
             
-    def move_entry(self, bb_lvl, entry_name, entry):
-        self.write_to_bb(bb_lvl, entry_name, entry, panel=self.old_panel)
-        self.write_to_bb(bb_lvl, entry_name, entry, panel=self.new_panel, remove=True)
+#    def move_entry(self, bb_lvl, entry_name, entry):
+ #       self.write_to_bb(bb_lvl, entry_name, entry, panel=self.old_panel)
+  #      self.write_to_bb(bb_lvl, entry_name, entry, panel=self.new_panel, remove=True)
             
     def perturb_design(self):
         """
@@ -204,7 +204,7 @@ class KaRpExploit(KaRpExplore):
                 self.calc_objectives()
                 completed = True if i == total_perts else False
                 self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed, panel='new')
-        self.move_entry(self.bb_lvl_read, core, entry)
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel)
                         
     def read_bb_lvl(self):
         """

@@ -235,7 +235,7 @@ def test_move_curent_entry():
     bb.update_abstract_lvl(2, 'core_1', {'valid': True}, panel='new')
     
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_1' : {'valid' : True}}, 'old' : {}}
-    ka_br_lvl2.move_entry(ka_br_lvl2.get_attr('bb_lvl_read'), 'core_1', {'valid': True})
+    ka_br_lvl2.move_entry(ka_br_lvl2.get_attr('bb_lvl_read'), 'core_1', {'valid': True}, ka_br_lvl2.get_attr('old_panel'), ka_br_lvl2.get_attr('new_panel'))
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old' : {'core_1' : {'valid' : True}}}
     
     ns.shutdown()

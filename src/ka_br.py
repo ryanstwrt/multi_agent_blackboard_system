@@ -24,10 +24,10 @@ class KaBr(ka.KaBase):
     def determine_validity(self):
         pass
 
-    def move_entry(self, bb_lvl, entry_name, entry):
-        self.write_to_bb(bb_lvl, entry_name, entry, panel=self.old_panel)
-        self.write_to_bb(bb_lvl, entry_name, entry, panel=self.new_panel, remove=True)
-        self.log_debug("Moved entry {} on level {} from old to new".format(entry_name, bb_lvl))
+#    def move_entry(self, bb_lvl, entry_name, entry):
+ #       self.write_to_bb(bb_lvl, entry_name, entry, panel=self.old_panel)
+  #      self.write_to_bb(bb_lvl, entry_name, entry, panel=self.new_panel, remove=True)
+   #     self.log_debug("Moved entry {} on level {} from old to new".format(entry_name, bb_lvl))
 
     
     def handler_executor(self, message):
@@ -41,7 +41,7 @@ class KaBr(ka.KaBase):
 #        lvl1o = len(self.bb.get_attr('abstract_lvls')['level 1']['old'].keys())        
 #        self.log_info(' Number of entries in \n Level 3: {}, {} \n Level 2: {}, {} \n Level 1: {}, {}'.format(lvl3, lvl3o, lvl2, lvl2o, lvl1, lvl1o))
         entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-        self.move_entry(self.bb_lvl_read, self._entry_name, entry)
+        self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
         self.clear_entry()
         self._trigger_val = 0
                 
@@ -130,7 +130,7 @@ class KaBr_lvl2(KaBr):
         #self.valid_cores = 0
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
-            self.move_entry(self.bb_lvl_read, core_name, core_entry)
+            self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
             if valid[0]:
                 self.add_entry((core_name,valid[1]))
                 #self.valid_cores += 1
@@ -169,7 +169,7 @@ class KaBr_lvl3(KaBr):
                 return True
             else:
                 self.log_debug('Moving entry {}'.format(core_name))
-                self.move_entry(self.bb_lvl_read, core_name, core_entry)
+                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
         return False
         
             
