@@ -24,7 +24,7 @@ def test_karp_init():
     assert rp.get_attr('_shutdown_alias') == None
     assert rp.get_attr('_shutdown_addr') == None
     
-    assert rp.get_attr('_trigger_val') == 1.0
+    assert rp.get_attr('_trigger_val') == 0
     assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
@@ -54,7 +54,7 @@ def test_karp_verify_init():
     assert rp.get_attr('_trigger_publish_alias') == None
     assert rp.get_attr('_shutdown_alias') == None
     assert rp.get_attr('_shutdown_addr') == None
-    assert rp.get_attr('_trigger_val') == 1.0
+    assert rp.get_attr('_trigger_val') == 0
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
@@ -70,7 +70,6 @@ def test_mc_design_variables():
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('_entry_name') == None
     rp.mc_design_variables()
-    print(rp.get_attr('design_variables'))
     assert rp.get_attr('design_variables') != {}
     
     ns.shutdown()
@@ -98,7 +97,7 @@ def test_karp_explore_init():
     assert rp.get_attr('_trigger_publish_alias') == None
     assert rp.get_attr('_shutdown_alias') == None
     assert rp.get_attr('_shutdown_addr') == None
-    assert rp.get_attr('_trigger_val') == 1.0
+    assert rp.get_attr('_trigger_val') == 0
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
@@ -117,9 +116,9 @@ def test_explore_handler_executor():
     bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
     
     rp = ns.proxy('ka_rp_explore')
-    bb.set_attr(_ka_to_execute=('ka_rp_explore', 2.0))
+    rp.set_attr(_trigger_val=1)
+    bb.set_attr(_ka_to_execute=('ka_rp_explore', 2))
     bb.send_executor()
-
     time.sleep(2.0)
     
     entry = rp.get_attr('_entry')
@@ -127,7 +126,28 @@ def test_explore_handler_executor():
     bb_entry = {core_name: entry}
     
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == bb_entry
+    assert rp.get_attr('_trigger_val') == 0
 
+    ns.shutdown()
+    time.sleep(0.1)
+
+def test_explore_handler_trigger_publish():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp')
+    
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 1}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 1)
+    
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 1}, 2: {'ka_rp': 2}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 2)
+    
     ns.shutdown()
     time.sleep(0.1)
     
@@ -285,8 +305,8 @@ def test_exploit_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}, 2: {'ka_rp':11.0}}
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 11.0)
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}, 2: {'ka_rp':5}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 5)
     
     
     ns.shutdown()

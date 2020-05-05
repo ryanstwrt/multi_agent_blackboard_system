@@ -100,64 +100,70 @@ def test_combined_kabr_karp():
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
     bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br_lvl3')
     bb.connect_agent(ka_br.KaBr_lvl2, 'ka_br_lvl2')
+    
+    rp_explore = ns.proxy('ka_rp_explore')
+    bb_lvl2 = ns.proxy('ka_br_lvl2')
+    bb_lvl3 = ns.proxy('ka_br_lvl3')
+    bb_lvl2.set_attr(_num_allowed_entries=1)
+    bb_lvl3.set_attr(_num_allowed_entries=1)
 
     # Test first trigger publish (ka_rp_explore)
     bb.publish_trigger()
     time.sleep(1.0)
-    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
+    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1, 'ka_rp_exploit': 0,
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 0}}
     time.sleep(1.0)
     bb.controller()
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp_explore', 1.0)
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp_explore', 1)
 
     # Generate core and test second trigger publish (ka_br_lvl3)
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'cycle length': 375.0, 'reactivity swing': 750.0, 'burnup': 30.0, 'pu mass': 750.0}}, panel='new')
     
     bb.publish_trigger()
     time.sleep(1.0)
-    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
+    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1, 'ka_rp_exploit': 0,
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 0},
-                                    2: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
-                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 10.0}}
+                                    2: {'ka_rp_explore': 2, 'ka_rp_exploit': 0,
+                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 3}}
     bb.controller()
     bb.send_executor()
     time.sleep(0.75)
-    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 10.0)
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 3)
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_1': {'valid' : True}}, 'old': {}}
     
     # Test third trigger publish (ka_br_lvl2)
     bb.publish_trigger()
     time.sleep(2.5)
-    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
+    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1, 'ka_rp_exploit': 0,
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 0},
-                                    2: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
-                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 10.0},
-                                    3: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
-                                        'ka_br_lvl2': 10.0, 'ka_br_lvl3': 0}}
+                                    2: {'ka_rp_explore': 2, 'ka_rp_exploit': 0,
+                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 3},
+                                    3: {'ka_rp_explore': 3, 'ka_rp_exploit': 0,
+                                        'ka_br_lvl2': 4, 'ka_br_lvl3': 0}}
     bb.controller()
     bb.send_executor()
     time.sleep(0.75)
     
-    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl2', 10.0)    
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl2', 4)    
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {'core_1': {'pareto type' : 'pareto'}}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old': {'core_1': {'valid' : True}}}
     
     # Test fourth trigger publish (ka_rp_exploit)
     bb.publish_trigger()
     time.sleep(1.25)
-    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
+    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1, 'ka_rp_exploit': 0,
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 0},
-                                    2: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
-                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 10.0},
-                                    3: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
-                                        'ka_br_lvl2': 10.0, 'ka_br_lvl3': 0},
-                                    4: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 2.0,
-                                        'ka_br_lvl2': 0.0, 'ka_br_lvl3': 0}}
+                                    2: {'ka_rp_explore': 2, 'ka_rp_exploit': 0,
+                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 3},
+                                    3: {'ka_rp_explore': 3, 'ka_rp_exploit': 0,
+                                        'ka_br_lvl2': 4, 'ka_br_lvl3': 0},
+                                    4: {'ka_rp_explore': 4, 'ka_rp_exploit': 5,
+                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 0}}
     bb.controller()
     bb.send_executor()
     time.sleep(5)
     
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp_exploit', 2.0)    
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp_exploit', 5)    
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old': {'core_1': {'pareto type' : 'pareto'}}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old': {'core_1': {'valid' : True}}}   
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
@@ -168,23 +174,24 @@ def test_combined_kabr_karp():
                                                            'core_[65.0, 65.0, 0.396]', 
                                                            'core_[65.0, 65.0, 0.404]',]
     # Test fifth trigger publish (ka_br_lvl3)
+    rp_explore.set_attr(_trigger_val=0)
     bb.publish_trigger()
     time.sleep(1.25)
-    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
+    assert bb.get_attr('_kaar') == {1: {'ka_rp_explore': 1, 'ka_rp_exploit': 0,
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 0},
-                                    2: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
-                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 10.0},
-                                    3: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
-                                        'ka_br_lvl2': 10.0, 'ka_br_lvl3': 0},
-                                    4: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 2.0,
-                                        'ka_br_lvl2': 0.0, 'ka_br_lvl3': 0},
-                                    5: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0,
-                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 10.0}}
+                                    2: {'ka_rp_explore': 2, 'ka_rp_exploit': 0,
+                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 3},
+                                    3: {'ka_rp_explore': 3, 'ka_rp_exploit': 0,
+                                        'ka_br_lvl2': 4, 'ka_br_lvl3': 0},
+                                    4: {'ka_rp_explore': 4, 'ka_rp_exploit': 5,
+                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 0},
+                                    5: {'ka_rp_explore': 1, 'ka_rp_exploit': 0,
+                                        'ka_br_lvl2': 0, 'ka_br_lvl3': 3}}
     bb.controller()
     bb.send_executor()
     time.sleep(2)
     
-    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 10.0)    
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 3)    
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old': {'core_1': {'pareto type' : 'pareto'}}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_[64.35, 65.0, 0.4]': {'valid' : True}}, 'old': {'core_1': {'valid' : True}}}   
     

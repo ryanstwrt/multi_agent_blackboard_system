@@ -25,11 +25,10 @@ class KaRp(ka.KaBase):
     """
     def on_init(self):
         super().on_init()
-        self._trigger_val = 1.0
+        self._trigger_val = 0
         self.bb_lvl = 3
         self._sm = None
         self.sm_type = 'interpolate'
-
 
 class KaRpExplore(KaRp):
     """
@@ -55,8 +54,6 @@ class KaRpExplore(KaRp):
         Valid options: (interpolator, lr, pr, gpr, mars, ann, rf)
         See surrogate_modeling for more details
     """
-    
-    # Create a unique trigger handler to determine the number of entries on level 3 new and decrease the trigger value to 0 if there are too many.
 
     def on_init(self):
         super().on_init()
@@ -77,10 +74,24 @@ class KaRpExplore(KaRp):
             required message for sending communication
         """
         self.log_debug('Executing agent {}'.format(self.name))
+        self._trigger_val = 0
         self.mc_design_variables()
         self.calc_objectives()
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
-    
+
+    def handler_trigger_publish(self, message):
+        """
+        Send a message to the BB indiciating it's trigger value.
+        
+        Parameters
+        ----------
+        message : str
+            Containts unused message, but required for agent communication.
+        """
+        self._trigger_val += 1
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        
     def mc_design_variables(self):
         """
         Determine the core design variables using a monte carlo method.
@@ -138,6 +149,7 @@ class KaRpExploit(KaRpExplore):
         self.perturbations = [0.99, 1.01]
         self.new_panel = 'new'
         self.old_panel = 'old'
+        self._base_trigger_val = 5
     
     def handler_executor(self, message):
         """
@@ -168,7 +180,7 @@ class KaRpExploit(KaRpExplore):
                 Trigger value for knowledge agent
         """
         new_entry = self.read_bb_lvl()
-        self._trigger_val = 11.0 if new_entry else 0
+        self._trigger_val = self._base_trigger_val if new_entry else 0
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
             

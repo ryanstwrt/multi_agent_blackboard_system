@@ -18,6 +18,7 @@ class KaBr(ka.KaBase):
         self.old_panel = 'old'
         self._num_entries = 0
         self._num_allowed_entries = 25
+        self._trigger_val_base = 0
     
     def clear_entry(self):
         """Clear the KA entry"""
@@ -39,7 +40,7 @@ class KaBr(ka.KaBase):
         """Read the BB level and determine if an entry is available."""
         new_entry = self.read_bb_lvl()
         trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
-        self._trigger_val = 2 if trig_prob > random.random() else 0
+        self._trigger_val = self._trigger_val_base if trig_prob > random.random() else 0
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         
@@ -54,6 +55,7 @@ class KaBr_lvl2(KaBr):
         self.bb_lvl_read = 2
         self.desired_results = None
         self._num_allowed_entries = 10
+        self._trigger_val_base = 4
         
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
@@ -113,19 +115,16 @@ class KaBr_lvl2(KaBr):
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
         self.remove_entry()
         self.clear_entry()
-        self._trigger_val = 0
     
     def read_bb_lvl(self):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         self._num_entries = len(lvl)
 
-        #self.valid_cores = 0
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
             self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
             if valid[0]:
                 self.add_entry((core_name,valid[1]))
-                #self.valid_cores += 1
                 return True        
 
 class KaBr_lvl3(KaBr):
@@ -136,6 +135,7 @@ class KaBr_lvl3(KaBr):
         self.bb_lvl_read = 3
         self.desired_results = None
         self.read_results = []
+        self._trigger_val_base = 3
         
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""
