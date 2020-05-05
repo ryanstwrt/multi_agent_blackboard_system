@@ -5,14 +5,12 @@ import blackboard
 import ka
 import time
 import ka_rp
-from collections import OrderedDict
 import bb_sfr_opt as bb_sfr
 
 def test_karp_init():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRp)
     assert rp.get_attr('bb') == None
-    assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('_entry') == None
     assert rp.get_attr('_entry_name') == None
     assert rp.get_attr('_writer_addr') == None
@@ -25,7 +23,11 @@ def test_karp_init():
     assert rp.get_attr('_trigger_publish_alias') == None
     assert rp.get_attr('_shutdown_alias') == None
     assert rp.get_attr('_shutdown_addr') == None
+    
     assert rp.get_attr('_trigger_val') == 1.0
+    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('_sm') == None
+    assert rp.get_attr('sm_type') == 'interpolate'
     
     ns.shutdown()
     time.sleep(0.1)
@@ -56,12 +58,8 @@ def test_karp_verify_init():
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
-    assert rp.get_attr('interp_path') == None
-    assert rp.get_attr('interpolator_dict') == {}
     assert rp.get_attr('objectives') == ['keff', 'void', 'doppler']
-    assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
-                                                                     'smear': (50,70),
-                                                                     'pu_content':(0,1)})
+    assert rp.get_attr('design_variable_ranges') == {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
     ns.shutdown()
     time.sleep(0.1)
 
@@ -108,9 +106,7 @@ def test_karp_explore_init():
     assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('objectives') == []
-    assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
-                                                                      'smear': (50,70),
-                                                                      'pu_content':(0,1)})
+    assert rp.get_attr('design_variable_ranges') == {}
     ns.shutdown()
     time.sleep(0.1)
     
@@ -138,6 +134,7 @@ def test_explore_handler_executor():
 def test_explore_mc_design_variables():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
+    rp.set_attr(design_variable_ranges={'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('_entry_name') == None
@@ -206,9 +203,7 @@ def test_karp_exploit_init():
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('objectives') == []
-    assert rp.get_attr('independent_variable_ranges') == OrderedDict({'height': (50,80),
-                                                                     'smear': (50,70),
-                                                                     'pu_content':(0,1)})
+    assert rp.get_attr('design_variable_ranges') == {}
     assert rp.get_attr('perturbations') == [0.99, 1.01]
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
@@ -264,6 +259,7 @@ def test_exploit_handler_executor():
 def test_exploit_mc_design_variables():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
+    rp.set_attr(design_variable_ranges={'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
     
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('_entry_name') == None

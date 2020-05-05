@@ -70,7 +70,7 @@ class BbSfrOpt(BbTraditional):
         self.objectives = ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
         self.objective_ranges = {'cycle length': (0, 1500), 'reactivity swing': (0, 7500), 'burnup': (0,175), 'pu mass': (0, 1750)}
         self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'}
-        self.independent_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
+        self.design_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
         
         self._sm = None
         self.sm_type = 'interpolate'
@@ -106,9 +106,9 @@ class BbSfrOpt(BbTraditional):
         ka = ns.proxy(agent)
         if 'rp' in agent:
             ka.set_attr(objectives=self.objectives)
-            #ka.create_sm()
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
+            ka.set_attr(design_variable_ranges=self.design_variable_ranges)
         elif 'lvl3' in agent:
             ka.set_attr(desired_results=self.objective_ranges)
         elif 'lvl2' in agent:
@@ -118,7 +118,7 @@ class BbSfrOpt(BbTraditional):
             return
     
     def generate_sm(self):
-        design_var, objective_func = dg.get_data([x for x in self.independent_variable_ranges.keys()], self.objectives)
+        design_var, objective_func = dg.get_data([x for x in self.design_variable_ranges.keys()], self.objectives)
         if self.sm_type == 'interpolate':
             self._sm = {}
             design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)

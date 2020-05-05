@@ -23,12 +23,6 @@ class KaBr(ka.KaBase):
         
     def determine_validity(self):
         pass
-
-#    def move_entry(self, bb_lvl, entry_name, entry):
- #       self.write_to_bb(bb_lvl, entry_name, entry, panel=self.old_panel)
-  #      self.write_to_bb(bb_lvl, entry_name, entry, panel=self.new_panel, remove=True)
-   #     self.log_debug("Moved entry {} on level {} from old to new".format(entry_name, bb_lvl))
-
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
