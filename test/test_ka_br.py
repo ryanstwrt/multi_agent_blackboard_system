@@ -28,6 +28,8 @@ def test_kabr_init():
     assert ka_b.get_attr('_shutdown_alias') == None
     assert ka_b.get_attr('new_panel') == 'new'
     assert ka_b.get_attr('old_panel') == 'old'
+    assert ka_b.get_attr('_num_entries') == 0
+    assert ka_b.get_attr('_num_allowed_entries') == 25
     
     ns.shutdown()
     time.sleep(0.1)
@@ -121,7 +123,7 @@ def test_kabr_verify_handler_executor():
     
     bb.update_abstract_lvl(2, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}})
 
-    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
+    bb.set_attr(_ka_to_execute=('ka_br', 2))
     bb.send_executor()
     time.sleep(1.1)    
 
@@ -155,6 +157,8 @@ def test_kabr_lvl2_init():
     assert ka_br2.get_attr('desired_results') == None
     assert ka_br2.get_attr('_shutdown_addr') == None
     assert ka_br2.get_attr('_shutdown_alias') == None
+    assert ka_br2.get_attr('_num_entries') == 0
+    assert ka_br2.get_attr('_num_allowed_entries') == 10
     
     ns.shutdown()
     time.sleep(0.1)
@@ -287,6 +291,7 @@ def test_kabr_lvl2_handler_trigger_publish():
     br.add_blackboard(bb)
     br.connect_trigger()
     br.connect_writer()
+    br.set_attr(_num_allowed_entries=1)
     
     bb.publish_trigger()
     time.sleep(0.25)
@@ -298,8 +303,8 @@ def test_kabr_lvl2_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(1.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl2': 0}, 2: {'ka_br_lvl2': 10}}   
-    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl2', 10)
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl2': 0}, 2: {'ka_br_lvl2': 2}}   
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl2', 2)
     
     ns.shutdown()
     time.sleep(0.1)
@@ -404,6 +409,8 @@ def test_kabr_lvl3_init():
     assert ka_br2.get_attr('desired_results') == None
     assert ka_br2.get_attr('_shutdown_addr') == None
     assert ka_br2.get_attr('_shutdown_alias') == None
+    assert ka_br2.get_attr('_num_entries') == 0
+    assert ka_br2.get_attr('_num_allowed_entries') == 25
     
     ns.shutdown()
     time.sleep(0.1)
@@ -465,6 +472,8 @@ def test_kabr_lvl3_handler_trigger_publish():
                                  'pu mass' : (0, 1000),
                                  'reactivity swing': (500, 1000),
                                   'burnup': (25, 75)})
+    br.set_attr(_num_allowed_entries=1)
+
     
     bb.publish_trigger()
     time.sleep(0.25)
@@ -480,8 +489,8 @@ def test_kabr_lvl3_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(1.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}, 2: {'ka_br_lvl3': 10}}   
-    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 10)
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}, 2: {'ka_br_lvl3': 2}}   
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 2)
 
     bb.remove_bb_entry(3, 'core_1', panel='new')
     bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
@@ -495,7 +504,7 @@ def test_kabr_lvl3_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(1.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}, 2: {'ka_br_lvl3': 10.0}, 3:{'ka_br_lvl3':0}}   
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}, 2: {'ka_br_lvl3': 2}, 3:{'ka_br_lvl3':0}}   
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     
     ns.shutdown()
