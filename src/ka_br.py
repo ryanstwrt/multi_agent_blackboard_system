@@ -31,7 +31,7 @@ class KaBr(ka.KaBase):
 
     
     def handler_executor(self, message):
-        self.log_info('Executing agent {}'.format(self.name)) 
+        self.log_debug('Executing agent {}'.format(self.name)) 
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
 #        lvl3 = len(self.bb.get_attr('abstract_lvls')['level 3']['new'].keys())
 #        lvl2 = len(self.bb.get_attr('abstract_lvls')['level 2']['new'].keys())
@@ -72,6 +72,7 @@ class KaBr_lvl2(KaBr):
         """Determine if the core is pareto optimal"""
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
         lvl_3 = self.bb.get_attr('abstract_lvls')['level 3']['old']
+        lvl_3_n = self.bb.get_attr('abstract_lvls')['level 3']['new']
 
         #make a dictionary of all the cores present in the level
         all_cores = {}
@@ -83,10 +84,14 @@ class KaBr_lvl2(KaBr):
             return (True, 'pareto')
             
         for opt_core in all_cores.keys():
-            pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
+            try:
+                pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
                                                      lvl_3[opt_core]['reactor parameters'])
+            except KeyError:
+                pareto_opt = self.determine_optimal_type(lvl_3_n[core_name]['reactor parameters'], 
+                                                     lvl_3[opt_core]['reactor parameters'])               
             if pareto_opt:
-                self.log_info('Core {} is {} optimal.'.format(core_name,pareto_opt))
+                self.log_debug('Core {} is {} optimal.'.format(core_name,pareto_opt))
                 return (True, pareto_opt)
         return (False, pareto_opt)
 

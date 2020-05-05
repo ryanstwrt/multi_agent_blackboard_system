@@ -42,10 +42,9 @@ class BbTraditional(blackboard.Blackboard):
         """
         if self.abstract_lvls['level 1'] != {}:
             self.log_info('Problem complete, shutting agents down')
-            time.sleep(5)
+            self._complete = True
             for agent_name, connections in self.agent_addrs.items():
                 self.send(connections['shutdown'][0], "shutdown")
-            self._complete = True
         else:
             pass
     
@@ -84,9 +83,9 @@ class BbSfrOpt(BbTraditional):
         pareto_solutions = 0
         for panel in self.abstract_lvls['level 1'].values():
             for core in panel.values():
-                pareto_solutions += 1 if core['pareto type'] == 'pareto' else 0
+                pareto_solutions += 1 #if core['pareto type'] == 'pareto' else 0
         
-        if pareto_solutions > 2:
+        if pareto_solutions > 50:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 self.send(connections['shutdown'][0], "shutdown")

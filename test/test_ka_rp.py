@@ -12,7 +12,7 @@ def test_karp_init():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRp)
     assert rp.get_attr('bb') == None
-    assert rp.get_attr('bb_lvl') == 0
+    assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('_entry') == None
     assert rp.get_attr('_entry_name') == None
     assert rp.get_attr('_writer_addr') == None
@@ -210,7 +210,6 @@ def test_karp_exploit_init():
                                                                      'smear': (50,70),
                                                                      'pu_content':(0,1)})
     assert rp.get_attr('perturbations') == [0.99, 1.01]
-    assert rp.get_attr('perturbed_cores') == []
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
     ns.shutdown()
@@ -290,8 +289,8 @@ def test_exploit_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}, 2: {'ka_rp':2}}
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 2)
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}, 2: {'ka_rp':11.0}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 11.0)
     
     
     ns.shutdown()

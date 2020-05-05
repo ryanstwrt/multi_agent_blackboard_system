@@ -153,6 +153,27 @@ class KaBase(Agent):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
     
+    def move_entry(self, bb_lvl, entry_name, entry, new_panel, old_panel):
+        """
+        Move an entry on a blackboard level from one blackbaord panel to another.
+        
+        Parameters
+        ----------
+        bb_lvl : int
+            Abstract level of the entry to be move
+        entry_name : str
+            Name of the entry to be moved
+        entry : varies
+            Entry detail for the entry to be moved
+        new_panel : str
+            Panel to move the entry to
+        old_panel : str
+            Panel that will remove old entry
+        """
+        self.write_to_bb(bb_lvl, entry_name, entry, panel=new_panel)
+        self.write_to_bb(bb_lvl, entry_name, entry, panel=old_panel, remove=True)
+
+        
     def write_to_bb(self, bb_lvl, entry_name, entry, complete=True, panel=None, remove=False):
         """
         Write the KA's entry to the BB on the specified level.

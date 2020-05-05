@@ -56,7 +56,7 @@ def test_connect_agent():
     ns.shutdown()
     time.sleep(0.1)
     
-def test_determine_complete():
+def test_determine_complete_traditional():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbTraditional)
     bb.connect_agent(karp.KaRp_verify, 'ka_rp')
@@ -70,7 +70,7 @@ def test_determine_complete():
     bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
     bb.determine_complete()
     
-    time.sleep(0.5)
+    time.sleep(1.0)
     assert bb.get_attr('_complete') == True
     assert ns.agents() == ['blackboard']
 
@@ -151,7 +151,7 @@ def test_determine_complete():
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
 
-    for x in range(11):
+    for x in range(51):
         name = 'core{}'.format(x)
         entry = {'pareto type': 'pareto'}
         bb.update_abstract_lvl(1, name, entry, panel='new')
