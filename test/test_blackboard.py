@@ -177,6 +177,34 @@ def test_controller():
 
     ns.shutdown()
     time.sleep(0.1)
+
+def test_diagnostics_agent_present():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    assert bb.diagnostics_agent_present('blank') == False
+    ka_b = run_agent(name='ka_b', base=ka.KaBase)
+    assert bb.diagnostics_agent_present('ka_b') == True
+
+    ns.shutdown()
+    time.sleep(0.1)
+
+def test_diagnostics_replace_agent():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.set_attr(required_agents=[ka.KaBase])
+    bb.connect_agent(ka.KaBase, 'ka_b')
+
+    assert ns.agents() == ['blackboard', 'ka_b']
+    bb.diagnostics_replace_agent()
+    assert ns.agents() == ['blackboard', 'ka_b']
+    bb.send('shutdown_ka_b', 'message')
+    time.sleep(0.1)
+    assert ns.agents() == ['blackboard']
+    bb.diagnostics_replace_agent()
+    assert ns.agents() == ['blackboard', 'ka_b']
+
+    ns.shutdown()
+    time.sleep(0.1)    
     
 def test_send_executor():
     ns = run_nameserver()

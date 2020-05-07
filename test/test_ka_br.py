@@ -287,6 +287,26 @@ def test_kabr_lvl2_determine_optimal_type():
     ns.shutdown()
     time.sleep(0.1)
 
+def test_determine_fitness_function():
+    ns = run_nameserver()
+    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
+    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'doppler_coeff': 'lt', 'pu_content': 'lt'})
+    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'pu_content': (0, 0.6), 'doppler_coeff': (-1.0,0.0)})
+
+    fitness = ka_br_lvl2.determine_fitness_function('core_1', {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.3})
+    assert fitness == 1.65
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
+def test_objective_scaler():
+    ns = run_nameserver()
+    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
+    assert ka_br_lvl2.objective_scaler(0, 2, 1.0) == 0.5
+    
+    ns.shutdown()
+    time.sleep(0.1)    
+    
 def test_kabr_lvl2_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)

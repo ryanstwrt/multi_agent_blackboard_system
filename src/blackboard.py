@@ -1,6 +1,7 @@
 import osbrain
 from osbrain import Agent
 from osbrain import run_agent
+from osbrain import proxy
 import numpy as np
 import time
 import h5py
@@ -48,6 +49,8 @@ class Blackboard(Agent):
     """
     def on_init(self):
         self.agent_addrs = {}
+        self.required_agents = []
+        self._proxy_server = proxy.NSProxy()
         self._agent_writing = False
         self._new_entry = False
         self.archive_name = '{}_archive.h5'.format(self.name)
@@ -135,6 +138,7 @@ class Blackboard(Agent):
         ka.connect_executor()
         ka.connect_shutdown()
         self.connect_ka_specific(agent_alias)
+        self.agent_addrs[agent_alias].update({'class': agent_type})
         self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
         
     def connect_trigger(self, message):
@@ -216,7 +220,26 @@ class Blackboard(Agent):
         for k,v in self._kaar[self._trigger_event].items():
             if v > self._ka_to_execute[1]:
                 self._ka_to_execute = (k,v)                
-                
+    
+    
+    def diagnostics_agent_present(self, agent):
+        try:
+            ka = self._proxy_server.proxy(agent)
+            return True
+        except:
+            return False
+    
+    def diagnostics_replace_agent(self):
+        for agent_name, addrs in self.agent_addrs.items():
+            present = self.diagnostics_agent_present(agent_name)
+            agent_type = addrs['class']
+            self.log_info((agent_type, self.required_agents))
+            self.log_info(present)
+            self.log_info(agent_type in self.required_agents)
+            if not present and agent_type in self.required_agents:
+                self.log_info('Found agent type {} not connect. \n Reconnecting agent.')
+                self.connect_agent(agent_type, agent_name)
+    
     def determine_complete(self):
         """Holder for determining when a problem will be completed."""
         pass
