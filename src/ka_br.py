@@ -54,19 +54,22 @@ class KaBr_lvl2(KaBr):
         self.bb_lvl = 1
         self.bb_lvl_read = 2
         self.desired_results = None
+        self._objective_ranges = None
         self._num_allowed_entries = 10
         self._trigger_val_base = 4
+        self._fitness = 0.0
         
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
-        self._entry = {'pareto type': core_name[1]}
+        self._entry = {'pareto type': core_name[1], 'fitness function': self._fitness}
         
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
         lvl_3 = self.bb.get_attr('abstract_lvls')['level 3']['old']
-        lvl_3_n = self.bb.get_attr('abstract_lvls')['level 3']['new']
 
+        self._fitness = self.determine_fitness_function(core_name, lvl_3[core_name]['reactor parameters'])
+        
         #make a dictionary of all the cores present in the level
         all_cores = {}
         for panel in lvl.values():
@@ -77,17 +80,20 @@ class KaBr_lvl2(KaBr):
             return (True, 'pareto')
             
         for opt_core in all_cores.keys():
-            try:
-                pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
-                                                     lvl_3[opt_core]['reactor parameters'])
-            except KeyError:
-                pareto_opt = self.determine_optimal_type(lvl_3_n[core_name]['reactor parameters'], 
-                                                     lvl_3[opt_core]['reactor parameters'])               
+            pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
+                                                     lvl_3[opt_core]['reactor parameters'])          
             if pareto_opt:
                 self.log_debug('Core {} is {} optimal.'.format(core_name,pareto_opt))
                 return (True, pareto_opt)
         return (False, pareto_opt)
 
+    def determine_fitness_function(self, core_name, core_parmeters):
+        fitness =0
+        for param, symbol in self.desired_results.items():
+            scaled_fit = self.objective_scaler(self._objective_ranges[param][0], self._objective_ranges[param][1], core_parmeters[param])
+            fitness += scaled_fit if symbol == 'gt' else (1-scaled_fit)
+        return round(fitness, 5)
+    
     def determine_optimal_type(self, new_rx, opt_rx):
         """Determine if the solution is Pareto, weak, or not optimal"""
         optimal = 0
@@ -95,23 +101,28 @@ class KaBr_lvl2(KaBr):
         for param, symbol in self.desired_results.items():
             new_val = -new_rx[param] if symbol == 'gt' else new_rx[param]
             opt_val = -opt_rx[param] if symbol == 'gt' else opt_rx[param]
-            if new_val <= opt_val:
-                optimal += 1
-            if new_val < opt_val:
-                pareto_optimal += 1
+            
+            optimal += 1 if new_val <= opt_val else 0
+            pareto_optimal += 1 if new_val < opt_val else 0
+
         if optimal == len(self.desired_results.keys()) and pareto_optimal > 0:
             return 'pareto'
         elif pareto_optimal > 0:
             return 'weak'
         else:
             return None
+        
+    def objective_scaler(self, minimum, maximum, value):
+        """Scale the objective function between the minimum and maximum allowable values"""
+        scaled = (maximum - value) / (maximum-minimum)
+        return scaled
     
     def remove_entry(self):
         """Remove an entry that has been dominated."""
         pass
     
     def handler_executor(self, message):
-        self.log_debug('Executing agent {}'.format(self.name)) 
+        self.log_debug('Executing agent {}'.format(self.name))
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
         self.remove_entry()
         self.clear_entry()
@@ -120,6 +131,7 @@ class KaBr_lvl2(KaBr):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         self._num_entries = len(lvl)
 
+        # Have the agent select the core from level 2 with the lowest fitness function (or make it some probability it will select this one)
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
             self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
@@ -159,7 +171,7 @@ class KaBr_lvl3(KaBr):
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
             if valid[0]:
-                self.add_entry((core_name,valid[1]))
+                self.add_entry((core_name,valid))
                 return True
             else:
                 self.log_debug('Moving entry {}'.format(core_name))

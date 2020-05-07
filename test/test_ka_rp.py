@@ -245,7 +245,7 @@ def test_exploit_handler_executor():
                                                                 'pu_content': 0.4, 'cycle length': 365.0, 
                                                                 'pu mass': 500.0, 'reactivity swing' : 600.0,
                                                                 'burnup' : 50.0}}, panel='old')
-    bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto'}, panel='new')
+    bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0}, panel='new')
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
     bb.send_executor()      
     time.sleep(5)
@@ -257,7 +257,7 @@ def test_exploit_handler_executor():
                                                            'core_[65.0, 65.65, 0.4]',
                                                            'core_[65.0, 65.0, 0.396]', 
                                                            'core_[65.0, 65.0, 0.404]',]
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto'}}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
     
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
     bb.send_executor()  
@@ -270,7 +270,7 @@ def test_exploit_handler_executor():
                                                            'core_[65.0, 65.65, 0.4]',
                                                            'core_[65.0, 65.0, 0.396]', 
                                                            'core_[65.0, 65.0, 0.404]',]
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto'}}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
 
     
     ns.shutdown()
@@ -301,13 +301,12 @@ def test_exploit_handler_trigger_publish():
     assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}}
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     
-    bb.update_abstract_lvl(1, 'core 1', {'pareto type' : 'pareto'}, panel='new')
+    bb.update_abstract_lvl(1, 'core 1', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='new')
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}, 2: {'ka_rp':5}}
     assert bb.get_attr('_ka_to_execute') == ('ka_rp', 5)
-    
     
     ns.shutdown()
     time.sleep(0.1)
@@ -325,9 +324,9 @@ def test_exploit_perturb_design():
                                                                 'pu_content': 0.4, 'cycle length': 365.0, 
                                                                 'pu mass': 500.0, 'reactivity swing' : 600.0,
                                                                 'burnup' : 50.0}}, panel='old')
-    bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto'}, panel='new')
+    bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='new')
  
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto'}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}, 'old': {}}
     rp.perturb_design()
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
                                                            'core_[64.35, 65.0, 0.4]',
@@ -336,7 +335,7 @@ def test_exploit_perturb_design():
                                                            'core_[65.0, 65.65, 0.4]',
                                                            'core_[65.0, 65.0, 0.396]', 
                                                            'core_[65.0, 65.0, 0.404]',]
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto'}}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
 
     ns.shutdown()
     time.sleep(0.1)
@@ -348,13 +347,13 @@ def test_exploit_move_entry():
     rp.add_blackboard(bb)
     rp.connect_writer()
     
-    bb.add_abstract_lvl(1, {'pareto type' : str})
+    bb.add_abstract_lvl(1, {'pareto type' : str, 'fitness function' : float})
     bb.add_panel(1, ['new', 'old'])
     
-    bb.update_abstract_lvl(1, 'core 1', {'pareto type' : 'weak'}, panel='new')
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {'core 1' : {'pareto type' : 'weak'}}, 'old' : {}}    
-    rp.move_entry(rp.get_attr('bb_lvl_read'), 'core 1', {'pareto type' : 'weak'}, rp.get_attr('old_panel'), rp.get_attr('new_panel'))
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old' : {'core 1' : {'pareto type' : 'weak'}}}    
+    bb.update_abstract_lvl(1, 'core 1', {'pareto type' : 'weak', 'fitness function' : 1.0}, panel='new')
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {'core 1' : {'pareto type' : 'weak', 'fitness function' : 1.0}}, 'old' : {}}    
+    rp.move_entry(rp.get_attr('bb_lvl_read'), 'core 1', {'pareto type' : 'weak', 'fitness function' : 1.0}, rp.get_attr('old_panel'), rp.get_attr('new_panel'))
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old' : {'core 1' : {'pareto type' : 'weak', 'fitness function' : 1.0}}}    
 
     ns.shutdown()
     time.sleep(0.1)

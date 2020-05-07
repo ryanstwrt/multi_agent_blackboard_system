@@ -102,10 +102,12 @@ def test_BbSfrOpt_init():
     assert bb.get_attr('archive_name') == 'blackboard_archive.h5'
     assert bb.get_attr('_sleep_limit') == 10
 
-    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str}, 'old':{'pareto type': str}},
-                                            'level 2': {'new': {'valid': bool}, 'old': {'valid': bool}},
-                                            'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
-                                                       'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str, 'fitness function': float}, 
+                                                               'old':{'pareto type': str, 'fitness function': float}},
+                                                   'level 2': {'new': {'valid': bool}, 
+                                                               'old': {'valid': bool}},
+                                                   'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
+                                                               'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
 
     assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 
                                             'level 2': {'new':{}, 'old':{}}, 

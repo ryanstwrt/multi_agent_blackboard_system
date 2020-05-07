@@ -59,7 +59,7 @@ class BbSfrOpt(BbTraditional):
     
     def on_init(self):
         super().on_init()
-        self.add_abstract_lvl(1, {'pareto type': str})
+        self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
         self.add_panel(1, ['new', 'old'])       
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
@@ -68,7 +68,10 @@ class BbSfrOpt(BbTraditional):
         # Add panel for level 3
         
         self.objectives = ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
-        self.objective_ranges = {'cycle length': (0, 1500), 'reactivity swing': (0, 7500), 'burnup': (0,175), 'pu mass': (0, 1750)}
+        self.objective_ranges = {'cycle length': (0, 1500), 
+                                 'reactivity swing': (0, 7500), 
+                                 'burnup': (0,175), 
+                                 'pu mass': (0, 1750)}
         self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'}
         self.design_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
         
@@ -113,6 +116,7 @@ class BbSfrOpt(BbTraditional):
             ka.set_attr(desired_results=self.objective_ranges)
         elif 'lvl2' in agent:
             ka.set_attr(desired_results=self.objective_goals)
+            ka.set_attr(_objective_ranges=self.objective_ranges)
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return

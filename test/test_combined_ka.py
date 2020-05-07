@@ -28,8 +28,9 @@ def test_combined_kabr_handler_executor():
     ka_br_lvl2.connect_writer()
     ka_br_lvl2.connect_executor()
     ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
+    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
     
-    bb.add_abstract_lvl(1, {'pareto type': str})
+    bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_panel(1, ['new', 'old'])    
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
@@ -45,7 +46,7 @@ def test_combined_kabr_handler_executor():
     bb.set_attr(_ka_to_execute=('ka_br_lvl3', 10.0))
     ka_br_lvl3.read_bb_lvl()
     bb.send_executor()
-    time.sleep(0.75)    
+    time.sleep(2)    
     
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True}}, 'old': {}}
@@ -55,7 +56,7 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(0.75)    
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto'}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.56667}}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{}, 'old': {'core_1': {'valid': True}}}
 
     bb.set_attr(_ka_to_execute=('ka_br_lvl3', 10.0))
@@ -63,7 +64,7 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(0.75)
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto'}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.56667}}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_2' : {'valid' : True}}, 'old': {'core_1': {'valid': True}}}
     
     bb.set_attr(_ka_to_execute=('ka_br_lvl3', 10.0))
@@ -71,7 +72,7 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(0.75)    
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto'}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.56667}}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_2' : {'valid' : True},
                                                               'core_3' : {'valid' : True}}, 
                                                        'old': {'core_1': {'valid': True}}}
@@ -81,8 +82,8 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(0.75) 
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto'},
-                                                               'core_3' : {'pareto type' : 'pareto'}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.56667},
+                                                               'core_3' : {'pareto type' : 'pareto', 'fitness function': 1.31667}}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 
                                                        'old': {'core_1' : {'valid': True},
                                                                'core_2' : {'valid' : True},
@@ -127,7 +128,7 @@ def test_combined_kabr_karp():
                                         'ka_br_lvl2': 0, 'ka_br_lvl3': 3}}
     bb.controller()
     bb.send_executor()
-    time.sleep(0.75)
+    time.sleep(2.0)
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 3)
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_1': {'valid' : True}}, 'old': {}}
     
@@ -145,7 +146,7 @@ def test_combined_kabr_karp():
     time.sleep(0.75)
     
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl2', 4)    
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {'core_1': {'pareto type' : 'pareto'}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {'core_1': {'pareto type' : 'pareto', 'fitness function' : 2.13214}}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old': {'core_1': {'valid' : True}}}
     
     # Test fourth trigger publish (ka_rp_exploit)
@@ -164,7 +165,7 @@ def test_combined_kabr_karp():
     time.sleep(5)
     
     assert bb.get_attr('_ka_to_execute') == ('ka_rp_exploit', 5)    
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old': {'core_1': {'pareto type' : 'pareto'}}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old': {'core_1': {'pareto type' : 'pareto', 'fitness function' : 2.13214}}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old': {'core_1': {'valid' : True}}}   
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
                                                            'core_[64.35, 65.0, 0.4]',
@@ -192,7 +193,7 @@ def test_combined_kabr_karp():
     time.sleep(2)
     
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 3)    
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old': {'core_1': {'pareto type' : 'pareto'}}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old': {'core_1': {'pareto type' : 'pareto', 'fitness function' : 2.13214}}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_[64.35, 65.0, 0.4]': {'valid' : True}}, 'old': {'core_1': {'valid' : True}}}   
     
     ns.shutdown()

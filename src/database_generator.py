@@ -26,13 +26,13 @@ def get_data(design_variables, objective_variables):
                 elif var == 'keff':
                     obj_vars.append(rx_.rx_step_params['step_0']['keff'][0])
                 elif var == 'reactivity swing':
-                    rx_swing = rx_.get_reactivity_swing(1.0, cycle_length)
+                    rx_swing = rx_.get_reactivity_swing(1.0, cycle_length) * 30 / cycle_length
                     obj_vars.append(rx_swing)
                 elif var == 'pu mass':
                     pu_mass = rx_.get_assembly_pu_mass() * 78 / 4
                     obj_vars.append(pu_mass)
                 elif var == 'burnup':
-                    avg_bu = rx_.get_assembly_avg(cycle_length, 'burnup')
+                    avg_bu = rx_.get_assembly_avg(cycle_length, 'burnup') * 30 / cycle_length
                     obj_vars.append(avg_bu)
             ind_var_array.append(tuple(ind_vars))
             obj_var_array.append(tuple(obj_vars))
