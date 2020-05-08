@@ -66,7 +66,11 @@ class KaBr_lvl2(KaBr):
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-        lvl_3 = self.bb.get_attr('abstract_lvls')['level 3']['old']
+        lvl_3_old = self.bb.get_attr('abstract_lvls')['level 3']['old']
+        lvl_3_new = self.bb.get_attr('abstract_lvls')['level 3']['old']
+        
+        lvl_3 = lvl_3_old
+        lvl_3.update(lvl_3_new)
 
         self._fitness = self.determine_fitness_function(core_name, lvl_3[core_name]['reactor parameters'])
         

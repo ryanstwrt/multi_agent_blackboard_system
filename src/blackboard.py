@@ -225,7 +225,11 @@ class Blackboard(Agent):
     def diagnostics_agent_present(self, agent):
         try:
             ka = self._proxy_server.proxy(agent)
-            return True
+            if ka.get_attr('_running'):
+                return True
+            else:
+                ka.kill()
+                return False
         except:
             return False
     
@@ -233,11 +237,8 @@ class Blackboard(Agent):
         for agent_name, addrs in self.agent_addrs.items():
             present = self.diagnostics_agent_present(agent_name)
             agent_type = addrs['class']
-            self.log_info((agent_type, self.required_agents))
-            self.log_info(present)
-            self.log_info(agent_type in self.required_agents)
             if not present and agent_type in self.required_agents:
-                self.log_info('Found agent type {} not connect. \n Reconnecting agent.')
+                self.log_info('Found agent ({}) of type {} not connect. Reconnecting agent.'.format(agent_name, agent_type))
                 self.connect_agent(agent_type, agent_name)
     
     def determine_complete(self):

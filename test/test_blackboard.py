@@ -193,13 +193,18 @@ def test_diagnostics_replace_agent():
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.set_attr(required_agents=[ka.KaBase])
     bb.connect_agent(ka.KaBase, 'ka_b')
-
+    ka_b = ns.proxy('ka_b')
+    
     assert ns.agents() == ['blackboard', 'ka_b']
     bb.diagnostics_replace_agent()
     assert ns.agents() == ['blackboard', 'ka_b']
     bb.send('shutdown_ka_b', 'message')
     time.sleep(0.1)
     assert ns.agents() == ['blackboard']
+    bb.diagnostics_replace_agent()
+    assert ns.agents() == ['blackboard', 'ka_b']
+    bb.set_attr(_ka_to_execute=('ka_b',1))
+    bb.send_executor()
     bb.diagnostics_replace_agent()
     assert ns.agents() == ['blackboard', 'ka_b']
 

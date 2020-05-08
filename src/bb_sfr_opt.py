@@ -52,6 +52,7 @@ class BbTraditional(blackboard.Blackboard):
         """Write to H5 file and sleep while waiting for agents."""
         if self._new_entry == False and len(self._kaar) % 10 == 0:
             self.write_to_h5()
+            self.diagnostics_replace_agent()
         self.determine_complete()
         
 
