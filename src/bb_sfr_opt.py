@@ -11,6 +11,7 @@ import database_generator as dg
 import numpy as np
 import train_surrogate_models as tm
 import scipy.interpolate
+import plotly.express as px
 
 
 cur_dir = os.path.dirname(__file__)
@@ -50,10 +51,18 @@ class BbTraditional(blackboard.Blackboard):
     
     def wait_for_ka(self):
         """Write to H5 file and sleep while waiting for agents."""
-        if self._new_entry == False and len(self._kaar) % 10 == 0:
+        if len(self._kaar) % 25 == 0:
             self.write_to_h5()
+            self.plot_progress()
             self.diagnostics_replace_agent()
         self.determine_complete()
+        sleep_time=1
+        while not self._new_entry: # Figure out a way to 'loopback' and determine if we have been written to
+            time.sleep(1)
+            sleep_time += 1
+            if sleep_time > self._sleep_limit:
+                break
+        self._new_entry = False
         
 
 class BbSfrOpt(BbTraditional):
@@ -73,7 +82,7 @@ class BbSfrOpt(BbTraditional):
                                  'reactivity swing': (0, 7500), 
                                  'burnup': (0,175), 
                                  'pu mass': (0, 1750)}
-        self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'}
+        self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'lt', 'pu mass': 'lt'}
         self.design_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
         
         self._sm = None
@@ -133,4 +142,37 @@ class BbSfrOpt(BbTraditional):
             self._sm = tm.Surrogate_Models()
             self._sm.random = 0
             self._sm.update_database(design_var, objective_func)
-            self._sm.optimize_model(self.sm_type)        
+            self._sm.optimize_model(self.sm_type)
+            
+    def plot_progress(self):
+        
+        lvl_3 = {}
+        for panel in self.abstract_lvls['level 3'].values():
+            lvl_3.update(panel)
+
+        lvl_1 = {}
+        for panel in self.abstract_lvls['level 1'].values():
+            lvl_1.update(panel)
+
+        cycle_length = []
+        rx_swing = []
+        height = []
+        smear = []
+        pu_content = []
+        bu = []
+        pu_mass = []
+        fitness = []
+
+        for core, values in lvl_1.items():
+            fitness.append(round(values['fitness function'],5))
+            core_params = lvl_3[core]['reactor parameters']
+            height.append(core_params['height'])
+            smear.append(core_params['smear'])
+            pu_content.append(core_params['pu_content'])
+            cycle_length.append(round(core_params['cycle length'],0))
+            rx_swing.append(core_params['reactivity swing'])
+            bu.append(core_params['burnup'])
+            pu_mass.append(core_params['pu mass'])
+        
+        fig = px.scatter_3d(x=bu, y=rx_swing, z=pu_mass, color=fitness, labels={'x':'Burnup (GWd)', 'y': 'Rx Swing (pcm)', 'z':'Pu Mass (kg/cycle)','color':'fitness'})
+        fig.show()

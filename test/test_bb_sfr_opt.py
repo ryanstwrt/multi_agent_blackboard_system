@@ -143,7 +143,7 @@ def test_add_ka_specific():
                                                          'pu mass': (0, 1750)}
         elif 'lvl2' in alias:
             assert agent.get_attr('desired_results') == {'cycle length': 'gt', 
-                                                         'reactivity swing': 'lt', 'burnup': 'gt', 'pu mass': 'lt'}
+                                                         'reactivity swing': 'lt', 'burnup': 'lt', 'pu mass': 'lt'}
             
     ns.shutdown()
     time.sleep(0.1)  

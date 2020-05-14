@@ -61,6 +61,7 @@ class KaRpExplore(KaRp):
         self.objective_functions = {}
         self.objectives = []
         self.design_variable_ranges = {}
+        self._base_trigger_val = 0.25
         
     def handler_executor(self, message):
         """
@@ -88,7 +89,7 @@ class KaRpExplore(KaRp):
         message : str
             Containts unused message, but required for agent communication.
         """
-        self._trigger_val += 1
+        self._trigger_val += self._base_trigger_val
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         
@@ -195,7 +196,9 @@ class KaRpExploit(KaRpExplore):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
         
-        core, entry = random.choice(list(lvl.items()))
+        
+        core, entry = random.choice(list(lvl.items())) if random.random() > 0.7 else min(list(lvl.items()))
+
         base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variable_ranges.keys()}
         total_perts = len(base_design_variables.keys()) * len(self.perturbations)
         i = 0

@@ -139,14 +139,14 @@ def test_explore_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_rp': 1}}
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 1)
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0.25}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 0.25)
     
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_rp': 1}, 2: {'ka_rp': 2}}
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 2)
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0.25}, 2: {'ka_rp': 0.50}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 0.50)
     
     ns.shutdown()
     time.sleep(0.1)

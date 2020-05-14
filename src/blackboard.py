@@ -223,6 +223,17 @@ class Blackboard(Agent):
     
     
     def diagnostics_agent_present(self, agent):
+        """
+        Diagnostics test to determine if the agent is still running.
+        If the agent is running it returns true.
+        If the agent does not exist or if the agent exists but is not running return false.
+        
+        Parameters
+        ----------
+        agent : str
+            alias of the agent to check
+        
+        """
         try:
             ka = self._proxy_server.proxy(agent)
             if ka.get_attr('_running'):
@@ -234,13 +245,17 @@ class Blackboard(Agent):
             return False
     
     def diagnostics_replace_agent(self):
+        """
+        Dioagnostics test repalce an essential agent.
+        If the agent is in the required_agents list, and the it is not present, the BB creates an instance of the agent.
+        """
         for agent_name, addrs in self.agent_addrs.items():
             present = self.diagnostics_agent_present(agent_name)
             agent_type = addrs['class']
             if not present and agent_type in self.required_agents:
                 self.log_info('Found agent ({}) of type {} not connect. Reconnecting agent.'.format(agent_name, agent_type))
                 self.connect_agent(agent_type, agent_name)
-    
+                
     def determine_complete(self):
         """Holder for determining when a problem will be completed."""
         pass

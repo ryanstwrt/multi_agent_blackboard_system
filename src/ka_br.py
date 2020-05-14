@@ -40,7 +40,7 @@ class KaBr(ka.KaBase):
         """Read the BB level and determine if an entry is available."""
         new_entry = self.read_bb_lvl()
         trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
-        self._trigger_val = self._trigger_val_base if trig_prob > random.random() else 0
+        self._trigger_val = self._trigger_val_base + int(trig_prob) if trig_prob > random.random() else 0
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         
@@ -66,24 +66,26 @@ class KaBr_lvl2(KaBr):
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-        lvl_3_old = self.bb.get_attr('abstract_lvls')['level 3']['old']
-        lvl_3_new = self.bb.get_attr('abstract_lvls')['level 3']['old']
-        
-        lvl_3 = lvl_3_old
-        lvl_3.update(lvl_3_new)
-
-        self._fitness = self.determine_fitness_function(core_name, lvl_3[core_name]['reactor parameters'])
+        lvl_read = self.bb.get_attr('abstract_lvls')['level 3']
         
         #make a dictionary of all the cores present in the level
-        all_cores = {}
-        for panel in lvl.values():
-            all_cores.update(panel)
+        lvl_3 = {}
+        for panel in lvl_read.values():
+            lvl_3.update(panel)
             
-        if all_cores == {}:
+        self._fitness = self.determine_fitness_function(core_name, lvl_3[core_name]['reactor parameters'])
+                    
+        lvl_1 = {}
+        for panel in lvl.values():
+            lvl_1.update(panel)
+            
+        if lvl_1 == {}:
             self.log_debug('Core {} is initial core for level 1.'.format(core_name))
             return (True, 'pareto')
-            
-        for opt_core in all_cores.keys():
+        
+        # Need to update this to ensure that we loop through everything before returning if it is Pareto or not.
+        # Also, this may be where we remove old entries
+        for opt_core in lvl_1.keys():
             pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
                                                      lvl_3[opt_core]['reactor parameters'])          
             if pareto_opt:
@@ -123,12 +125,15 @@ class KaBr_lvl2(KaBr):
     
     def remove_entry(self):
         """Remove an entry that has been dominated."""
+        
         pass
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name))
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
-        self.remove_entry()
+        entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+        self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
+#        self.remove_entry()
         self.clear_entry()
     
     def read_bb_lvl(self):
@@ -136,12 +141,16 @@ class KaBr_lvl2(KaBr):
         self._num_entries = len(lvl)
 
         # Have the agent select the core from level 2 with the lowest fitness function (or make it some probability it will select this one)
+        val = False
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
-            self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
+#            self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
             if valid[0]:
                 self.add_entry((core_name,valid[1]))
-                return True        
+                val = True
+            else:
+                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
+        return val
 
 class KaBr_lvl3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
@@ -172,15 +181,16 @@ class KaBr_lvl3(KaBr):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new']
         self._num_entries = len(lvl)
 
+        val = False
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
             if valid[0]:
                 self.add_entry((core_name,valid))
-                return True
+                val = True
             else:
                 self.log_debug('Moving entry {}'.format(core_name))
                 self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
-        return False
+        return val
         
             
 class KaBr_verify(KaBr):
