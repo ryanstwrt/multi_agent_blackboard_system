@@ -45,6 +45,7 @@ def test_kabr_trigger_handler_publish():
     bb.add_panel(1, ['new','old'])
     bb.add_abstract_lvl(3, {'valid': bool})
     bb.publish_trigger()
+    time.sleep(0.25)
     
     assert ka_b.get_attr('_trigger_val') == 0
     assert bb.get_attr('_kaar') == {1: {'ka_br': 0}}

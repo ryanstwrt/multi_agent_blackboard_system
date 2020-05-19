@@ -48,7 +48,18 @@ class KaBr(ka.KaBase):
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         
     def read_bb_lvl(self):
-        pass
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        self._num_entries = len(lvl)
+
+        new_entry = False
+        for core_name, core_entry in lvl.items():
+            valid = self.determine_validity(core_name)
+            if valid[0]:
+                self.add_entry((core_name,valid[1]))
+                return True
+            else:
+                pass
+        return False
     
     def clear_bb_lvl(self):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
@@ -131,29 +142,13 @@ class KaBr_lvl2(KaBr):
         
     def objective_scaler(self, minimum, maximum, value):
         """Scale the objective function between the minimum and maximum allowable values"""
-        scaled = (maximum - value) / (maximum-minimum)
-        return scaled
+        return (maximum - value) / (maximum-minimum)
     
     def remove_entry(self):
         """Remove an entry that has been dominated."""
         pass
+        
     
-    def read_bb_lvl(self):
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        self._num_entries = len(lvl)
-
-        # Have the agent select the core from level 2 with the lowest fitness function (or make it some probability it will select this one)
-        # Split this function and have the agent read the BB during it's turn
-        new_entry = False
-        for core_name, core_entry in lvl.items():
-            valid = self.determine_validity(core_name)
-            if valid[0]:
-                self.add_entry((core_name,valid[1]))
-                return True
-            else:
-                pass
-        return False
-
 class KaBr_lvl3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
     def on_init(self):
@@ -178,19 +173,4 @@ class KaBr_lvl3(KaBr):
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
         self._entry = {'valid': True}
-    
-    def read_bb_lvl(self):
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new']
-        self._num_entries = len(lvl)
-
-        new_entry = False
-        for core_name, core_entry in lvl.items():
-            valid = self.determine_validity(core_name)
-            if valid[0]:
-                self.add_entry((core_name,valid))
-                return True
-                new_entry = True
-            else:
-                pass
-        return new_entry
         

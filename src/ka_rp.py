@@ -152,6 +152,7 @@ class KaRpExploit(KaRpExplore):
         self.bb_lvl_read = 1
         self.perturbations = [0.99, 1.01]
         self._design_accuracy = 4
+        self._fitness_selection_fraction = 0.7
         self.new_panel = 'new'
         self.old_panel = 'old'
     
@@ -185,23 +186,24 @@ class KaRpExploit(KaRpExplore):
         """
         new_entry = self.read_bb_lvl()
         self._trigger_val = self._base_trigger_val if new_entry else 0
-        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
-            
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+           
     def perturb_design(self):
         """
         Perturb a core design
         
         This first selects a core at random from abstract level 1 (from the 'new' panel).
         It then perturbs each design variable independent by the values in perturbations, this produces n*m new cores (n = # of design variables, m = # of perturbations)
+        
         These results are written to the BB level 3, so there should be design_vars * pert added to level 3.
         """
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
             
-        core, entry = random.choice(list(lvl.items())) if random.random() > 0.7 else min(list(lvl.items()))
+        core, entry = random.choice(list(lvl.items())) if random.random() > self._fitness_selection_fraction else min(list(lvl.items()))
 
-        base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variable_ranges.keys()}
+        base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variables}
         for var_name, var_value in base_design_variables.items():
             # TODOL Add an if statement here to ensure we don't perform a perturbation that has already been done.
             for pert in self.perturbations:
