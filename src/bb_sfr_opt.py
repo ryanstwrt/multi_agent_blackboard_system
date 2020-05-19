@@ -76,7 +76,6 @@ class BbSfrOpt(BbTraditional):
         self.add_panel(2, ['new', 'old'])
         self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float }})
         self.add_panel(3, ['new','old'])
-        # Add panel for level 3
         
         self.objectives = ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
         self.objective_ranges = {'cycle length': (0, 1500), 

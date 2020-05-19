@@ -222,39 +222,3 @@ class KaRpExploit(KaRpExplore):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
 
         return True if lvl != {} else False
-            
-class KaRp_verify(KaRpExplore):
-    def on_init(self):
-        super().on_init()
-        self.bb_lvl = 2
-        self.objectives = ['keff', 'void', 'doppler']
-        self.design_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
-
-    def calc_objectives(self):
-        """Calculate the objective functions based on the core design variables."""
-        self.log_debug('Determining core parameters based on SM')
-        for obj_name, interpolator in self._sm.items():
-            self.objective_functions[obj_name] = float(interpolator(tuple([x for x in self.design_variables.values()])))
-        a = self.design_variables.copy()
-        a.update(self.objective_functions)
-        self._entry = {'reactor parameters': a}
-
-    def create_sm(self):
-        """
-        Build a surrogate model based on the SFR_DB.h5 dataset.
-        The data is generated using the `get_data` function and returns the design and objective variables.
-        This can be done using scipy's scipy's LinearNDInterpolator, or we use a regression model.
-        The regression model is based on scikit-learn's and accessed through the `train_surrogate_model` module
-        """
-
-        design_var, objective_func = dg.get_data([x for x in self.design_variable_ranges.keys()], self.objectives)
-        if self.sm_type == 'interpolate':
-            self._sm = {}
-            design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
-            for num, objective in enumerate(self.objectives):
-                self._sm[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
-        else:
-            self._sm = tm.Surrogate_Models()
-            self._sm.random = 0
-            self._sm.update_database(design_var, objective_func)
-            self._sm.optimize_model(self.sm_type)

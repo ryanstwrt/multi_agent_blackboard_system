@@ -44,7 +44,7 @@ class KaBr(ka.KaBase):
         new_entry = self.read_bb_lvl()
         trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
         self._trigger_val = self._trigger_val_base + int(trig_prob) if trig_prob > random.random() else 0
-#        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         
     def read_bb_lvl(self):
@@ -58,7 +58,6 @@ class KaBr(ka.KaBase):
             if not valid[0]:
                 self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel, write_complete=False)
 
-        
         
 class KaBr_lvl2(KaBr):
     """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
@@ -139,15 +138,6 @@ class KaBr_lvl2(KaBr):
         """Remove an entry that has been dominated."""
         pass
     
-#    def handler_executor(self, message):
-#        self.clear_bb_lvl()
-#        self.log_debug('Executing agent {}'.format(self.name))
-#        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
-#        entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-#        self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
-#        self.remove_entry()
-#        self.clear_entry()
-    
     def read_bb_lvl(self):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         self._num_entries = len(lvl)
@@ -202,43 +192,5 @@ class KaBr_lvl3(KaBr):
                 new_entry = True
             else:
                 pass
-#                self.log_debug('Moving entry {}'.format(core_name))
-#                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
         return new_entry
         
-            
-class KaBr_verify(KaBr):
-    """Reads `level 2` to verify the components of the MABS are working correctly.
-    
-    Inherets from KaBr
-    """
-
-    def on_init(self):
-        super().on_init()
-        self.bb_lvl = 1
-        self.bb_lvl_read = 2
-        self.desired_results = None
-
-    def determine_valid_core(self, rx_params):
-        """Determine if the core falls in the desired results range"""
-        for param_name, param_range in self.desired_results.items():
-            param = rx_params[param_name]
-            if param < param_range[0] or param > param_range[1]:
-                return False
-        return True
-    
-    def handler_executor(self, message):
-        self.log_debug('Executing agent {}'.format(self.name))
-        self.read_bb_lvl()
-        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
-
-    def read_bb_lvl(self):
-        """Read the information from the blackboard and determine if a new solution is better thatn the previous"""
-        lvl_2 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-        for core_name, entry in lvl_2.items():
-            valid = self.determine_valid_core(entry['reactor parameters'])
-            if valid:
-                self._entry_name = core_name
-                self._entry = {'valid': True}
-                return True
-        return False

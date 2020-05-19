@@ -8,9 +8,9 @@ import os
 import ka_rp as karp
 import ka_br as kabr
 
-def test_BbTraditional_init():
+def test_BbSfrOpt_init():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbTraditional)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     assert bb.get_attr('agent_addrs') == {}
     assert bb.get_attr('_agent_writing') == False
     assert bb.get_attr('_new_entry') == False
@@ -32,9 +32,9 @@ def test_BbTraditional_init():
     
 def test_connect_agent():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbTraditional)
-    bb.connect_agent(karp.KaRp_verify, 'ka_rp')
-    bb.connect_agent(kabr.KaBr_verify, 'ka_br')
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.connect_agent(karp.KaRpExplore, 'ka_rp')
+    bb.connect_agent(kabr.KaBr_lvl3, 'ka_br')
     
     agents = bb.get_attr('agent_addrs')
     
@@ -56,36 +56,16 @@ def test_connect_agent():
     ns.shutdown()
     time.sleep(0.1)
     
-def test_determine_complete_traditional():
-    ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbTraditional)
-    bb.connect_agent(karp.KaRp_verify, 'ka_rp')
-    bb.connect_agent(karp.KaRp_verify, 'ka_rp1')
-    bb.connect_agent(kabr.KaBr_verify, 'ka_br')
-    
-    assert ns.agents() == ['blackboard', 'ka_rp', 'ka_rp1', 'ka_br']
-
-    
-    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-    bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
-    bb.determine_complete()
-    
-    time.sleep(1.0)
-    assert bb.get_attr('_complete') == True
-    assert ns.agents() == ['blackboard']
-
-    ns.shutdown()
-    time.sleep(0.1)
     
 def test_wait_for_ka():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbTraditional)
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
 
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
     bb.determine_complete()
     
-    assert bb.get_attr('_complete') == True
+    assert bb.get_attr('_complete') == False
     ns.shutdown()
     time.sleep(0.1)
     
