@@ -25,9 +25,15 @@ def test_karp_init():
     assert rp.get_attr('_shutdown_addr') == None
     
     assert rp.get_attr('_trigger_val') == 0
+    assert rp.get_attr('_base_trigger_val') == 0.25    
     assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
+    assert rp.get_attr('current_design_variables') == {}
+    assert rp.get_attr('design_variable_ranges') == {}    
+    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('objectives') == []
+    assert rp.get_attr('_objective_accuracy') == 2
     
     ns.shutdown()
     time.sleep(0.1)
@@ -55,20 +61,40 @@ def test_karp_explore_init():
     assert rp.get_attr('_shutdown_alias') == None
     assert rp.get_attr('_shutdown_addr') == None
     assert rp.get_attr('_trigger_val') == 0
+    assert rp.get_attr('_base_trigger_val') == 0.25
     
-    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('objectives') == []
     assert rp.get_attr('design_variable_ranges') == {}
+    assert rp.get_attr('_objective_accuracy') == 2
     ns.shutdown()
     time.sleep(0.1)
     
 def test_explore_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.set_attr(objective_ranges={'keff': (1.0, 1.3), 
+                             'doppler': (-1.5, 0), 
+                             'void': (-250, 0), 
+                             'pu_content': (0, 1.0)})
+    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 
+                                               'smear': float, 
+                                               'pu_content': float, 
+                                               'keff': float, 
+                                               'doppler': float, 
+                                               'void': float}})
+    bb.add_panel(3, ['new','old'])
+
+    bb.set_attr(objectives=['keff', 'doppler', 'void', 'pu_content'])
+    bb.set_attr(objective_goals={'keff': 'gt',
+                              'void':'lt',
+                              'doppler': 'lt',
+                              'pu_content': 'lt'})
+    bb.set_attr(problem='prelims')
     bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
     
@@ -113,10 +139,10 @@ def test_explore_mc_design_variables():
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
     rp.set_attr(design_variable_ranges={'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
     
-    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('_entry_name') == None
     rp.mc_design_variables()
-    assert rp.get_attr('design_variables') != {}
+    assert rp.get_attr('current_design_variables') != {}
     
     ns.shutdown()
     time.sleep(0.1)
@@ -174,16 +200,19 @@ def test_karp_exploit_init():
     assert rp.get_attr('_shutdown_addr') == None
     assert rp.get_attr('_trigger_val') == 0.0
     
-    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('design_variables') == []
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('bb_lvl_read') == 1
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
+    assert rp.get_attr('current_design_variables') == {}
+    assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('objectives') == []
     assert rp.get_attr('design_variable_ranges') == {}
     assert rp.get_attr('perturbations') == [0.99, 1.01]
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
+    assert rp.get_attr('_objective_accuracy') == 2
     ns.shutdown()
     time.sleep(0.1)
 
@@ -238,10 +267,10 @@ def test_exploit_mc_design_variables():
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
     rp.set_attr(design_variable_ranges={'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
     
-    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('_entry_name') == None
     rp.mc_design_variables()
-    assert rp.get_attr('design_variables') != {}
+    assert rp.get_attr('current_design_variables') != {}
     
     ns.shutdown()
     time.sleep(0.1)

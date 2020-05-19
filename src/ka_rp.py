@@ -26,9 +26,17 @@ class KaRp(ka.KaBase):
     def on_init(self):
         super().on_init()
         self._trigger_val = 0
+        self._base_trigger_val = 0.25
         self.bb_lvl = 3
         self._sm = None
         self.sm_type = 'interpolate'
+        self.design_variables = []
+        self.design_variable_ranges = {}
+        self.current_design_variables = {}
+        self._design_accuracy = 2
+        self.objectives = []
+        self.objective_functions = {}
+        self._objective_accuracy = 2
 
 class KaRpExplore(KaRp):
     """
@@ -57,11 +65,27 @@ class KaRpExplore(KaRp):
 
     def on_init(self):
         super().on_init()
-        self.design_variables = {}
-        self.objective_functions = {}
-        self.objectives = []
-        self.design_variable_ranges = {}
-        self._base_trigger_val = 0.25
+
+    def calc_objectives(self):
+        """
+        Calculate the objective functions based on the core design variables.
+        This process is performed via an interpolator or a surrogate model.
+        Sets the variables for the _entry and _entry_name
+        """
+        self.log_debug('Determining core parameters based on SM')
+        design = [x for x in self.current_design_variables.values()]
+        if self.sm_type == 'interpolate':
+            for obj_name, interpolator in self._sm.items():
+                self.objective_functions[obj_name] = float(interpolator(tuple(design)))
+        else:
+            obj_list = self._sm.predict(self.sm_type, [design])
+            for num, obj in enumerate(self.objectives):
+                self.objective_functions[obj] = float(obj_list[0][num])
+        a = self.current_design_variables.copy()
+        a.update(self.objective_functions)
+        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in a.items()]))
+        self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
+        self._entry = {'reactor parameters': a}
         
     def handler_executor(self, message):
         """
@@ -74,12 +98,12 @@ class KaRpExplore(KaRp):
         message : str
             required message for sending communication
         """
-        self.log_debug('Executing agent {}'.format(self.name))
-        self._trigger_val = 0
         self.mc_design_variables()
         self.calc_objectives()
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
-
+        self._trigger_val = 0
+        self.log_debug('Executing agent {}'.format(self.name))
+        
     def handler_trigger_publish(self, message):
         """
         Send a message to the BB indiciating it's trigger value.
@@ -98,29 +122,8 @@ class KaRpExplore(KaRp):
         Determine the core design variables using a monte carlo method.
         """
         for param, ranges in self.design_variable_ranges.items():
-            self.design_variables[param] = round(random.random() * (ranges[1] - ranges[0]) + ranges[0],2)
-        self.log_debug('Core design variables determined: {}'.format(self.design_variables))
-
-    def calc_objectives(self):
-        """
-        Calculate the objective functions based on the core design variables.
-        This process is performed via an interpolator or a surrogate model.
-        Sets the variables for the _entry and _entry_name
-        """
-        self.log_debug('Determining core parameters based on SM')
-        design = [x for x in self.design_variables.values()]
-        if self.sm_type == 'interpolate':
-            for obj_name, interpolator in self._sm.items():
-                self.objective_functions[obj_name] = float(interpolator(tuple(design)))
-        else:
-            obj_list = self._sm.predict(self.sm_type, [design])
-            for num, obj in enumerate(self.objectives):
-                self.objective_functions[obj] = float(obj_list[0][num])
-        a = self.design_variables.copy()
-        a.update(self.objective_functions)
-        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y,2)) for x,y in a.items()]))
-        self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
-        self._entry = {'reactor parameters': a}
+            self.current_design_variables[param] = round(random.random() * (ranges[1] - ranges[0]) + ranges[0], self._design_accuracy)
+        self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
 
 
 class KaRpExploit(KaRpExplore):
@@ -145,18 +148,18 @@ class KaRpExploit(KaRpExplore):
 
     def on_init(self):
         super().on_init()
-        self._trigger_val = 0.0
+        self._base_trigger_val = 5
         self.bb_lvl_read = 1
         self.perturbations = [0.99, 1.01]
+        self._design_accuracy = 4
         self.new_panel = 'new'
         self.old_panel = 'old'
-        self._base_trigger_val = 5
     
     def handler_executor(self, message):
         """
         Execution handler for KA-RP.
         
-        KA will perturb the core via the perturbations variable and write all results the BB
+        KA will perturb the core via the perturbations method and write all results the BB
         """
         self.log_debug('Executing agent {}'.format(self.name))
         self.perturb_design()
@@ -195,19 +198,18 @@ class KaRpExploit(KaRpExplore):
         """
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
-        
-        
+            
         core, entry = random.choice(list(lvl.items())) if random.random() > 0.7 else min(list(lvl.items()))
 
         base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variable_ranges.keys()}
         for var_name, var_value in base_design_variables.items():
-            # Add an if statement here to ensure we don't perform a perturbation that has already been done.
+            # TODOL Add an if statement here to ensure we don't perform a perturbation that has already been done.
             for pert in self.perturbations:
-                self.design_variables = copy.copy(base_design_variables)
-                self.design_variables[var_name] = round(var_value * pert, 4)
-                self.log_debug('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
+                self.current_design_variables = copy.copy(base_design_variables)
+                self.current_design_variables[var_name] = round(var_value * pert, self._design_accuracy)
                 self.calc_objectives()
                 self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=False)
+                self.log_debug('Perturbed variable {} with value {}'.format(var_name, self.current_design_variables[var_name]))
         self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
                         
     def read_bb_lvl(self):

@@ -17,58 +17,12 @@ import plotly.express as px
 cur_dir = os.path.dirname(__file__)
 test_path = os.path.join(cur_dir, '../test/')
 
-class BbTraditional(blackboard.Blackboard):
+
+class BbSfrOpt(blackboard.Blackboard):
     
     def on_init(self):
         super().on_init()
         self._complete = False
-        
-    def connect_ka_specific(self, agent):
-        """Connect a KA to the BB"""
-        ns = proxy.NSProxy()
-        ka = ns.proxy(agent)
-        if 'rp' in agent:
-            ka.set_attr(interp_path=test_path)
-            ka.create_sm()
-        elif 'br' in agent:
-            ka.set_attr(desired_results={'keff': (1.0, 1.2), 'void': (-200, -75), 'doppler': (-1.0,-0.6), 'pu_content': (0, 1.0)})                               
-        else:
-            self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
-            return
-        
-    def determine_complete(self):
-        """
-        Determine when the problem has finished to send the shutdown communication.
-        Complete for the traditional system is determined if a solution has been placed in abstract level 1 on the blackboard.
-        """
-        if self.abstract_lvls['level 1'] != {}:
-            self.log_info('Problem complete, shutting agents down')
-            self._complete = True
-            for agent_name, connections in self.agent_addrs.items():
-                self.send(connections['shutdown'][0], "shutdown")
-        else:
-            pass
-    
-    def wait_for_ka(self):
-        """Write to H5 file and sleep while waiting for agents."""
-        if len(self._kaar) % 25 == 0:
-            self.write_to_h5()
-            self.plot_progress()
-            self.diagnostics_replace_agent()
-        self.determine_complete()
-        sleep_time=1
-        while not self._new_entry: # Figure out a way to 'loopback' and determine if we have been written to
-            time.sleep(1)
-            sleep_time += 1
-            if sleep_time > self._sleep_limit:
-                break
-        self._new_entry = False
-        
-
-class BbSfrOpt(BbTraditional):
-    
-    def on_init(self):
-        super().on_init()
         self.problem = 'basic'
         self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
         self.add_panel(1, ['new', 'old'])       
@@ -83,12 +37,39 @@ class BbSfrOpt(BbTraditional):
                                  'burnup': (0,175), 
                                  'pu mass': (0, 1750)}
         self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'lt', 'pu mass': 'lt'}
+        
         self.design_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
         self.total_solutions = 50
         
         self._sm = None
         self.sm_type = 'interpolate'
+
+    def connect_ka_specific(self, agent):
+        """
+        Assigns specific variables for each KA type in the SFR optimization problem.
         
+        Parameters
+        ----------
+        agent : str
+            alias of the KA to be updated
+        """
+        ns = proxy.NSProxy()
+        ka = ns.proxy(agent)
+        if 'rp' in agent:
+            ka.set_attr(_sm=self._sm)
+            ka.set_attr(sm_type=self.sm_type)
+            ka.set_attr(objectives=self.objectives)
+            ka.set_attr(design_variable_ranges=self.design_variable_ranges)
+            ka.set_attr(design_variables=[dv for dv in self.design_variable_ranges.keys()])
+        elif 'lvl3' in agent:
+            ka.set_attr(desired_results=self.objective_ranges)
+        elif 'lvl2' in agent:
+            ka.set_attr(desired_results=self.objective_goals)
+            ka.set_attr(_objective_ranges=self.objective_ranges)
+        else:
+            self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
+            return
+
     def determine_complete(self):
         """
         Determine when the problem has finished to send the shutdown communication.
@@ -106,31 +87,6 @@ class BbSfrOpt(BbTraditional):
             self._complete = True
         else:
             pass
-
-    def connect_ka_specific(self, agent):
-        """
-        Assigns specific variables for each KA type in the SFR optimization problem.
-        
-        Parameters
-        ----------
-        agent : str
-            alias of the KA to be updated
-        """
-        ns = proxy.NSProxy()
-        ka = ns.proxy(agent)
-        if 'rp' in agent:
-            ka.set_attr(objectives=self.objectives)
-            ka.set_attr(_sm=self._sm)
-            ka.set_attr(sm_type=self.sm_type)
-            ka.set_attr(design_variable_ranges=self.design_variable_ranges)
-        elif 'lvl3' in agent:
-            ka.set_attr(desired_results=self.objective_ranges)
-        elif 'lvl2' in agent:
-            ka.set_attr(desired_results=self.objective_goals)
-            ka.set_attr(_objective_ranges=self.objective_ranges)
-        else:
-            self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
-            return
     
     def generate_sm(self):
         design_var, objective_func = dg.get_data([x for x in self.design_variable_ranges.keys()], self.objectives)
@@ -188,3 +144,18 @@ class BbSfrOpt(BbTraditional):
         
             fig = px.scatter_3d(x=bu, y=rx_swing, z=pu_mass, color=fitness, labels={'x':'Burnup (GWd)', 'y': 'Rx Swing (pcm)', 'z':'Pu Mass (kg/cycle)','color':'fitness'})
             fig.show()
+            
+    def wait_for_ka(self):
+        """Write to H5 file and sleep while waiting for agents."""
+        if len(self._kaar) % 25 == 0:
+            self.write_to_h5()
+            self.plot_progress()
+            self.diagnostics_replace_agent()
+        self.determine_complete()
+        sleep_time=1
+        while not self._new_entry: # Figure out a way to 'loopback' and determine if we have been written to
+            time.sleep(1)
+            sleep_time += 1
+            if sleep_time > self._sleep_limit:
+                break
+        self._new_entry = False

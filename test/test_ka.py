@@ -24,7 +24,6 @@ def test_ka_init_agent():
     assert ka_b.get_attr('_trigger_val') == 0
     assert ka_b.get_attr('_shutdown_addr') == None
     assert ka_b.get_attr('_shutdown_alias') == None
-    
     ns.shutdown()
     time.sleep(0.1)
     
