@@ -370,9 +370,19 @@ class Blackboard(Agent):
         bool
             True if agent can write, false if agent must wait
         """
-        agent_name, self._new_entry = message 
+        agent_name, bb_lvl, entry_name, entry, complete, panel, remove = message
+        self._new_entry = complete
+        
+#        print('Agent: {}, BB_lvl: {}, Core: {}, Comp: {}'.format(agent_name, bb_lvl, entry_name, complete))
         if not self._agent_writing:
             self._agent_writing = True
+            if remove:
+                self.log_debug('Removing BB Entry {} on BB Level {}, panel {}'.format(entry_name, bb_lvl, panel))
+                self.remove_bb_entry(bb_lvl, entry_name, panel=panel)
+            else:
+                self.log_debug('Writing to BB Level {}'.format(bb_lvl))
+                self.update_abstract_lvl(bb_lvl, entry_name, entry, panel=panel)
+            self.finish_writing_to_bb()
             self.log_debug('Agent {} given permission to write'.format(agent_name))
             return True
         else:
@@ -434,7 +444,6 @@ class Blackboard(Agent):
         self._trigger_event += 1
         self._kaar[self._trigger_event] = {}
         self.send(self._pub_trigger_alias, 'publishing trigger')
-#        time.sleep(2)
 
     def remove_bb_entry(self, level, name, panel=None):
         """
@@ -454,7 +463,6 @@ class Blackboard(Agent):
         else:
             del self.abstract_lvls['level {}'.format(level)][name]
         self.log_debug('Removing entry {} from BB abstract level {}.'.format(name, level))
-        self.finish_writing_to_bb()
         
     def send_executor(self):
         """Send an executor message to the triggered KA."""
@@ -547,7 +555,6 @@ class Blackboard(Agent):
                 return
         
         abstract_lvl[name] = entry
-        self.finish_writing_to_bb()
         
     def wait_for_ka(self):
         """Write to H5 file and sleep while waiting for agents."""

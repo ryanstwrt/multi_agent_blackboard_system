@@ -34,6 +34,8 @@ def get_data(design_variables, objective_variables):
                 elif var == 'burnup':
                     avg_bu = rx_.get_assembly_avg(cycle_length, 'burnup')# * 30 / cycle_length
                     obj_vars.append(avg_bu)
+                elif var == 'pu_content':
+                    obj_vars.append(rx_.rx['independent variables']['pu_content'][0])
             ind_var_array.append(tuple(ind_vars))
             obj_var_array.append(tuple(obj_vars))
         except:

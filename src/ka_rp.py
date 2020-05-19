@@ -90,8 +90,8 @@ class KaRpExplore(KaRp):
             Containts unused message, but required for agent communication.
         """
         self._trigger_val += self._base_trigger_val
-        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
     def mc_design_variables(self):
         """
@@ -200,19 +200,15 @@ class KaRpExploit(KaRpExplore):
         core, entry = random.choice(list(lvl.items())) if random.random() > 0.7 else min(list(lvl.items()))
 
         base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variable_ranges.keys()}
-        total_perts = len(base_design_variables.keys()) * len(self.perturbations)
-        i = 0
         for var_name, var_value in base_design_variables.items():
             # Add an if statement here to ensure we don't perform a perturbation that has already been done.
             for pert in self.perturbations:
-                i += 1
                 self.design_variables = copy.copy(base_design_variables)
                 self.design_variables[var_name] = round(var_value * pert, 4)
                 self.log_debug('Perturbing variable {} with value {}'.format(var_name, self.design_variables[var_name]))
                 self.calc_objectives()
-                completed = True if i == total_perts else False
-                self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=completed, panel='new')
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel)
+                self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=False)
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
                         
     def read_bb_lvl(self):
         """

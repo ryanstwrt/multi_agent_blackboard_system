@@ -69,6 +69,7 @@ class BbSfrOpt(BbTraditional):
     
     def on_init(self):
         super().on_init()
+        self.problem = 'basic'
         self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
         self.add_panel(1, ['new', 'old'])       
         self.add_abstract_lvl(2, {'valid': bool})
@@ -84,6 +85,7 @@ class BbSfrOpt(BbTraditional):
                                  'pu mass': (0, 1750)}
         self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'lt', 'pu mass': 'lt'}
         self.design_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
+        self.total_solutions = 50
         
         self._sm = None
         self.sm_type = 'interpolate'
@@ -96,9 +98,9 @@ class BbSfrOpt(BbTraditional):
         pareto_solutions = 0
         for panel in self.abstract_lvls['level 1'].values():
             for core in panel.values():
-                pareto_solutions += 1 #if core['pareto type'] == 'pareto' else 0
+                pareto_solutions += 1
         
-        if pareto_solutions > 50:
+        if pareto_solutions > self.total_solutions:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 self.send(connections['shutdown'][0], "shutdown")
@@ -162,17 +164,28 @@ class BbSfrOpt(BbTraditional):
         bu = []
         pu_mass = []
         fitness = []
-
-        for core, values in lvl_1.items():
-            fitness.append(round(values['fitness function'],5))
-            core_params = lvl_3[core]['reactor parameters']
-            height.append(core_params['height'])
-            smear.append(core_params['smear'])
-            pu_content.append(core_params['pu_content'])
-            cycle_length.append(round(core_params['cycle length'],0))
-            rx_swing.append(core_params['reactivity swing'])
-            bu.append(core_params['burnup'])
-            pu_mass.append(core_params['pu mass'])
         
-        fig = px.scatter_3d(x=bu, y=rx_swing, z=pu_mass, color=fitness, labels={'x':'Burnup (GWd)', 'y': 'Rx Swing (pcm)', 'z':'Pu Mass (kg/cycle)','color':'fitness'})
-        fig.show()
+        if self.problem == 'prelims':
+            for core, values in lvl_1.items():
+                core_params = lvl_3[core]['reactor parameters']
+                cycle_length.append(core_params['keff'])
+                height.append(core_params['doppler'])
+                smear.append(core_params['void'])            
+                pu_content.append(core_params['pu_content'])
+            fig = px.scatter_3d(x=smear, y=height, z=cycle_length, color=pu_content, labels={'y':'Doppler Coeff', 'x': 'Void Coeff', 'z':'k-eff','color':'Pu Frac.'})
+            fig.show()
+            
+        else:
+            for core, values in lvl_1.items():
+                fitness.append(round(values['fitness function'],5))
+                core_params = lvl_3[core]['reactor parameters']
+                height.append(core_params['height'])
+                smear.append(core_params['smear'])
+                pu_content.append(core_params['pu_content'])
+                cycle_length.append(round(core_params['cycle length'],0))
+                rx_swing.append(core_params['reactivity swing'])
+                bu.append(core_params['burnup'])
+                pu_mass.append(core_params['pu mass'])
+        
+            fig = px.scatter_3d(x=bu, y=rx_swing, z=pu_mass, color=fitness, labels={'x':'Burnup (GWd)', 'y': 'Rx Swing (pcm)', 'z':'Pu Mass (kg/cycle)','color':'fitness'})
+            fig.show()

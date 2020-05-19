@@ -153,7 +153,7 @@ class KaBase(Agent):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
     
-    def move_entry(self, bb_lvl, entry_name, entry, new_panel, old_panel):
+    def move_entry(self, bb_lvl, entry_name, entry, new_panel, old_panel, write_complete=True):
         """
         Move an entry on a blackboard level from one blackbaord panel to another.
         
@@ -170,8 +170,8 @@ class KaBase(Agent):
         old_panel : str
             Panel that will remove old entry
         """
-        self.write_to_bb(bb_lvl, entry_name, entry, panel=new_panel)
-        self.write_to_bb(bb_lvl, entry_name, entry, panel=old_panel, remove=True)
+        self.write_to_bb(bb_lvl, entry_name, entry, complete=False, panel=new_panel)
+        self.write_to_bb(bb_lvl, entry_name, entry, complete=write_complete, panel=old_panel, remove=True)
 
         
     def write_to_bb(self, bb_lvl, entry_name, entry, complete=True, panel=None, remove=False):
@@ -192,13 +192,7 @@ class KaBase(Agent):
         self.log_debug('Sending writer trigger to BB.')
         write = False
         while not write:
-            self.send(self._writer_alias, (self.name, complete))
+            bb_data = (self.name, bb_lvl, entry_name, entry, complete, panel, remove)
+            self.send(self._writer_alias, (bb_data))
             write = self.recv(self._writer_alias)
             time.sleep(0.5)
-        else:
-            if remove:
-                self.log_debug('Removing BB Entry {} on BB Level {}, panel {}'.format(entry_name, bb_lvl, panel))
-                self.bb.remove_bb_entry(bb_lvl, entry_name, panel=panel)
-            else:
-                self.log_debug('Writing to BB Level {}'.format(bb_lvl))
-                self.bb.update_abstract_lvl(bb_lvl, entry_name, entry, panel=panel)

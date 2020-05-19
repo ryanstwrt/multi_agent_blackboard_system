@@ -29,10 +29,13 @@ class KaBr(ka.KaBase):
         pass
     
     def handler_executor(self, message):
+        self.clear_bb_lvl()
+        new_entry = self.read_bb_lvl()
         self.log_debug('Executing agent {}'.format(self.name)) 
-        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
-        entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-        self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
+        if new_entry:
+            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel, complete=False)
+            entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+            self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel, write_complete=True)
         self.clear_entry()
         self._trigger_val = 0
                 
@@ -41,11 +44,21 @@ class KaBr(ka.KaBase):
         new_entry = self.read_bb_lvl()
         trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
         self._trigger_val = self._trigger_val_base + int(trig_prob) if trig_prob > random.random() else 0
-        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+#        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         
     def read_bb_lvl(self):
         pass
+    
+    def clear_bb_lvl(self):
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+
+        for core_name, core_entry in lvl.items():
+            valid = self.determine_validity(core_name)
+            if not valid[0]:
+                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel, write_complete=False)
+
+        
         
 class KaBr_lvl2(KaBr):
     """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
@@ -68,7 +81,7 @@ class KaBr_lvl2(KaBr):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
         lvl_read = self.bb.get_attr('abstract_lvls')['level 3']
         
-        #make a dictionary of all the cores present in the level
+        #makes a dictionary of all the cores present in the level
         lvl_3 = {}
         for panel in lvl_read.values():
             lvl_3.update(panel)
@@ -106,8 +119,7 @@ class KaBr_lvl2(KaBr):
         pareto_optimal = 0
         for param, symbol in self.desired_results.items():
             new_val = -new_rx[param] if symbol == 'gt' else new_rx[param]
-            opt_val = -opt_rx[param] if symbol == 'gt' else opt_rx[param]
-            
+            opt_val = -opt_rx[param] if symbol == 'gt' else opt_rx[param]            
             optimal += 1 if new_val <= opt_val else 0
             pareto_optimal += 1 if new_val < opt_val else 0
 
@@ -125,32 +137,32 @@ class KaBr_lvl2(KaBr):
     
     def remove_entry(self):
         """Remove an entry that has been dominated."""
-        
         pass
     
-    def handler_executor(self, message):
-        self.log_debug('Executing agent {}'.format(self.name))
-        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
-        entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-        self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
+#    def handler_executor(self, message):
+#        self.clear_bb_lvl()
+#        self.log_debug('Executing agent {}'.format(self.name))
+#        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
+#        entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+#        self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
 #        self.remove_entry()
-        self.clear_entry()
+#        self.clear_entry()
     
     def read_bb_lvl(self):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         self._num_entries = len(lvl)
 
         # Have the agent select the core from level 2 with the lowest fitness function (or make it some probability it will select this one)
-        val = False
+        # Split this function and have the agent read the BB during it's turn
+        new_entry = False
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
-#            self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
             if valid[0]:
                 self.add_entry((core_name,valid[1]))
-                val = True
+                return True
             else:
-                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
-        return val
+                pass
+        return False
 
 class KaBr_lvl3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
@@ -181,16 +193,18 @@ class KaBr_lvl3(KaBr):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new']
         self._num_entries = len(lvl)
 
-        val = False
+        new_entry = False
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
             if valid[0]:
                 self.add_entry((core_name,valid))
-                val = True
+                return True
+                new_entry = True
             else:
-                self.log_debug('Moving entry {}'.format(core_name))
-                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
-        return val
+                pass
+#                self.log_debug('Moving entry {}'.format(core_name))
+#                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
+        return new_entry
         
             
 class KaBr_verify(KaBr):
