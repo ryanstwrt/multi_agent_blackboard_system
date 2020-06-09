@@ -51,14 +51,11 @@ class KaBr(ka.KaBase):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         self._num_entries = len(lvl)
 
-        new_entry = False
         for core_name, core_entry in lvl.items():
             valid = self.determine_validity(core_name)
             if valid[0]:
                 self.add_entry((core_name,valid[1]))
                 return True
-            else:
-                pass
         return False
     
     def clear_bb_lvl(self):
@@ -108,13 +105,19 @@ class KaBr_lvl2(KaBr):
         
         # Need to update this to ensure that we loop through everything before returning if it is Pareto or not.
         # Also, this may be where we remove old entries
+        optimal = False
+        dominated_designs = {}
         for opt_core in lvl_1.keys():
             pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
                                                      lvl_3[opt_core]['reactor parameters'])          
             if pareto_opt:
                 self.log_debug('Core {} is {} optimal.'.format(core_name,pareto_opt))
-                return (True, pareto_opt)
-        return (False, pareto_opt)
+                optimal = True
+                if pareto_opt == 'pareto':
+                    dominated_designs[opt_core] = lvl_1[opt_core]
+        for core_name, entry in dominated_designs.items():
+            self.remove_entry(core_name, entry, lvl)
+        return (optimal, pareto_opt)
 
     def determine_fitness_function(self, core_name, core_parmeters):
         fitness =0
@@ -144,10 +147,14 @@ class KaBr_lvl2(KaBr):
         """Scale the objective function between the minimum and maximum allowable values"""
         return (maximum - value) / (maximum-minimum)
     
-    def remove_entry(self):
+    def remove_entry(self, name, entry, level):
         """Remove an entry that has been dominated."""
-        pass
-        
+        for panel_name, panel_entries in level.items():
+            for core in panel_entries.keys():
+                if core == name:
+                    self.log_info('Removing core {}, no longer optimal'.format(name))
+                    self.write_to_bb(self.bb_lvl, name, entry, panel=panel_name,remove=True)
+                    return
     
 class KaBr_lvl3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
@@ -173,4 +180,3 @@ class KaBr_lvl3(KaBr):
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
         self._entry = {'valid': True}
-        

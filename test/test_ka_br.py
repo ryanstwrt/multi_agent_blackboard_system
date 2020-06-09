@@ -97,14 +97,12 @@ def test_kabr_lvl2_init():
     assert ka_br2.get_attr('_trigger_val_base') == 4
     assert ka_br2.get_attr('_fitness') == 0.0
     
-    
     ns.shutdown()
     time.sleep(0.1)
 
 def test_kabr_lvl2_add_entry():
     ns = run_nameserver()
-    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
-    
+    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2) 
     ka_br_lvl2.set_attr(_fitness=1.5)
     ka_br_lvl2.add_entry(('core_1', 'pareto'))
     
@@ -319,21 +317,19 @@ def test_kabr_lvl2_handler_executor():
     bb.send_executor()
     time.sleep(2.25)   
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.65},
-                                                               'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57}}, 
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57}}, 
                                                        'old' : {}}
-    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_4' : {'valid' : True}}, 
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_3' : {'valid' : True},
+                                                               'core_4' : {'valid' : True}}, 
                                                        'old': {'core_1' : {'valid' : True}, 
-                                                               'core_2' : {'valid' : True},
-                                                               'core_3' : {'valid' : True}}}
+                                                               'core_2' : {'valid' : True}}}
  
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
     ka_br_lvl2.read_bb_lvl()
     bb.send_executor()
-    time.sleep(1.15)   
+    time.sleep(2.15)   
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.65},
-                                                               'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57},
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57},
                                                                'core_4' : {'pareto type' : 'weak', 'fitness function' : 2.13333}}, 
                                                        'old' : {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 

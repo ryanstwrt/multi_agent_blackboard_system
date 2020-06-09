@@ -373,7 +373,6 @@ class Blackboard(Agent):
         agent_name, bb_lvl, entry_name, entry, complete, panel, remove = message
         self._new_entry = complete
         
-#        print('Agent: {}, BB_lvl: {}, Core: {}, Comp: {}'.format(agent_name, bb_lvl, entry_name, complete))
         if not self._agent_writing:
             self._agent_writing = True
             if remove:
@@ -440,7 +439,7 @@ class Blackboard(Agent):
         h5.close()
         
     def publish_trigger(self):
-        """Send a trigger event to all KAs."""
+        """Send a trigger event message to all KAs."""
         self._trigger_event += 1
         self._kaar[self._trigger_event] = {}
         self.send(self._pub_trigger_alias, 'publishing trigger')

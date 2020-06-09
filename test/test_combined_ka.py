@@ -27,7 +27,7 @@ def test_combined_kabr_handler_executor():
     ka_br_lvl2.add_blackboard(bb)
     ka_br_lvl2.connect_writer()
     ka_br_lvl2.connect_executor()
-    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
+    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'doppler_coeff': 'lt', 'pu_content': 'lt'})
     ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
@@ -56,7 +56,7 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(1.5)    
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.56667}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto', 'fitness function': 2.19167}}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{}, 'old': {'core_1': {'valid': True}}}
 
     bb.set_attr(_ka_to_execute=('ka_br_lvl3', 10.0))
@@ -64,7 +64,7 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(1.5)
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.56667}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto', 'fitness function': 2.19167}}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_2' : {'valid' : True}}, 'old': {'core_1': {'valid': True}}}
     
     bb.set_attr(_ka_to_execute=('ka_br_lvl3', 10.0))
@@ -72,7 +72,7 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(1.5)    
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.56667}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new':{'core_1' : {'pareto type' : 'pareto', 'fitness function': 2.19167}}, 'old': {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_2' : {'valid' : True},
                                                               'core_3' : {'valid' : True}}, 
                                                        'old': {'core_1': {'valid': True}}}
@@ -82,18 +82,31 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(2.25) 
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.56667},
-                                                               'core_3' : {'pareto type' : 'pareto', 'fitness function': 1.31667}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_2' : {'pareto type' : 'pareto', 'fitness function': 2.06667}}, 'old': {}}
+
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_3' : {'valid' : True}}, 
+                                                       'old': {'core_1' : {'valid': True},
+                                                               'core_2' : {'valid' : True}}}
+
+    bb.set_attr(_ka_to_execute=('ka_br_lvl2', 10.0))
+    ka_br_lvl2.read_bb_lvl()
+    bb.send_executor()
+    time.sleep(2.25) 
+
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_2' : {'pareto type' : 'pareto', 'fitness function': 2.06667},
+                                                               'core_3' : {'pareto type' : 'weak', 'fitness function': 2.06667}}, 'old': {}}
+
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 
                                                        'old': {'core_1' : {'valid': True},
-                                                               'core_2' : {'valid' : True},
-                                                               'core_3' : {'valid' : True}}}
+                                                               'core_2' : {'valid': True},
+                                                               'core_3' : {'valid': True}}}
     
     ns.shutdown()
     time.sleep(0.1)
     
 def test_combined_kabr_karp():
     ns = run_nameserver()
+    
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.set_attr(objective_ranges={'cycle length': (0, 1500), 'reactivity swing': (0, 6000), 'burnup': (0,175), 'pu mass': (0, 1750)})
     bb.generate_sm()

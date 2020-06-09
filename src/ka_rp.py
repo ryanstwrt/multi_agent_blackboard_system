@@ -205,7 +205,7 @@ class KaRpExploit(KaRpExplore):
 
         base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variables}
         for var_name, var_value in base_design_variables.items():
-            # TODOL Add an if statement here to ensure we don't perform a perturbation that has already been done.
+            # TODO Add an if statement here to ensure we don't perform a perturbation that has already been done.
             for pert in self.perturbations:
                 self.current_design_variables = copy.copy(base_design_variables)
                 self.current_design_variables[var_name] = round(var_value * pert, self._design_accuracy)

@@ -28,7 +28,13 @@ class BbSfrOpt(blackboard.Blackboard):
         self.add_panel(1, ['new', 'old'])       
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
-        self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float }})
+        self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 
+                                                         'smear': float, 
+                                                         'pu_content': float, 
+                                                         'cycle length': float, 
+                                                         'reactivity swing': float, 
+                                                         'burnup': float, 
+                                                         'pu mass': float }})
         self.add_panel(3, ['new','old'])
         
         self.objectives = ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
@@ -36,9 +42,14 @@ class BbSfrOpt(blackboard.Blackboard):
                                  'reactivity swing': (0, 7500), 
                                  'burnup': (0,175), 
                                  'pu mass': (0, 1750)}
-        self.objective_goals = {'cycle length': 'gt', 'reactivity swing': 'lt', 'burnup': 'lt', 'pu mass': 'lt'}
+        self.objective_goals = {'cycle length': 'gt', 
+                                'reactivity swing': 'lt', 
+                                'burnup': 'lt', 
+                                'pu mass': 'lt'}
         
-        self.design_variable_ranges = {'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)}
+        self.design_variable_ranges = {'height': (50, 80), 
+                                       'smear': (50,70), 
+                                       'pu_content': (0,1)}
         self.total_solutions = 50
         
         self._sm = None
@@ -59,8 +70,8 @@ class BbSfrOpt(blackboard.Blackboard):
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
             ka.set_attr(objectives=self.objectives)
-            ka.set_attr(design_variable_ranges=self.design_variable_ranges)
             ka.set_attr(design_variables=[dv for dv in self.design_variable_ranges.keys()])
+            ka.set_attr(design_variable_ranges=self.design_variable_ranges)
         elif 'lvl3' in agent:
             ka.set_attr(desired_results=self.objective_ranges)
         elif 'lvl2' in agent:
