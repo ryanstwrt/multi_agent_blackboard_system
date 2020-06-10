@@ -103,8 +103,6 @@ class KaBr_lvl2(KaBr):
             self.log_debug('Core {} is initial core for level 1.'.format(core_name))
             return (True, 'pareto')
         
-        # Need to update this to ensure that we loop through everything before returning if it is Pareto or not.
-        # Also, this may be where we remove old entries
         optimal = False
         dominated_designs = {}
         for opt_core in lvl_1.keys():

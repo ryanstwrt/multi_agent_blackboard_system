@@ -2,32 +2,38 @@ import osbrain
 from osbrain import Agent
 from osbrain import run_agent
 from osbrain import proxy
-from osbrain import run_nameserver()
-
+from osbrain import run_nameserver
+import blackboard
+import time
+import bb_sfr_opt
 
 
 # Can the controller keep track of the BB levels and update the trigger values of different agents as needed?
 
-class controller(Object):
+class Controller(object):
     """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
     
     The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
     
-    def init(self, bb={}, ka={}, archive_name='bb_archive', agent_wait_time=30):
-        self.bb_name = bb.keys()
-        self.bb_type = bb.values()
+    def __init__(self, bb_name='bb', bb_type=blackboard.Blackboard, ka={}, archive='bb_archive', agent_wait_time=30,):
+        self.bb_name = bb_name
+        self.bb_type = bb_type
         self.agent_wait_time = agent_wait_time
-        ns = run_nameserver()
+        self.ns = run_nameserver()
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
+        self.bb.set_attr(archive_name='{}.h5'.format(archive))
+        
+        if bb_type == bb_sfr_opt.BbSfrOpt:
+            self.bb.generate_sm()
         
         for ka_name, ka_type in ka.items():
             self.bb.connect_agent(ka_type, ka_name)
             
             
-    def run_single_agent_bb_problem(self):
+    def run_single_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
         
-        while self.bb.get_attr('_complete'):
+        while not self.bb.get_attr('_complete'):
             self.bb.publish_trigger()
             # Can we add another while statement and have the BB sleep until it gets all triggers back?
             time.sleep(1.0)
@@ -42,10 +48,10 @@ class controller(Object):
                 if agent_wait > self.agent_wait_time:
                     break
             self.bb.determine_complete()
-            if len(bb.get_attr('_kaar')) % 50 == 0 or self.bb.get_attr('_complete') == True:
+            if len(self.bb.get_attr('_kaar')) % 50 == 0 or self.bb.get_attr('_complete') == True:
                 self.bb.write_to_h5()
-                self.bb.plot_progress()
-                self.bb.diagnostices_replace_agent()
+#                self.bb.plot_progress()
+                self.bb.diagnostics_replace_agent()
                 
     def update_ka_trigger_val(self, ka):
         """
