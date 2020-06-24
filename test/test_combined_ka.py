@@ -114,9 +114,8 @@ def test_combined_kabr_karp():
     model = 'ann'
     with open('test/sm_{}.pkl'.format(model), 'rb') as pickle_file:
         sm_ga = pickle.load(pickle_file)
-#    bb.set_attr(sm_type=model)
-#    bb.set_attr(_sm=sm_ga)    
-    bb.generate_sm()
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga)    
     bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
     bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br_lvl3')

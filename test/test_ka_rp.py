@@ -224,9 +224,9 @@ def test_karp_exploit_init():
 def test_exploit_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-#    bb.set_attr(sm_type=model)
-#    bb.set_attr(_sm=sm_ga) 
-    bb.generate_sm()
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga) 
+#    bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
@@ -285,9 +285,9 @@ def test_exploit_mc_design_variables():
 def test_exploit_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-#    bb.set_attr(sm_type=model)
-#    bb.set_attr(_sm=sm_ga) 
-    bb.generate_sm()
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga) 
+#    bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp')
     
     bb.publish_trigger()
