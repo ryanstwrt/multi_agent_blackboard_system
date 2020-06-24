@@ -82,25 +82,9 @@ def test_karp_explore_init():
 def test_explore_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.set_attr(objective_ranges={'keff': (1.0, 1.3), 
-                             'doppler': (-1.5, 0), 
-                             'void': (-250, 0), 
-                             'pu_content': (0, 1.0)})
-    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 
-                                               'smear': float, 
-                                               'pu_content': float, 
-                                               'keff': float, 
-                                               'doppler': float, 
-                                               'void': float}})
-    bb.add_panel(3, ['new','old'])
 
-    bb.set_attr(objectives=['keff', 'doppler', 'void', 'pu_content'])
-    bb.set_attr(objective_goals={'keff': 'gt',
-                              'void':'lt',
-                              'doppler': 'lt',
-                              'pu_content': 'lt'})
-    bb.set_attr(problem='prelims')
-    bb.generate_sm()
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga) 
     bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
     
     rp = ns.proxy('ka_rp_explore')
@@ -226,7 +210,6 @@ def test_exploit_handler_executor():
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga) 
-#    bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
@@ -287,7 +270,6 @@ def test_exploit_handler_trigger_publish():
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga) 
-#    bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp')
     
     bb.publish_trigger()
@@ -310,7 +292,8 @@ def test_exploit_handler_trigger_publish():
 def test_exploit_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.generate_sm()
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
 
     rp = ns.proxy('ka_rp_exploit')

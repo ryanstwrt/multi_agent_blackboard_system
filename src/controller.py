@@ -15,13 +15,14 @@ class Controller(object):
     
     The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
     
-    def __init__(self, bb_name='bb', bb_type=blackboard.Blackboard, ka={}, archive='bb_archive', agent_wait_time=30,):
+    def __init__(self, bb_name='bb', bb_type=blackboard.Blackboard, ka={}, archive='bb_archive', agent_wait_time=30, plot_progress=False):
         self.bb_name = bb_name
         self.bb_type = bb_type
         self.agent_wait_time = agent_wait_time
         self.ns = run_nameserver()
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
+        self.plot_progress = plot_progress
         
         if bb_type == bb_sfr_opt.BbSfrOpt:
             self.bb.set_attr(_sm='gpr')
@@ -56,7 +57,8 @@ class Controller(object):
             self.bb.determine_complete()
             if len(self.bb.get_attr('_kaar')) % 50 == 0 or self.bb.get_attr('_complete') == True:
                 self.bb.write_to_h5()
-#                self.bb.plot_progress()
+                if self.plot_progress:
+                    self.bb.plot_progress()
                 self.bb.diagnostics_replace_agent()
                 
     def update_ka_trigger_val(self, ka):
