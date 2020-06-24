@@ -37,7 +37,7 @@ def test_karp_init():
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('design_variable_ranges') == {}    
     assert rp.get_attr('objective_functions') == {}
-    assert rp.get_attr('objectives') == []
+    assert rp.get_attr('objectives') == {}
     assert rp.get_attr('_objective_accuracy') == 2
     
     ns.shutdown()
@@ -73,7 +73,7 @@ def test_karp_explore_init():
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('sm_type') == 'interpolate'
-    assert rp.get_attr('objectives') == []
+    assert rp.get_attr('objectives') == {}
     assert rp.get_attr('design_variable_ranges') == {}
     assert rp.get_attr('_objective_accuracy') == 2
     ns.shutdown()
@@ -196,7 +196,7 @@ def test_karp_exploit_init():
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
-    assert rp.get_attr('objectives') == []
+    assert rp.get_attr('objectives') == {}
     assert rp.get_attr('design_variable_ranges') == {}
     assert rp.get_attr('step_size') == 0.05
     assert rp.get_attr('new_panel') == 'new'

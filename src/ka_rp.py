@@ -34,7 +34,7 @@ class KaRp(ka.KaBase):
         self.design_variable_ranges = {}
         self.current_design_variables = {}
         self._design_accuracy = 2
-        self.objectives = []
+        self.objectives = {}
         self.objective_functions = {}
         self._objective_accuracy = 2
 
@@ -79,7 +79,7 @@ class KaRpExplore(KaRp):
                 self.objective_functions[obj_name] = float(interpolator(tuple(design)))
         else:
             obj_list = self._sm.predict(self.sm_type, [design])
-            for num, obj in enumerate(self.objectives):
+            for num, obj in enumerate(self.objectives.keys()):
                 self.objective_functions[obj] = float(obj_list[0][num])
         a = self.current_design_variables.copy()
         a.update(self.objective_functions)

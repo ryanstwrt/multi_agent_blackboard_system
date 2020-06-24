@@ -28,14 +28,6 @@ class BbSfrOpt(blackboard.Blackboard):
         self.add_panel(1, ['new', 'old'])       
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
-        self.add_abstract_lvl(3, {'reactor parameters': {'height': float, 
-                                                         'smear': float, 
-                                                         'pu_content': float, 
-                                                         'cycle length': float, 
-                                                         'reactivity swing': float, 
-                                                         'burnup': float, 
-                                                         'pu mass': float }})
-        self.add_panel(3, ['new','old'])
         
         self.objective_ranges = {'cycle length': (100, 550, 'gt'), 
                                  'reactivity swing': (0, 750, 'lt'), 
@@ -45,6 +37,20 @@ class BbSfrOpt(blackboard.Blackboard):
         self.design_variable_ranges = {'height': (50, 80), 
                                        'smear': (50,70), 
                                        'pu_content': (0,1)}
+        
+        self.objectives = {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
+                           'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
+                           'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
+                           'pu mass':          {'ll':0,   'ul':1500, 'goal':'gt', 'variable type': float}}
+        self.design_variables = {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                 'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                 'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
+        
+        rx_params = {iv: iv_dict['variable type'] for iv, iv_dict in self.design_variables.items()}
+        rx_params.update({obj: obj_dict['variable type'] for obj, obj_dict in self.objectives.items()})
+        self.add_abstract_lvl(3, {'reactor parameters': rx_params})        
+        self.add_panel(3, ['new','old'])
+
         self.total_solutions = 50
         
         self._sm = None
@@ -64,7 +70,7 @@ class BbSfrOpt(blackboard.Blackboard):
         if 'rp' in agent:
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
-            ka.set_attr(objectives=[ob for ob in self.objective_ranges.keys()])
+            ka.set_attr(objectives=self.objectives)
             ka.set_attr(design_variable_ranges=self.design_variable_ranges)
         elif 'lvl' in agent:
             ka.set_attr(_objective_ranges=self.objective_ranges)

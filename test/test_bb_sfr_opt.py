@@ -8,6 +8,11 @@ import os
 import ka_rp as karp
 import ka_br as kabr
 
+    
+#----------------------------------------------------------
+# Tests fopr BbSfrOpt
+#----------------------------------------------------------
+
 def test_BbSfrOpt_init():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
@@ -17,19 +22,35 @@ def test_BbSfrOpt_init():
     assert bb.get_attr('archive_name') == 'blackboard_archive.h5'
     assert bb.get_attr('_sleep_limit') == 10
 
-    assert bb.get_attr('abstract_lvls') == {}
-    assert bb.get_attr('abstract_lvls_format') == {}
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str, 'fitness function': float}, 
+                                                               'old':{'pareto type': str, 'fitness function': float}},
+                                                   'level 2': {'new': {'valid': bool}, 
+                                                               'old': {'valid': bool}},
+                                                   'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
+                                                               'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
+
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 
+                                            'level 2': {'new':{}, 'old':{}}, 
+                                            'level 3': {'new': {}, 'old': {}}}
     
     assert bb.get_attr('_ka_to_execute') == (None, 0) 
     assert bb.get_attr('_trigger_event') == 0
     assert bb.get_attr('_kaar') == {}
     assert bb.get_attr('_pub_trigger_alias') == 'trigger'
     
+    assert bb.get_attr('objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
+                           'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
+                           'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
+                           'pu mass':          {'ll':0,   'ul':1500, 'goal':'gt', 'variable type': float}}
+    assert bb.get_attr('design_variables') == {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
+    
     assert bb.get_attr('_complete') == False
     
     ns.shutdown()
     time.sleep(0.1)
-    
+
 def test_connect_agent():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
@@ -68,40 +89,7 @@ def test_wait_for_ka():
     assert bb.get_attr('_complete') == False
     ns.shutdown()
     time.sleep(0.1)
-    
-#----------------------------------------------------------
-# Tests fopr BbSfrOpt
-#----------------------------------------------------------
 
-def test_BbSfrOpt_init():
-    ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    assert bb.get_attr('agent_addrs') == {}
-    assert bb.get_attr('_agent_writing') == False
-    assert bb.get_attr('_new_entry') == False
-    assert bb.get_attr('archive_name') == 'blackboard_archive.h5'
-    assert bb.get_attr('_sleep_limit') == 10
-
-    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str, 'fitness function': float}, 
-                                                               'old':{'pareto type': str, 'fitness function': float}},
-                                                   'level 2': {'new': {'valid': bool}, 
-                                                               'old': {'valid': bool}},
-                                                   'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
-                                                               'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
-
-    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 
-                                            'level 2': {'new':{}, 'old':{}}, 
-                                            'level 3': {'new': {}, 'old': {}}}
-    
-    assert bb.get_attr('_ka_to_execute') == (None, 0) 
-    assert bb.get_attr('_trigger_event') == 0
-    assert bb.get_attr('_kaar') == {}
-    assert bb.get_attr('_pub_trigger_alias') == 'trigger'
-    
-    assert bb.get_attr('_complete') == False
-    
-    ns.shutdown()
-    time.sleep(0.1)
     
 def test_add_ka_specific():
     ns = run_nameserver()
@@ -114,7 +102,10 @@ def test_add_ka_specific():
     for alias in ns.agents():
         agent = ns.proxy(alias)
         if 'rp' in alias:
-            assert agent.get_attr('objectives') == ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
+            assert agent.get_attr('objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
+                           'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
+                           'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
+                           'pu mass':          {'ll':0,   'ul':1500, 'goal':'gt', 'variable type': float}}
             assert agent.get_attr('sm_type') == 'interpolate'
         elif 'lvl' in alias:
             assert agent.get_attr('_objective_ranges') == {'cycle length': (100, 550, 'gt'), 
