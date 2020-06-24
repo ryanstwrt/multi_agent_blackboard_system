@@ -117,10 +117,10 @@ def test_add_ka_specific():
             assert agent.get_attr('objectives') == ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
             assert agent.get_attr('sm_type') == 'interpolate'
         elif 'lvl3' in alias:
-            assert agent.get_attr('desired_results') == {'cycle length': (0, 1500), 
-                                                         'reactivity swing': (0, 7500), 
-                                                         'burnup': (0,175), 
-                                                         'pu mass': (0, 1750)}
+            assert agent.get_attr('desired_results') == {'cycle length': (100, 550), 
+                                                         'reactivity swing': (0, 750), 
+                                                         'burnup': (0,200), 
+                                                         'pu mass': (0, 1500)}
         elif 'lvl2' in alias:
             assert agent.get_attr('desired_results') == {'cycle length': 'gt', 
                                                          'reactivity swing': 'lt', 'burnup': 'lt', 'pu mass': 'lt'}

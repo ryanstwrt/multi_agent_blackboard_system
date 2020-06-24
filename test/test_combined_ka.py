@@ -1,6 +1,7 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
+import pickle
 import blackboard
 import ka
 import time
@@ -109,6 +110,12 @@ def test_combined_kabr_karp():
     
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.set_attr(objective_ranges={'cycle length': (0, 1500), 'reactivity swing': (0, 6000), 'burnup': (0,175), 'pu mass': (0, 1750)})
+
+    model = 'ann'
+    with open('test/sm_{}.pkl'.format(model), 'rb') as pickle_file:
+        sm_ga = pickle.load(pickle_file)
+#    bb.set_attr(sm_type=model)
+#    bb.set_attr(_sm=sm_ga)    
     bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
@@ -181,12 +188,12 @@ def test_combined_kabr_karp():
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old': {'core_1': {'pareto type' : 'pareto', 'fitness function' : 1.475}}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old': {'core_1': {'valid' : True}}}   
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
-                                                           'core_[64.35, 65.0, 0.4]',
-                                                           'core_[65.65, 65.0, 0.4]',
-                                                           'core_[65.0, 64.35, 0.4]',
-                                                           'core_[65.0, 65.65, 0.4]',
-                                                           'core_[65.0, 65.0, 0.396]', 
-                                                           'core_[65.0, 65.0, 0.404]',]
+                                                           'core_[61.75, 65.0, 0.4]',
+                                                           'core_[68.25, 65.0, 0.4]',
+                                                           'core_[65.0, 61.75, 0.4]',
+                                                           'core_[65.0, 68.25, 0.4]',
+                                                           'core_[65.0, 65.0, 0.38]', 
+                                                           'core_[65.0, 65.0, 0.42]',]
     # Test fifth trigger publish (ka_br_lvl3)
 #    rp_explore.set_attr(_trigger_val=0)
     bb.publish_trigger()
@@ -207,7 +214,7 @@ def test_combined_kabr_karp():
     
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 9)    
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old': {'core_1': {'pareto type' : 'pareto', 'fitness function' : 1.475}}}
-    assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_[64.35, 65.0, 0.4]': {'valid' : True}}, 'old': {'core_1': {'valid' : True}}}   
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {'core_[61.75, 65.0, 0.4]': {'valid' : True}}, 'old': {'core_1': {'valid' : True}}}   
     
     ns.shutdown()
     time.sleep(0.1)   

@@ -315,6 +315,7 @@ class Blackboard(Agent):
     def finish_writing_to_bb(self):
         """Update _agent_writing to False when agent is finished writing"""
         self._agent_writing = False
+        self.log_debug('Finished writing to BB')
         
     def get_data_types(self, entry_data):
         """
@@ -352,7 +353,7 @@ class Blackboard(Agent):
                 Trigger value for the agent
         """
         agent_name, trig_val = message
-        self.log_debug('Logging trigger response ({}) for agent {}'.format(trig_val, agent_name))
+        self.log_debug('Logging trigger response ({}) for agent {}.'.format(trig_val, agent_name))
         self._kaar[self._trigger_event].update({agent_name: trig_val})
         
     def handler_writer(self, message):
@@ -375,6 +376,7 @@ class Blackboard(Agent):
         
         if not self._agent_writing:
             self._agent_writing = True
+            self.log_debug('Agent {} given permission to write'.format(agent_name))
             if remove:
                 self.log_debug('Removing BB Entry {} on BB Level {}, panel {}'.format(entry_name, bb_lvl, panel))
                 self.remove_bb_entry(bb_lvl, entry_name, panel=panel)
@@ -382,7 +384,6 @@ class Blackboard(Agent):
                 self.log_debug('Writing to BB Level {}'.format(bb_lvl))
                 self.update_abstract_lvl(bb_lvl, entry_name, entry, panel=panel)
             self.finish_writing_to_bb()
-            self.log_debug('Agent {} given permission to write'.format(agent_name))
             return True
         else:
             self._new_entry = False
@@ -417,7 +418,6 @@ class Blackboard(Agent):
         else:
             return data_dict[data_name](data[0])
 
-    
     def load_h5(self):
         """
         Load an H5 archive of the blackboard
@@ -441,6 +441,7 @@ class Blackboard(Agent):
     def publish_trigger(self):
         """Send a trigger event message to all KAs."""
         self._trigger_event += 1
+        self.log_debug('\n\nPublishing Trigger Event {}'.format(self._trigger_event))
         self._kaar[self._trigger_event] = {}
         self.send(self._pub_trigger_alias, 'publishing trigger')
 

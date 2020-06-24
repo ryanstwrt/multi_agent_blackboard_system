@@ -24,6 +24,7 @@ class Controller(object):
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
         
         if bb_type == bb_sfr_opt.BbSfrOpt:
+            self.bb.set_attr(_sm='gpr')
             self.bb.generate_sm()
         
         for ka_name, ka_type in ka.items():
@@ -35,12 +36,17 @@ class Controller(object):
         
         while not self.bb.get_attr('_complete'):
             self.bb.publish_trigger()
-            # Can we add another while statement and have the BB sleep until it gets all triggers back?
-            time.sleep(1.0)
+            trig_num = self.bb.get_attr('_trigger_event')
+            responses = False
+            # Wait until all responses have been recieved
+            while not responses:
+                time.sleep(0.1)
+                if len(self.bb.get_attr('_kaar')[trig_num]) == len(self.bb.get_attr('agent_addrs')):
+                    responses = True
             self.bb.controller()
+            self.bb.set_attr(_new_entry=False)
             self.bb.send_executor()
             # Some type of dynamic sleeping until triggered agent starts execution?
-            time.sleep(1.0)
             agent_wait = 0
             while self.bb.get_attr('_new_entry') == False:
                 time.sleep(1.0)

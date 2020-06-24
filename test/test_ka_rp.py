@@ -2,10 +2,15 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import blackboard
+import pickle
 import ka
 import time
 import ka_rp
 import bb_sfr_opt as bb_sfr
+
+model = 'ann'
+with open('test/sm_{}.pkl'.format(model), 'rb') as pickle_file:
+    sm_ga = pickle.load(pickle_file)
 
 def test_karp_init():
     ns = run_nameserver()
@@ -209,7 +214,7 @@ def test_karp_exploit_init():
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('objectives') == []
     assert rp.get_attr('design_variable_ranges') == {}
-    assert rp.get_attr('perturbations') == [0.99, 1.01]
+    assert rp.get_attr('perturbations') == [0.95, 1.05]
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
     assert rp.get_attr('_objective_accuracy') == 2
@@ -219,6 +224,8 @@ def test_karp_exploit_init():
 def test_exploit_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+#    bb.set_attr(sm_type=model)
+#    bb.set_attr(_sm=sm_ga) 
     bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
     
@@ -237,12 +244,12 @@ def test_exploit_handler_executor():
     time.sleep(5)
     
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
-                                                           'core_[64.35, 65.0, 0.4]',
-                                                           'core_[65.65, 65.0, 0.4]',
-                                                           'core_[65.0, 64.35, 0.4]',
-                                                           'core_[65.0, 65.65, 0.4]',
-                                                           'core_[65.0, 65.0, 0.396]', 
-                                                           'core_[65.0, 65.0, 0.404]',]
+                                                           'core_[61.75, 65.0, 0.4]',
+                                                           'core_[68.25, 65.0, 0.4]',
+                                                           'core_[65.0, 61.75, 0.4]',
+                                                           'core_[65.0, 68.25, 0.4]',
+                                                           'core_[65.0, 65.0, 0.38]', 
+                                                           'core_[65.0, 65.0, 0.42]']
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
     
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
@@ -250,12 +257,12 @@ def test_exploit_handler_executor():
     time.sleep(1.0)
     
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
-                                                           'core_[64.35, 65.0, 0.4]',
-                                                           'core_[65.65, 65.0, 0.4]',
-                                                           'core_[65.0, 64.35, 0.4]',
-                                                           'core_[65.0, 65.65, 0.4]',
-                                                           'core_[65.0, 65.0, 0.396]', 
-                                                           'core_[65.0, 65.0, 0.404]',]
+                                                           'core_[61.75, 65.0, 0.4]',
+                                                           'core_[68.25, 65.0, 0.4]',
+                                                           'core_[65.0, 61.75, 0.4]',
+                                                           'core_[65.0, 68.25, 0.4]',
+                                                           'core_[65.0, 65.0, 0.38]', 
+                                                           'core_[65.0, 65.0, 0.42]',]
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
 
     
@@ -278,6 +285,8 @@ def test_exploit_mc_design_variables():
 def test_exploit_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+#    bb.set_attr(sm_type=model)
+#    bb.set_attr(_sm=sm_ga) 
     bb.generate_sm()
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp')
     
@@ -310,17 +319,23 @@ def test_exploit_perturb_design():
                                                                 'pu_content': 0.4, 'cycle length': 365.0, 
                                                                 'pu mass': 500.0, 'reactivity swing' : 600.0,
                                                                 'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.42, 'cycle length': 365.0, 
+                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
+                                                                'burnup' : 50.0}}, panel='old')
+    
     bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='new')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='old')
  
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}, 'old': {}}
     rp.perturb_design()
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
-                                                           'core_[64.35, 65.0, 0.4]',
-                                                           'core_[65.65, 65.0, 0.4]',
-                                                           'core_[65.0, 64.35, 0.4]',
-                                                           'core_[65.0, 65.65, 0.4]',
-                                                           'core_[65.0, 65.0, 0.396]', 
-                                                           'core_[65.0, 65.0, 0.404]',]
+                                                           'core_[61.75, 65.0, 0.4]', 
+                                                           'core_[68.25, 65.0, 0.4]',
+                                                           'core_[65.0, 61.75, 0.4]',
+                                                           'core_[65.0, 68.25, 0.4]',
+                                                           'core_[65.0, 65.0, 0.38]',]
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['old'].keys()] == ['core_1', 'core_[65.0, 65.0, 0.42]']
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
 
     ns.shutdown()

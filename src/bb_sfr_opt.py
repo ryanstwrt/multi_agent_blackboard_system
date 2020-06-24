@@ -38,10 +38,10 @@ class BbSfrOpt(blackboard.Blackboard):
         self.add_panel(3, ['new','old'])
         
         self.objectives = ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
-        self.objective_ranges = {'cycle length': (0, 1500), 
-                                 'reactivity swing': (0, 7500), 
-                                 'burnup': (0,175), 
-                                 'pu mass': (0, 1750)}
+        self.objective_ranges = {'cycle length': (100, 550), 
+                                 'reactivity swing': (0, 750), 
+                                 'burnup': (0, 200), 
+                                 'pu mass': (0, 1500)}
         self.objective_goals = {'cycle length': 'gt', 
                                 'reactivity swing': 'lt', 
                                 'burnup': 'lt', 
@@ -149,12 +149,23 @@ class BbSfrOpt(blackboard.Blackboard):
                 smear.append(core_params['smear'])
                 pu_content.append(core_params['pu_content'])
                 cycle_length.append(round(core_params['cycle length'],0))
-                rx_swing.append(core_params['reactivity swing'])
+                rx_swing.append(round(core_params['reactivity swing'],1))
                 bu.append(core_params['burnup'])
-                pu_mass.append(core_params['pu mass'])
+                pu_mass.append(round(core_params['pu mass'], 0))
         
-            fig = px.scatter_3d(x=bu, y=rx_swing, z=pu_mass, color=fitness, labels={'x':'Burnup (GWd)', 'y': 'Rx Swing (pcm)', 'z':'Pu Mass (kg/cycle)','color':'fitness'})
+            fig = px.scatter_3d(x=bu, y=rx_swing, z=cycle_length, color=pu_mass, labels={'x':'Burnup (GWd/MT)', 'y': 'Rx Swing (pcm/month)', 'z':'Cycle Length (days)','color':'Pu Mass (kg/cycle)'})
             fig.show()
+            fig = px.scatter_3d(x=height, y=smear, z=pu_content, color=cycle_length, labels={'x':'Height (cm)', 'y': 'Smear', 'z':'Pu Content','color':'Cycle Length (days)'})
+            fig.show()
+            
+    def send_executor(self):
+        """Send an executor message to the triggered KA."""
+        if self._ka_to_execute != (None, 0):
+            self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], self._ka_to_execute[1], self._trigger_event))
+            self._new_entry = False
+            self.send('executor_{}'.format(self._ka_to_execute[0]), self._ka_to_execute)
+        else:
+            self.log_info('No KA to execute, waiting to sends trigger again.')
             
     def wait_for_ka(self):
         """Write to H5 file and sleep while waiting for agents."""

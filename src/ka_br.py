@@ -107,14 +107,19 @@ class KaBr_lvl2(KaBr):
         dominated_designs = {}
         for opt_core in lvl_1.keys():
             pareto_opt = self.determine_optimal_type(lvl_3[core_name]['reactor parameters'], 
-                                                     lvl_3[opt_core]['reactor parameters'])          
-            if pareto_opt:
+                                                     lvl_3[opt_core]['reactor parameters'])
+            if pareto_opt == None:
+                optimal = False
+                break
+            elif pareto_opt:
                 self.log_debug('Core {} is {} optimal.'.format(core_name,pareto_opt))
                 optimal = True
                 if pareto_opt == 'pareto':
                     dominated_designs[opt_core] = lvl_1[opt_core]
+                    
         for core_name, entry in dominated_designs.items():
             self.remove_entry(core_name, entry, lvl)
+        
         return (optimal, pareto_opt)
 
     def determine_fitness_function(self, core_name, core_parmeters):
@@ -151,7 +156,7 @@ class KaBr_lvl2(KaBr):
             for core in panel_entries.keys():
                 if core == name:
                     self.log_info('Removing core {}, no longer optimal'.format(name))
-                    self.write_to_bb(self.bb_lvl, name, entry, panel=panel_name,remove=True)
+                    self.write_to_bb(self.bb_lvl, name, entry, panel=panel_name, complete=False, remove=True)
                     return
     
 class KaBr_lvl3(KaBr):

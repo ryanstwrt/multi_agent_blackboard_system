@@ -98,11 +98,11 @@ class KaRpExplore(KaRp):
         message : str
             required message for sending communication
         """
+        self.log_debug('Executing agent {}'.format(self.name))
         self.mc_design_variables()
         self.calc_objectives()
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
         self._trigger_val = 0
-        self.log_debug('Executing agent {}'.format(self.name))
         
     def handler_trigger_publish(self, message):
         """
@@ -147,11 +147,12 @@ class KaRpExploit(KaRpExplore):
     """
 
     def on_init(self):
+        # Can we add the ability to randomly select a perturbation between x1 and x2
         super().on_init()
         self._base_trigger_val = 5
         self.bb_lvl_read = 1
-        self.perturbations = [0.99, 1.01]
-        self._design_accuracy = 4
+        self.perturbations = [0.95, 1.05]
+        self._design_accuracy = 3
         self._fitness_selection_fraction = 0.7
         self.new_panel = 'new'
         self.old_panel = 'old'
@@ -196,7 +197,7 @@ class KaRpExploit(KaRpExplore):
         This first selects a core at random from abstract level 1 (from the 'new' panel).
         It then perturbs each design variable independent by the values in perturbations, this produces n*m new cores (n = # of design variables, m = # of perturbations)
         
-        These results are written to the BB level 3, so there should be design_vars * pert added to level 3.
+        These results are written to the BB level 3, so there are design_vars * pert added to level 3.
         """
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
@@ -209,9 +210,15 @@ class KaRpExploit(KaRpExplore):
             for pert in self.perturbations:
                 self.current_design_variables = copy.copy(base_design_variables)
                 self.current_design_variables[var_name] = round(var_value * pert, self._design_accuracy)
-                self.calc_objectives()
-                self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=False)
-                self.log_debug('Perturbed variable {} with value {}'.format(var_name, self.current_design_variables[var_name]))
+                var_ranges = self.design_variable_ranges[var_name]
+                if self.current_design_variables[var_name] < var_ranges[0] or self.current_design_variables[var_name] > var_ranges[1]:
+                    self.log_debug('Core {} not examined due to breaking design variable'.format([x for x in self.current_design_variables.values()]))
+                elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in lvl3.keys():
+                    self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
+                else:
+                    self.calc_objectives()
+                    self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=False)
+                    self.log_debug('Perturbed variable {} with value {}'.format(var_name, self.current_design_variables[var_name]))
         self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
                         
     def read_bb_lvl(self):

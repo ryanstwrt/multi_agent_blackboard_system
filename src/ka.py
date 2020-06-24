@@ -172,7 +172,6 @@ class KaBase(Agent):
         """
         self.write_to_bb(bb_lvl, entry_name, entry, complete=False, panel=new_panel)
         self.write_to_bb(bb_lvl, entry_name, entry, complete=write_complete, panel=old_panel, remove=True)
-
         
     def write_to_bb(self, bb_lvl, entry_name, entry, complete=True, panel=None, remove=False):
         """
