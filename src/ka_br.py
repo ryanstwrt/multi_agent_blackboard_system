@@ -124,18 +124,18 @@ class KaBr_lvl2(KaBr):
 
     def determine_fitness_function(self, core_name, core_parmeters):
         fitness =0
-        for param, symbol in self._objective_ranges.items():
-            scaled_fit = self.objective_scaler(self._objective_ranges[param][0], self._objective_ranges[param][1], core_parmeters[param])
-            fitness += scaled_fit if symbol[2] == 'gt' else (1-scaled_fit)
+        for param, obj_dict in self._objective_ranges.items():
+            scaled_fit = self.objective_scaler(obj_dict['ll'], obj_dict['ul'], core_parmeters[param])
+            fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
         return round(fitness, 5)
     
     def determine_optimal_type(self, new_rx, opt_rx):
         """Determine if the solution is Pareto, weak, or not optimal"""
         optimal = 0
         pareto_optimal = 0
-        for param, symbol in self._objective_ranges.items():
-            new_val = -new_rx[param] if symbol[2] == 'gt' else new_rx[param]
-            opt_val = -opt_rx[param] if symbol[2] == 'gt' else opt_rx[param]            
+        for param, obj_dict in self._objective_ranges.items():
+            new_val = -new_rx[param] if obj_dict['goal'] == 'gt' else new_rx[param]
+            opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]            
             optimal += 1 if new_val <= opt_val else 0
             pareto_optimal += 1 if new_val < opt_val else 0
 
@@ -174,9 +174,9 @@ class KaBr_lvl3(KaBr):
         lvl_3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new']
         rx_params = lvl_3[core_name]['reactor parameters']
 
-        for param_name, param_range in self._objective_ranges.items():     
+        for param_name, obj_dict in self._objective_ranges.items():     
             param = rx_params[param_name]
-            if param < param_range[0] or param > param_range[1]:
+            if param < obj_dict['ll'] or param > obj_dict['ul']:
                 return (False, None)
         return (True, None)
     

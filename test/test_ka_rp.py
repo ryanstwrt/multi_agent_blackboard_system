@@ -141,7 +141,9 @@ def test_explore_mc_design_variables():
 def test_create_sm_interpolate():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.set_attr(objective_ranges={'keff': (0.95, 1.25, 'gt'), 'void': (-200, 0, 'lt'), 'doppler': (-10, 0, 'lt')})
+    bb.set_attr(objectives={'keff': {'ll':0.95, 'ul': 1.25, 'goal':'gt', 'variable type': float}, 
+                            'void': {'ll':-200, 'ul': 0, 'goal':'lt',  'variable type': float}, 
+                            'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}})
     bb.generate_sm()
     
     sm = bb.get_attr('_sm')
@@ -154,7 +156,9 @@ def test_create_sm_interpolate():
 def test_create_sm_regression():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.set_attr(objective_ranges={'keff': (0.95, 1.25, 'gt'), 'void': (-200, 0, 'lt'), 'doppler': (-10, 0, 'lt')})
+    bb.set_attr(objectives={'keff': {'ll':0.95, 'ul':1.25, 'goal':'gt', 'variable type': float}, 
+                            'void': {'ll':-200, 'ul':0, 'goal':'lt',  'variable type': float}, 
+                            'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}})    
     bb.set_attr(sm_type='lr')
     bb.generate_sm()
     

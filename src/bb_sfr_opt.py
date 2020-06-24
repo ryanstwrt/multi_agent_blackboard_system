@@ -29,15 +29,10 @@ class BbSfrOpt(blackboard.Blackboard):
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
         
-        self.objective_ranges = {'cycle length': (100, 550, 'gt'), 
-                                 'reactivity swing': (0, 750, 'lt'), 
-                                 'burnup': (0, 200, 'gt'), 
-                                 'pu mass': (0, 1500, 'lt')}
-        
         self.objectives = {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
                            'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
-                           'pu mass':          {'ll':0,   'ul':1500, 'goal':'gt', 'variable type': float}}
+                           'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
         self.design_variables = {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
@@ -69,7 +64,7 @@ class BbSfrOpt(blackboard.Blackboard):
             ka.set_attr(objectives=self.objectives)
             ka.set_attr(design_variables=self.design_variables)
         elif 'lvl' in agent:
-            ka.set_attr(_objective_ranges=self.objective_ranges)
+            ka.set_attr(_objective_ranges=self.objectives)
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return
@@ -93,7 +88,7 @@ class BbSfrOpt(blackboard.Blackboard):
             pass
     
     def generate_sm(self):
-        objectives = [x for x in self.objective_ranges.keys()]
+        objectives = [x for x in self.objectives.keys()]
         design_var, objective_func = dg.get_data([x for x in self.design_variables.keys()], objectives)
         if self.sm_type == 'interpolate':
             self._sm = {}

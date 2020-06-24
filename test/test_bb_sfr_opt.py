@@ -41,7 +41,7 @@ def test_BbSfrOpt_init():
     assert bb.get_attr('objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
                                          'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
                                          'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
-                                         'pu mass':          {'ll':0,   'ul':1500, 'goal':'gt', 'variable type': float}}
+                                         'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
     assert bb.get_attr('design_variables') == {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                                'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                                'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
@@ -105,16 +105,16 @@ def test_add_ka_specific():
             assert agent.get_attr('objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
                                                     'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
                                                     'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
-                                                    'pu mass':          {'ll':0,   'ul':1500, 'goal':'gt', 'variable type': float}}
+                                                    'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
             assert agent.get_attr('design_variables') == {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                                           'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                                           'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
             assert agent.get_attr('sm_type') == 'interpolate'
         elif 'lvl' in alias:
-            assert agent.get_attr('_objective_ranges') == {'cycle length': (100, 550, 'gt'), 
-                                                         'reactivity swing': (0, 750, 'lt'), 
-                                                         'burnup': (0,200, 'gt'), 
-                                                         'pu mass': (0, 1500, 'lt')}
+            assert agent.get_attr('_objective_ranges') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
+                                                    'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
+                                                    'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
+                                                    'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
             
     ns.shutdown()
     time.sleep(0.1)  
