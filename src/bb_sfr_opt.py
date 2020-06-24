@@ -34,10 +34,6 @@ class BbSfrOpt(blackboard.Blackboard):
                                  'burnup': (0, 200, 'gt'), 
                                  'pu mass': (0, 1500, 'lt')}
         
-        self.design_variable_ranges = {'height': (50, 80), 
-                                       'smear': (50,70), 
-                                       'pu_content': (0,1)}
-        
         self.objectives = {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
                            'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
@@ -71,7 +67,7 @@ class BbSfrOpt(blackboard.Blackboard):
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
             ka.set_attr(objectives=self.objectives)
-            ka.set_attr(design_variable_ranges=self.design_variable_ranges)
+            ka.set_attr(design_variables=self.design_variables)
         elif 'lvl' in agent:
             ka.set_attr(_objective_ranges=self.objective_ranges)
         else:
@@ -98,7 +94,7 @@ class BbSfrOpt(blackboard.Blackboard):
     
     def generate_sm(self):
         objectives = [x for x in self.objective_ranges.keys()]
-        design_var, objective_func = dg.get_data([x for x in self.design_variable_ranges.keys()], objectives)
+        design_var, objective_func = dg.get_data([x for x in self.design_variables.keys()], objectives)
         if self.sm_type == 'interpolate':
             self._sm = {}
             design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)

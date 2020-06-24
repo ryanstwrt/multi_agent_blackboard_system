@@ -30,8 +30,7 @@ class KaRp(ka.KaBase):
         self.bb_lvl = 3
         self._sm = None
         self.sm_type = 'interpolate'
-        self.design_variables = []
-        self.design_variable_ranges = {}
+        self.design_variables = {}
         self.current_design_variables = {}
         self._design_accuracy = 2
         self.objectives = {}
@@ -52,7 +51,7 @@ class KaRpExplore(KaRp):
         Dictionary of the objective functions for the current design (key - objective name, value - objective value)
     objectives : list
         List of the objective name for optimization
-    design_variable_ranges : dict
+    design_variables : dict
         Dictionary of design variables for the problem and allowable rannge for the variables (key - variable name, value - tuple of min/max value)
     _sm : dict/trained_sm class
         Reference to the surrogate model that is used for determining objective functions.
@@ -121,8 +120,8 @@ class KaRpExplore(KaRp):
         """
         Determine the core design variables using a monte carlo method.
         """
-        for param, ranges in self.design_variable_ranges.items():
-            self.current_design_variables[param] = round(random.random() * (ranges[1] - ranges[0]) + ranges[0], self._design_accuracy)
+        for dv, dv_dict in self.design_variables.items():
+            self.current_design_variables[dv] = round(random.random() * (dv_dict['ll'] - dv_dict['ul']) + dv_dict['ll'], self._design_accuracy)
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
 
 
@@ -205,20 +204,21 @@ class KaRpExploit(KaRpExplore):
             
         core, entry = random.choice(list(lvl.items())) if random.random() > self._fitness_selection_fraction else min(list(lvl.items()))
 
-        base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variable_ranges.keys()}
+        base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variables.keys()}
         for var_name, var_value in base_design_variables.items():
             for pert in [1.0 - self.step_size, 1.0 + self.step_size]:
                 self.current_design_variables = copy.copy(base_design_variables)
                 self.current_design_variables[var_name] = round(var_value * pert, self._design_accuracy)
-                var_ranges = self.design_variable_ranges[var_name]
-                if self.current_design_variables[var_name] < var_ranges[0] or self.current_design_variables[var_name] > var_ranges[1]:
+                dv_dict = self.design_variables[var_name]
+                dv_cur_val = self.current_design_variables[var_name]
+                if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
                     self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
                 elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in lvl3.keys():
                     self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
                 else:
                     self.calc_objectives()
                     self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=False)
-                    self.log_debug('Perturbed variable {} with value {}'.format(var_name, self.current_design_variables[var_name]))
+                    self.log_debug('Perturbed variable {} with value {}'.format(var_name, dv_cur_val))
         self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
         
     def hill_climbing_algorithm(self, num_steps):

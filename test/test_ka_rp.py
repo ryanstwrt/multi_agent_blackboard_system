@@ -35,7 +35,7 @@ def test_karp_init():
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('current_design_variables') == {}
-    assert rp.get_attr('design_variable_ranges') == {}    
+    assert rp.get_attr('design_variables') == {}    
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('objectives') == {}
     assert rp.get_attr('_objective_accuracy') == 2
@@ -74,7 +74,7 @@ def test_karp_explore_init():
     assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('objectives') == {}
-    assert rp.get_attr('design_variable_ranges') == {}
+    assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('_objective_accuracy') == 2
     ns.shutdown()
     time.sleep(0.1)
@@ -126,7 +126,9 @@ def test_explore_handler_trigger_publish():
 def test_explore_mc_design_variables():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
-    rp.set_attr(design_variable_ranges={'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
+    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                 'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                 'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})
     
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('_entry_name') == None
@@ -189,7 +191,6 @@ def test_karp_exploit_init():
     assert rp.get_attr('_shutdown_addr') == None
     assert rp.get_attr('_trigger_val') == 0.0
     
-    assert rp.get_attr('design_variables') == []
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('bb_lvl_read') == 1
     assert rp.get_attr('_sm') == None
@@ -197,7 +198,7 @@ def test_karp_exploit_init():
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('objectives') == {}
-    assert rp.get_attr('design_variable_ranges') == {}
+    assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('step_size') == 0.05
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
@@ -255,7 +256,9 @@ def test_exploit_handler_executor():
 def test_exploit_mc_design_variables():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
-    rp.set_attr(design_variable_ranges={'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
+    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                 'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                 'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})
     
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('_entry_name') == None
