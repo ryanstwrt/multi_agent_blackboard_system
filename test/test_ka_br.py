@@ -119,8 +119,7 @@ def test_kabr_lvl2_determine_validity():
     ka_br_lvl2.add_blackboard(bb)
     ka_br_lvl2.connect_writer()
     ka_br_lvl2.connect_executor()
-    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
-    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'pu_content': (0, 0.6)})
+    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'pu_content': (0, 0.6, 'lt')})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_panel(1, ['new', 'old'])
@@ -167,7 +166,7 @@ def test_move_curent_entry():
     ka_br_lvl2.add_blackboard(bb)
     ka_br_lvl2.connect_writer()
 
-    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
+    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'pu_content': (0, 0.6, 'lt')})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_panel(1, ['new', 'old'])
@@ -186,9 +185,7 @@ def test_move_curent_entry():
 def test_kabr_lvl2_determine_optimal_type():
     ns = run_nameserver()
     ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
-    
-    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'doppler_coeff': 'lt', 'pu_content': 'lt'})
-    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'pu_content': (0, 0.6), 'doppler_coeff': (-1.0,0.0)})
+    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'pu_content': (0, 0.6, 'lt')})
     
     bool_ = ka_br_lvl2.determine_optimal_type(
         {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.3}, 
@@ -222,11 +219,10 @@ def test_kabr_lvl2_determine_optimal_type():
 def test_determine_fitness_function():
     ns = run_nameserver()
     ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
-    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'doppler_coeff': 'lt', 'pu_content': 'lt'})
-    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'pu_content': (0, 0.6), 'doppler_coeff': (-1.0,0.0)})
+    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'pu_content': (0, 0.6, 'lt')})
 
     fitness = ka_br_lvl2.determine_fitness_function('core_1', {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.3})
-    assert fitness == 1.65
+    assert fitness == 1.4
     
     ns.shutdown()
     time.sleep(0.1)
@@ -272,8 +268,7 @@ def test_kabr_lvl2_handler_executor():
     ka_br_lvl2.add_blackboard(bb)
     ka_br_lvl2.connect_writer()
     ka_br_lvl2.connect_executor()
-    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'pu_content': 'lt'})
-    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'pu_content': (0, 0.6)})   
+    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'pu_content': (0, 0.6, 'lt')})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_panel(1, ['new', 'old'])
@@ -361,7 +356,6 @@ def test_kabr_lvl3_init():
     assert ka_br2.get_attr('_trigger_publish_alias') == None
     assert ka_br2.get_attr('_trigger_val') == 0
     assert ka_br2.get_attr('bb_lvl_read') == 3
-    assert ka_br2.get_attr('desired_results') == None
     assert ka_br2.get_attr('_shutdown_addr') == None
     assert ka_br2.get_attr('_shutdown_alias') == None
     assert ka_br2.get_attr('_num_entries') == 0
@@ -375,7 +369,7 @@ def test_kabr_lvl3_determine_validity():
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_br_lvl3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
     ka_br_lvl3.add_blackboard(bb)
-    ka_br_lvl3.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'pu_content': (0, 0.6)})
+    ka_br_lvl3.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'pu_content': (0, 0.6, 'lt')})    
     
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['old', 'new'])
@@ -398,8 +392,7 @@ def test_kabr_lvl3_read_bb_lvl():
     ka_br_lvl3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
     ka_br_lvl3.add_blackboard(bb)
     ka_br_lvl3.connect_writer()
-    
-    ka_br_lvl3.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
+    ka_br_lvl3.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'pu_content': (0, 0.6, 'lt')}) 
     
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
@@ -423,10 +416,10 @@ def test_kabr_lvl3_handler_trigger_publish():
     br.add_blackboard(bb)
     br.connect_trigger()
     br.connect_writer()
-    br.set_attr(desired_results={'cycle length' : (300, 400), 
-                                 'pu mass' : (0, 1000),
-                                 'reactivity swing': (500, 1000),
-                                  'burnup': (25, 75)})
+    br.set_attr(_objective_ranges={'cycle length' : (300, 400, 'gt'), 
+                                      'pu mass' : (0, 1000, 'lt'),
+                                      'reactivity swing': (500, 1000, 'lt'),
+                                      'burnup': (25, 75, 'gt')})
     br.set_attr(_num_allowed_entries=1)
 
     
@@ -472,8 +465,7 @@ def test_kabr_lvl3_handler_executor():
     ka_br_lvl3.add_blackboard(bb)
     ka_br_lvl3.connect_writer()
     ka_br_lvl3.connect_executor()
-    
-    ka_br_lvl3.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
+    ka_br_lvl3.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'doppler_coeff': (-1.0,-0.6, 'lt'), 'pu_content': (0, 0.6, 'lt')}) 
     
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])

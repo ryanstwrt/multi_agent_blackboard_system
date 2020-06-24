@@ -139,7 +139,7 @@ def test_explore_mc_design_variables():
 def test_create_sm_interpolate():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.set_attr(objectives=['keff','void','doppler'])
+    bb.set_attr(objective_ranges={'keff': (0.95, 1.25, 'gt'), 'void': (-200, 0, 'lt'), 'doppler': (-10, 0, 'lt')})
     bb.generate_sm()
     
     sm = bb.get_attr('_sm')
@@ -152,7 +152,7 @@ def test_create_sm_interpolate():
 def test_create_sm_regression():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.set_attr(objectives=['keff','void','doppler'])
+    bb.set_attr(objective_ranges={'keff': (0.95, 1.25, 'gt'), 'void': (-200, 0, 'lt'), 'doppler': (-10, 0, 'lt')})
     bb.set_attr(sm_type='lr')
     bb.generate_sm()
     
@@ -198,7 +198,7 @@ def test_karp_exploit_init():
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('objectives') == []
     assert rp.get_attr('design_variable_ranges') == {}
-    assert rp.get_attr('perturbations') == [0.95, 1.05]
+    assert rp.get_attr('step_size') == 0.05
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
     assert rp.get_attr('_objective_accuracy') == 2

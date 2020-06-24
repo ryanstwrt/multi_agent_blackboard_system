@@ -23,13 +23,12 @@ def test_combined_kabr_handler_executor():
     ka_br_lvl3.add_blackboard(bb)
     ka_br_lvl3.connect_writer()
     ka_br_lvl3.connect_executor()
-    ka_br_lvl3.set_attr(desired_results={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
+    ka_br_lvl3.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'doppler_coeff': (-1.0,-0.6, 'lt'), 'pu_content': (0, 0.6, 'lt')})
     ka_br_lvl2 = run_agent(name='ka_br_lvl2', base=ka_br.KaBr_lvl2)
     ka_br_lvl2.add_blackboard(bb)
     ka_br_lvl2.connect_writer()
     ka_br_lvl2.connect_executor()
-    ka_br_lvl2.set_attr(desired_results={'keff': 'gt', 'void_coeff': 'lt', 'doppler_coeff': 'lt', 'pu_content': 'lt'})
-    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2), 'void_coeff': (-200, -75), 'doppler_coeff': (-1.0,-0.6), 'pu_content': (0, 0.6)})
+    ka_br_lvl2.set_attr(_objective_ranges={'keff': (1.0, 1.2, 'gt'), 'void_coeff': (-200, -75, 'lt'), 'doppler_coeff': (-1.0,-0.6, 'lt'), 'pu_content': (0, 0.6, 'lt')})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_panel(1, ['new', 'old'])    
@@ -109,7 +108,7 @@ def test_combined_kabr_karp():
     ns = run_nameserver()
     
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.set_attr(objective_ranges={'cycle length': (0, 1500), 'reactivity swing': (0, 6000), 'burnup': (0,175), 'pu mass': (0, 1750)})
+    bb.set_attr(objective_ranges={'cycle length': (0, 1500, 'gt'), 'reactivity swing': (0, 6000,'lt'), 'burnup': (0,175, 'lt'), 'pu mass': (0, 1750, 'lt')})
 
     model = 'ann'
     with open('test/sm_{}.pkl'.format(model), 'rb') as pickle_file:

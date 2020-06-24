@@ -37,15 +37,10 @@ class BbSfrOpt(blackboard.Blackboard):
                                                          'pu mass': float }})
         self.add_panel(3, ['new','old'])
         
-        self.objectives = ['cycle length', 'reactivity swing', 'burnup', 'pu mass']
-        self.objective_ranges = {'cycle length': (100, 550), 
-                                 'reactivity swing': (0, 750), 
-                                 'burnup': (0, 200), 
-                                 'pu mass': (0, 1500)}
-        self.objective_goals = {'cycle length': 'gt', 
-                                'reactivity swing': 'lt', 
-                                'burnup': 'lt', 
-                                'pu mass': 'lt'}
+        self.objective_ranges = {'cycle length': (100, 550, 'gt'), 
+                                 'reactivity swing': (0, 750, 'lt'), 
+                                 'burnup': (0, 200, 'gt'), 
+                                 'pu mass': (0, 1500, 'lt')}
         
         self.design_variable_ranges = {'height': (50, 80), 
                                        'smear': (50,70), 
@@ -69,13 +64,9 @@ class BbSfrOpt(blackboard.Blackboard):
         if 'rp' in agent:
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
-            ka.set_attr(objectives=self.objectives)
-            ka.set_attr(design_variables=[dv for dv in self.design_variable_ranges.keys()])
+            ka.set_attr(objectives=[ob for ob in self.objective_ranges.keys()])
             ka.set_attr(design_variable_ranges=self.design_variable_ranges)
-        elif 'lvl3' in agent:
-            ka.set_attr(desired_results=self.objective_ranges)
-        elif 'lvl2' in agent:
-            ka.set_attr(desired_results=self.objective_goals)
+        elif 'lvl' in agent:
             ka.set_attr(_objective_ranges=self.objective_ranges)
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
@@ -100,11 +91,12 @@ class BbSfrOpt(blackboard.Blackboard):
             pass
     
     def generate_sm(self):
-        design_var, objective_func = dg.get_data([x for x in self.design_variable_ranges.keys()], self.objectives)
+        objectives = [x for x in self.objective_ranges.keys()]
+        design_var, objective_func = dg.get_data([x for x in self.design_variable_ranges.keys()], objectives)
         if self.sm_type == 'interpolate':
             self._sm = {}
             design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
-            for num, objective in enumerate(self.objectives):
+            for num, objective in enumerate(objectives):
                 self._sm[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
         else:
             self._sm = tm.Surrogate_Models()

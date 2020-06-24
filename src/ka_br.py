@@ -124,22 +124,22 @@ class KaBr_lvl2(KaBr):
 
     def determine_fitness_function(self, core_name, core_parmeters):
         fitness =0
-        for param, symbol in self.desired_results.items():
+        for param, symbol in self._objective_ranges.items():
             scaled_fit = self.objective_scaler(self._objective_ranges[param][0], self._objective_ranges[param][1], core_parmeters[param])
-            fitness += scaled_fit if symbol == 'gt' else (1-scaled_fit)
+            fitness += scaled_fit if symbol[2] == 'gt' else (1-scaled_fit)
         return round(fitness, 5)
     
     def determine_optimal_type(self, new_rx, opt_rx):
         """Determine if the solution is Pareto, weak, or not optimal"""
         optimal = 0
         pareto_optimal = 0
-        for param, symbol in self.desired_results.items():
-            new_val = -new_rx[param] if symbol == 'gt' else new_rx[param]
-            opt_val = -opt_rx[param] if symbol == 'gt' else opt_rx[param]            
+        for param, symbol in self._objective_ranges.items():
+            new_val = -new_rx[param] if symbol[2] == 'gt' else new_rx[param]
+            opt_val = -opt_rx[param] if symbol[2] == 'gt' else opt_rx[param]            
             optimal += 1 if new_val <= opt_val else 0
             pareto_optimal += 1 if new_val < opt_val else 0
 
-        if optimal == len(self.desired_results.keys()) and pareto_optimal > 0:
+        if optimal == len(self._objective_ranges.keys()) and pareto_optimal > 0:
             return 'pareto'
         elif pareto_optimal > 0:
             return 'weak'
@@ -165,7 +165,7 @@ class KaBr_lvl3(KaBr):
         super().on_init()
         self.bb_lvl = 2
         self.bb_lvl_read = 3
-        self.desired_results = None
+        self._objective_ranges = None
         self.read_results = []
         self._trigger_val_base = 3
         
@@ -174,7 +174,7 @@ class KaBr_lvl3(KaBr):
         lvl_3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new']
         rx_params = lvl_3[core_name]['reactor parameters']
 
-        for param_name, param_range in self.desired_results.items():     
+        for param_name, param_range in self._objective_ranges.items():     
             param = rx_params[param_name]
             if param < param_range[0] or param > param_range[1]:
                 return (False, None)

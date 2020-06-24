@@ -151,11 +151,12 @@ class KaRpExploit(KaRpExplore):
         super().on_init()
         self._base_trigger_val = 5
         self.bb_lvl_read = 1
-        self.perturbations = [0.95, 1.05]
+        self.step_size = 0.05
         self._design_accuracy = 3
         self._fitness_selection_fraction = 0.7
         self.new_panel = 'new'
         self.old_panel = 'old'
+        self.local_search = 'perturbation'
     
     def handler_executor(self, message):
         """
@@ -204,15 +205,14 @@ class KaRpExploit(KaRpExplore):
             
         core, entry = random.choice(list(lvl.items())) if random.random() > self._fitness_selection_fraction else min(list(lvl.items()))
 
-        base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variables}
+        base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variable_ranges.keys()}
         for var_name, var_value in base_design_variables.items():
-            # TODO Add an if statement here to ensure we don't perform a perturbation that has already been done.
-            for pert in self.perturbations:
+            for pert in [1.0 - self.step_size, 1.0 + self.step_size]:
                 self.current_design_variables = copy.copy(base_design_variables)
                 self.current_design_variables[var_name] = round(var_value * pert, self._design_accuracy)
                 var_ranges = self.design_variable_ranges[var_name]
                 if self.current_design_variables[var_name] < var_ranges[0] or self.current_design_variables[var_name] > var_ranges[1]:
-                    self.log_debug('Core {} not examined due to breaking design variable'.format([x for x in self.current_design_variables.values()]))
+                    self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
                 elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in lvl3.keys():
                     self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
                 else:
@@ -220,7 +220,23 @@ class KaRpExploit(KaRpExplore):
                     self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=False)
                     self.log_debug('Perturbed variable {} with value {}'.format(var_name, self.current_design_variables[var_name]))
         self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
-                        
+        
+    def hill_climbing_algorithm(self, num_steps):
+        """
+        Basic hill climbing algorithm for local search.
+        
+        Searches local area by taking some x number of steps to determine a more optimal solution.
+        """
+        pass
+    
+    
+    def random_walk_algorithm(self):
+        """
+        Basic random walk algorithm for searching around a viable design.
+        """
+        pass
+    
+    
     def read_bb_lvl(self):
         """
         Determine if there are any 'new' entries on level 1.
