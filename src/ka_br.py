@@ -32,9 +32,9 @@ class KaBr(ka.KaBase):
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
-        new_entry = self.read_bb_lvl()
+#        new_entry = self.read_bb_lvl()
         self.clear_bb_lvl()
-        if new_entry:
+        if self._entry:
             self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel, complete=False)
             entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
             self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel, write_complete=True)
@@ -226,11 +226,10 @@ class KaBr_lvl3(KaBr):
         
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""
-        lvl_3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new']
-        rx_params = lvl_3[core_name]['reactor parameters']
+        rx_params = self.lvl_data[core_name]['reactor parameters']
 
         for param_name, obj_dict in self._objective_ranges.items():     
-            param = rx_params[param_name]
+            param = self.lvl_data[core_name]['reactor parameters'][param_name]
             if param < obj_dict['ll'] or param > obj_dict['ul']:
                 return (False, None)
         return (True, None)

@@ -394,6 +394,7 @@ def test_kabr_lvl3_determine_validity():
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_br_lvl3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
     ka_br_lvl3.add_blackboard(bb)
+    ka_br_lvl3.connect_trigger()
     ka_br_lvl3.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
@@ -404,7 +405,8 @@ def test_kabr_lvl3_determine_validity():
     bb.add_panel(3, ['new','old'])
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.05, 'void_coeff': -150.0}}, panel='new')
     bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 0.9, 'void_coeff': -150.0}}, panel='new')
-    
+
+    bb.publish_trigger()
     bool_ = ka_br_lvl3.determine_validity('core_1')
     assert bool_ == (True, None)
     bool_ = ka_br_lvl3.determine_validity('core_2')
