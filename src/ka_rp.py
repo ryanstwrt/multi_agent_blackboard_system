@@ -121,7 +121,7 @@ class KaRpExplore(KaRp):
         Determine the core design variables using a monte carlo method.
         """
         for dv, dv_dict in self.design_variables.items():
-            self.current_design_variables[dv] = round(random.random() * (dv_dict['ll'] - dv_dict['ul']) + dv_dict['ll'], self._design_accuracy)
+            self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
 
 
@@ -221,21 +221,34 @@ class KaRpExploit(KaRpExplore):
                     self.log_debug('Perturbed variable {} with value {}'.format(var_name, dv_cur_val))
         self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
         
-    def hill_climbing_algorithm(self, num_steps):
+    def hill_climbing_algorithm(self):
         """
         Basic hill climbing algorithm for local search.
         
         Searches local area by taking some x number of steps to determine a more optimal solution.
         """
-        pass
-    
+        hill_dv = random.choice(list(self.design_variables))
+        hill_dvs = copy.copy(base_design_variables)
+        hill_best = None
+        convergence = False
+        
+        while not convergence:
+            hill_dvs[hill_dv] += hill_dv * self.step_size
+            
     
     def random_walk_algorithm(self):
         """
         Basic random walk algorithm for searching around a viable design.
         """
-        pass
+        for x in enumerate(range(10)):
+            rw_dv = random.choice(list(self.design_variables))
+            
     
+    def genetic_algorithm(self):
+        """
+        Basic genetic algorithm for expediting our search
+        """
+        pass
     
     def read_bb_lvl(self):
         """

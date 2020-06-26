@@ -41,8 +41,10 @@ def test_kabr_trigger_handler_publish():
     ka_b.add_blackboard(bb)
     ka_b.connect_trigger()
     ka_b.set_attr(bb_lvl_read=1)
+    ka_b.set_attr(bb_lvl=2)
     bb.add_abstract_lvl(1, {'valid': bool})
     bb.add_panel(1, ['new','old'])
+    bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_abstract_lvl(3, {'valid': bool})
     bb.publish_trigger()
     time.sleep(0.25)
@@ -118,6 +120,7 @@ def test_kabr_lvl2_determine_validity():
     ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
     ka_br_lvl2.add_blackboard(bb)
     ka_br_lvl2.connect_writer()
+    ka_br_lvl2.connect_trigger()
     ka_br_lvl2.connect_executor()
     ka_br_lvl2.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
@@ -138,22 +141,31 @@ def test_kabr_lvl2_determine_validity():
     bb.update_abstract_lvl(2, 'core_2', {'valid': True}, panel='new')
     bb.update_abstract_lvl(2, 'core_3', {'valid': True}, panel='new')
     bb.update_abstract_lvl(2, 'core_4', {'valid': True}, panel='new')
-
+    
+    bb.publish_trigger()
+    time.sleep(0.25)
+    
     bol, p_type = ka_br_lvl2.determine_validity('core_1')
     assert p_type == 'pareto'
     assert bol == True
 
     bb.update_abstract_lvl(1, 'core_1', {'pareto type': 'pareto', 'fitness function': 1.0}, panel='new')
+    bb.publish_trigger()
+    time.sleep(0.25)
     bol, p_type = ka_br_lvl2.determine_validity('core_2')
     assert p_type == 'pareto'
     assert bol == True
 
     bb.update_abstract_lvl(1, 'core_2', {'pareto type': 'pareto', 'fitness function': 1.0}, panel='new')
+    bb.publish_trigger()
+    time.sleep(0.25)
     bol, p_type = ka_br_lvl2.determine_validity('core_3')
     assert p_type == 'weak'
     assert bol == True
 
     bb.update_abstract_lvl(1, 'core_3', {'pareto type': 'weak', 'fitness function': 1.0}, panel='old')
+    bb.publish_trigger()
+    time.sleep(0.25)
     bol, p_type = ka_br_lvl2.determine_validity('core_4')
     assert p_type == None
     assert bol == False
@@ -274,6 +286,7 @@ def test_kabr_lvl2_handler_executor():
     ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
     ka_br_lvl2.add_blackboard(bb)
     ka_br_lvl2.connect_writer()
+    ka_br_lvl2.connect_trigger()
     ka_br_lvl2.connect_executor()
     ka_br_lvl2.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
@@ -306,9 +319,10 @@ def test_kabr_lvl2_handler_executor():
     bb.update_abstract_lvl(2, 'core_4', {'valid': True}, panel='new')
     
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    ka_br_lvl2.read_bb_lvl()
+    bb.publish_trigger()
+    time.sleep(0.5)
     bb.send_executor()
-    time.sleep(1.25)   
+    time.sleep(0.5)   
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.65}}, 'old' : {}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_2' : {'valid' : True},
@@ -317,21 +331,23 @@ def test_kabr_lvl2_handler_executor():
                                                        'old': {'core_1' : {'valid' : True}}}
 
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    ka_br_lvl2.read_bb_lvl()
+    bb.publish_trigger()
+    time.sleep(0.5)
+
     bb.send_executor()
-    time.sleep(2.25)   
+    time.sleep(1.0)   
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57}}, 
                                                        'old' : {}}
-    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_3' : {'valid' : True},
-                                                               'core_4' : {'valid' : True}}, 
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_4' : {'valid' : True}}, 
                                                        'old': {'core_1' : {'valid' : True}, 
-                                                               'core_2' : {'valid' : True}}}
+                                                               'core_2' : {'valid' : True},
+                                                               'core_3' : {'valid' : True}}}
  
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    ka_br_lvl2.read_bb_lvl()
+    bb.publish_trigger()
     bb.send_executor()
-    time.sleep(2.15)   
+    time.sleep(1.0)   
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57},
                                                                'core_4' : {'pareto type' : 'weak', 'fitness function' : 2.13333}}, 
@@ -403,6 +419,7 @@ def test_kabr_lvl3_read_bb_lvl():
     ka_br_lvl3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
     ka_br_lvl3.add_blackboard(bb)
     ka_br_lvl3.connect_writer()
+    ka_br_lvl3.connect_trigger()
     ka_br_lvl3.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
@@ -414,6 +431,8 @@ def test_kabr_lvl3_read_bb_lvl():
     
     bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
 
+    bb.publish_trigger()
+    time.sleep(0.5)
     ka_br_lvl3.read_bb_lvl()
     
     assert ka_br_lvl3.get_attr('_entry') == {'valid': True}
@@ -436,7 +455,7 @@ def test_kabr_lvl3_handler_trigger_publish():
     br.set_attr(_num_allowed_entries=1)
 
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.1)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}}
     assert bb.get_attr('_ka_to_execute') == (None, 0)
@@ -447,7 +466,7 @@ def test_kabr_lvl3_handler_trigger_publish():
                                                                 'pu mass': 500.0, 'reactivity swing' : 600.0,
                                                                 'burnup' : 50.0}}, panel='new')
     bb.publish_trigger()
-    time.sleep(2.5)
+    time.sleep(0.1)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}, 2: {'ka_br_lvl3': 4}}   
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl3', 4)
@@ -462,7 +481,7 @@ def test_kabr_lvl3_handler_trigger_publish():
                                                                 'pu mass': 500.0, 'reactivity swing' : 600.0,
                                                                 'burnup' : 50.0}}, panel='old')
     bb.publish_trigger()
-    time.sleep(1.75)
+    time.sleep(0.1)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0}, 2: {'ka_br_lvl3': 4}, 3:{'ka_br_lvl3':0}}   
     assert bb.get_attr('_ka_to_execute') == (None, 0)
@@ -477,6 +496,8 @@ def test_kabr_lvl3_handler_executor():
     ka_br_lvl3.add_blackboard(bb)
     ka_br_lvl3.connect_writer()
     ka_br_lvl3.connect_executor()
+    ka_br_lvl3.connect_trigger()
+
     ka_br_lvl3.set_attr(_objective_ranges={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':    {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float},
@@ -492,23 +513,26 @@ def test_kabr_lvl3_handler_executor():
     bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 0.9, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
 
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    ka_br_lvl3.read_bb_lvl()
+    bb.publish_trigger()
+    time.sleep(0.1)
     bb.send_executor()
-    time.sleep(1.5)    
+    time.sleep(0.5)    
     
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True}}, 'old': {}}
 
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    ka_br_lvl3.read_bb_lvl()
+    bb.publish_trigger()
+    time.sleep(0.1)
     bb.send_executor()
-    time.sleep(1.5)    
+    time.sleep(0.5)    
     
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True},
                                                               'core_2': {'valid': True}}, 'old': {}}
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    ka_br_lvl3.read_bb_lvl()
+    bb.publish_trigger()
+    time.sleep(0.1)
     bb.send_executor()
-    time.sleep(1.5)    
+    time.sleep(0.5)    
     
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True},
                                                               'core_2': {'valid': True}}, 'old': {}}
