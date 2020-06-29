@@ -453,7 +453,6 @@ def test_write_to_h5():
                 assert k2 in abs_lvls[k][k1].keys()
                 if type(v2) == h5py.Group:
                     for k3,v3 in v2.items():
-                        print(type(v3))
                         if isinstance(v3, h5py._hl.group.Group):
                             assert abs_lvls[k][k1][k2][k3]['nested_test'] == v3['nested_test'][0]
                         elif isinstance(v3[0], Iterable):

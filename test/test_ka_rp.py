@@ -384,7 +384,34 @@ def test_exploit_write_to_bb():
                                                                   'pu mass': 1000.0}}}
     assert bb.get_attr('_new_entry') == False
     assert bb.get_attr('_agent_writing') == False
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
+def test_local_walk_algorithm():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga)
+    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(local_search='random walk')
+    
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.4, 'cycle length': 365.0, 
+                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
+                                                                'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.42, 'cycle length': 365.0, 
+                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
+                                                                'burnup' : 50.0}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='new')
 
-
+    rp.random_walk_algorithm()
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}, 'old': {}}
+    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 10
+    
     ns.shutdown()
     time.sleep(0.1)

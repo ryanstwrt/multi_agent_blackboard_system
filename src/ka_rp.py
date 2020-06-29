@@ -164,8 +164,11 @@ class KaRpExploit(KaRpExplore):
         KA will perturb the core via the perturbations method and write all results the BB
         """
         self.log_debug('Executing agent {}'.format(self.name))
-        self.perturb_design()
-
+        if self.local_search == 'perturbation':
+            self.perturb_design()
+        elif self.local_search == 'random walk':
+            self.random_walk_algorithm()
+            
     def handler_trigger_publish(self, message):
         """
         Read the BB level and determine if an entry is available.
@@ -240,10 +243,39 @@ class KaRpExploit(KaRpExplore):
         """
         Basic random walk algorithm for searching around a viable design.
         """
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
+        
+        core, entry = random.choice(list(lvl.items()))
+        design = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        
         for x in enumerate(range(10)):
-            rw_dv = random.choice(list(self.design_variables))
-            
-    
+            dv = random.choice(list(self.design_variables))
+            step = round(random.random() * self.step_size, self._design_accuracy)
+            direction = random.choice(['+','-'])
+            design[dv] = design[dv] + step if direction == '+' else design[dv] - step
+            design[dv] = round(design[dv], self._design_accuracy)
+            self.log_debug('Design Variable: {} Step: {}{}\n New Design: {}'.format(dv, direction, step, design))
+            self.current_design_variables = design
+            if x == 10:
+                self.determine_model_applicability(dv, complete=True)
+            else:
+                self.determine_model_applicability(dv, complete=False)
+                
+    def determine_model_applicability(self, dv, complete=False):
+        lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
+        
+        dv_dict = self.design_variables[dv]
+        dv_cur_val = self.current_design_variables[dv]
+        if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
+            self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
+        elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in lvl3.keys():
+            self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
+        else:
+            self.calc_objectives()
+            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=complete)
+            self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))        
+                
     def genetic_algorithm(self):
         """
         Basic genetic algorithm for expediting our search
