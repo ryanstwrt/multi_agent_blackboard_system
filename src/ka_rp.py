@@ -208,20 +208,17 @@ class KaRpExploit(KaRpExplore):
         core, entry = random.choice(list(lvl.items())) if random.random() > self._fitness_selection_fraction else min(list(lvl.items()))
 
         base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        i = 0
+        perts = [1.0 - self.step_size, 1.0 + self.step_size]
         for var_name, var_value in base_design_variables.items():
-            for pert in [1.0 - self.step_size, 1.0 + self.step_size]:
+            for pert in perts:
                 self.current_design_variables = copy.copy(base_design_variables)
                 self.current_design_variables[var_name] = round(var_value * pert, self._design_accuracy)
-                dv_dict = self.design_variables[var_name]
-                dv_cur_val = self.current_design_variables[var_name]
-                if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
-                    self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
-                elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in lvl3.keys():
-                    self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
+                if i == len(base_design_variables) * len(perts):
+                    self.determine_model_applicability(var_name, complete=False)
                 else:
-                    self.calc_objectives()
-                    self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=False)
-                    self.log_debug('Perturbed variable {} with value {}'.format(var_name, dv_cur_val))
+                    self.determine_model_applicability(var_name, complete=False)
+                i += 1
         self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
         
     def hill_climbing_algorithm(self):
@@ -258,9 +255,11 @@ class KaRpExploit(KaRpExplore):
             self.log_debug('Design Variable: {} Step: {}{}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
             if x == 10:
-                self.determine_model_applicability(dv, complete=True)
+                self.determine_model_applicability(dv, complete=False)
             else:
                 self.determine_model_applicability(dv, complete=False)
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
+
                 
     def determine_model_applicability(self, dv, complete=False):
         lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
