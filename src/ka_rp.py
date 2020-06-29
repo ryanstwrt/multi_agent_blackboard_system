@@ -146,7 +146,6 @@ class KaRpExploit(KaRpExplore):
     """
 
     def on_init(self):
-        # Can we add the ability to randomly select a perturbation between x1 and x2
         super().on_init()
         self._base_trigger_val = 5
         self.bb_lvl_read = 1
@@ -156,7 +155,29 @@ class KaRpExploit(KaRpExplore):
         self.new_panel = 'new'
         self.old_panel = 'old'
         self.local_search = 'perturbation'
-    
+        self.lvl_data = None
+        self.lvl_read = None
+        self.walk_length = 10
+
+    def determine_model_applicability(self, dv, complete=False):
+        """
+        Determine if a design variable is valid, and if the design has already been examined.
+        If the design isn't valid or has already been examined, skip this.
+        If the design is new, calculate the objectives and wrtie this to the blackbaord.
+        """
+        dv_dict = self.design_variables[dv]
+        dv_cur_val = self.current_design_variables[dv]
+        print(dv, dv_cur_val)
+        if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
+            self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
+        elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in self.lvl_data.keys():
+            self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
+        else:
+            print('hereererer')
+            self.calc_objectives()
+            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=complete)
+            self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
+        
     def handler_executor(self, message):
         """
         Execution handler for KA-RP.
@@ -164,10 +185,16 @@ class KaRpExploit(KaRpExplore):
         KA will perturb the core via the perturbations method and write all results the BB
         """
         self.log_debug('Executing agent {}'.format(self.name))
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        self.lvl_data = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
         if self.local_search == 'perturbation':
             self.perturb_design()
         elif self.local_search == 'random walk':
             self.random_walk_algorithm()
+        else:
+            self.log_debug('{} option is not implemented as a search method, using perutbation instead.')
+            self.perturb_design()
+           
             
     def handler_trigger_publish(self, message):
         """
@@ -202,23 +229,16 @@ class KaRpExploit(KaRpExplore):
         
         These results are written to the BB level 3, so there are design_vars * pert added to level 3.
         """
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
-            
-        core, entry = random.choice(list(lvl.items())) if random.random() > self._fitness_selection_fraction else min(list(lvl.items()))
+        core, entry = random.choice(list(self.lvl_read.items())) if random.random() > self._fitness_selection_fraction else min(list(self.lvl_read.items()))
 
-        base_design_variables = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variables.keys()}
-        i = 0
+        design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
         perts = [1.0 - self.step_size, 1.0 + self.step_size]
-        for var_name, var_value in base_design_variables.items():
+        for dv, dv_value in design_.items():
             for pert in perts:
-                self.current_design_variables = copy.copy(base_design_variables)
-                self.current_design_variables[var_name] = round(var_value * pert, self._design_accuracy)
-                if i == len(base_design_variables) * len(perts):
-                    self.determine_model_applicability(var_name, complete=False)
-                else:
-                    self.determine_model_applicability(var_name, complete=False)
-                i += 1
+                design = copy.copy(design_)
+                design[dv] = round(dv_value * pert, self._design_accuracy)
+                self.current_design_variables = design
+                self.determine_model_applicability(dv, complete=False)
         self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
         
     def hill_climbing_algorithm(self):
@@ -240,13 +260,10 @@ class KaRpExploit(KaRpExplore):
         """
         Basic random walk algorithm for searching around a viable design.
         """
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
+        core, entry = random.choice(list(self.lvl_read.items()))
+        design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
         
-        core, entry = random.choice(list(lvl.items()))
-        design = {k: lvl3[core]['reactor parameters'][k] for k in self.design_variables.keys()}
-        
-        for x in enumerate(range(10)):
+        for x in enumerate(range(self.walk_length)):
             dv = random.choice(list(self.design_variables))
             step = round(random.random() * self.step_size, self._design_accuracy)
             direction = random.choice(['+','-'])
@@ -254,26 +271,8 @@ class KaRpExploit(KaRpExplore):
             design[dv] = round(design[dv], self._design_accuracy)
             self.log_debug('Design Variable: {} Step: {}{}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
-            if x == 10:
-                self.determine_model_applicability(dv, complete=False)
-            else:
-                self.determine_model_applicability(dv, complete=False)
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
-
-                
-    def determine_model_applicability(self, dv, complete=False):
-        lvl3 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
-        
-        dv_dict = self.design_variables[dv]
-        dv_cur_val = self.current_design_variables[dv]
-        if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
-            self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
-        elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in lvl3.keys():
-            self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
-        else:
-            self.calc_objectives()
-            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=complete)
-            self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))        
+            self.determine_model_applicability(dv, complete=False)
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)    
                 
     def genetic_algorithm(self):
         """
@@ -287,9 +286,8 @@ class KaRpExploit(KaRpExplore):
         
         Returns
         -------
-            True -  if level has content
+            True -  if level has entries
             False -  if level is empty
         """
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-
         return True if lvl != {} else False

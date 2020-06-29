@@ -207,14 +207,53 @@ def test_karp_exploit_init():
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
     assert rp.get_attr('_objective_accuracy') == 2
+    assert rp.get_attr('walk_length') == 10
+    assert rp.get_attr('lvl_data') == 10
+    assert rp.get_attr('lvl_read') == 10
     ns.shutdown()
     time.sleep(0.1)
 
-def test_exploit_handler_executor():
+def test_determine_model_applicability():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga) 
+    bb.set_attr(_sm=sm_ga)
+    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_exploit')
+
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.42, 'cycle length': 365.0, 
+                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
+                                                                'burnup' : 50.0}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='new')
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1']['new'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    
+    rp.set_attr(current_design_variables={'height': 65.0, 'smear': 65.0, 'pu_content': 0.42})
+    rp.determine_model_applicability('height')
+    
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {}
+    rp.set_attr(current_design_variables={'height': 85.0, 'smear': 65.0, 'pu_content': 0.42})
+    rp.determine_model_applicability('height')
+    
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {}
+    
+    rp.set_attr(current_design_variables={'height': 70.0, 'smear': 65.0, 'pu_content': 0.42})
+    rp.determine_model_applicability('height')
+    time.sleep(1)
+    
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[70.0, 65.0, 0.42]']
+
+    ns.shutdown()
+    time.sleep(0.1)
+    
+def test_exploit_handler_executor_pert():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
@@ -240,21 +279,36 @@ def test_exploit_handler_executor():
                                                            'core_[65.0, 65.0, 0.42]']
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
     
-    bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
-    bb.send_executor()  
-    time.sleep(0.5)
-    
-    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
-                                                           'core_[61.75, 65.0, 0.4]',
-                                                           'core_[68.25, 65.0, 0.4]',
-                                                           'core_[65.0, 61.75, 0.4]',
-                                                           'core_[65.0, 68.25, 0.4]',
-                                                           'core_[65.0, 65.0, 0.38]', 
-                                                           'core_[65.0, 65.0, 0.42]',]
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
-
     ns.shutdown()
     time.sleep(0.1)
+
+def test_exploit_handler_executor_rw():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga) 
+    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    
+    rp = ns.proxy('ka_rp_exploit')
+    bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
+        
+    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                                'pu_content': 0.4, 'cycle length': 365.0, 
+                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
+                                                                'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0}, panel='new')
+
+    rp.set_attr(local_search='random walk')
+    bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
+    bb.send_executor()  
+    time.sleep(1.0)
+    try:
+        assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 10  
+    except AssertionError:
+        assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 9    
+    ns.shutdown()
+    time.sleep(0.1)  
+    
     
 def test_exploit_mc_design_variables():
     ns = run_nameserver()
@@ -311,6 +365,8 @@ def test_exploit_perturb_design():
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='new')
  
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_[65.0, 65.0, 0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}, 'old': {}}
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1']['new'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.perturb_design()
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
                                                            'core_[61.75, 65.0, 0.4]', 
@@ -397,7 +453,8 @@ def test_random_walk_algorithm():
                                                                 'burnup' : 50.0}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='new')
-
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1']['new'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.random_walk_algorithm()
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_[65.0, 65.0, 0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
     try:
