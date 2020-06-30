@@ -94,7 +94,7 @@ class Blackboard(Agent):
         lvl = {panel_name : {} for panel_name in panels}
         lvl_format = self.abstract_lvls_format['level {}'.format(level)]
         self.abstract_lvls_format['level {}'.format(level)] = {panel_name: lvl_format for panel_name in panels}
-        self.abstract_lvls['level {}'.format(level)] = lvl
+        self.abstract_lvls['level {}'.format(level)].update(lvl)
         
     def connect_executor(self, agent_name):
         """
@@ -418,7 +418,7 @@ class Blackboard(Agent):
         else:
             return data_dict[data_name](data[0])
 
-    def load_h5(self):
+    def load_h5(self, panels={}):
         """
         Load an H5 archive of the blackboard
         Loops through each H5 group and pulls all of the data into a dictionary for the BB
@@ -426,17 +426,33 @@ class Blackboard(Agent):
         """
         self.log_info("Loading H5 archive: {}".format(self.archive_name))
         h5 = h5py.File(self.archive_name, 'r')
-        for level, entries in h5.items():
-            for entry_name, entry in entries.items(): 
-                data_dict = self.get_data_types(entry)                
-                if not self.abstract_lvls.get(level, False):
-                    sub_data_dict = {}
-                    for data_name, data_type in data_dict.items():
-                        sub_data_dict[data_name] = self.get_data_types(entry[data_name]) if data_type == dict else data_dict[data_name]
-                    self.add_abstract_lvl(int(level.split(' ')[1]), sub_data_dict)
-                temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}
-                self.update_abstract_lvl(int(level.split(' ')[1]), entry_name, temp_dict)
+        for level, level_entry in h5.items():
+            lvl_num = int(level.split(' ')[1])
+            for entry_name, entry in level_entry.items():
+                if lvl_num in panels.keys():
+                    if [x for x in entry.keys()] == [] and entry_name not in self.abstract_lvls[level]:
+                        self.add_panel(lvl_num, [entry_name])
+                    else:
+                        for panel_entry_name, panel_entry in entry.items():
+                            self.some_sub_class(lvl_num, panel_entry_name, panel_entry, panel=entry_name)
+                else:
+                    self.some_sub_class(lvl_num, entry_name, entry)
         h5.close()
+
+    def some_sub_class(self, lvl_num, entry_name, entry, panel=False):
+        data_dict = self.get_data_types(entry)
+        if not self.abstract_lvls.get('level {}'.format(lvl_num), False):
+            sub_data_dict = {}
+            for data_name, data_type in data_dict.items():
+                sub_data_dict[data_name] = self.get_data_types(entry[data_name]) if data_type == dict else data_dict[data_name]
+            self.add_abstract_lvl(lvl_num, sub_data_dict)
+        temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}
+        if panel:
+            if panel not in self.abstract_lvls['level {}'.format(lvl_num)].keys():
+                self.add_panel(lvl_num, [panel])
+            self.update_abstract_lvl(lvl_num, entry_name, temp_dict, panel=panel)        
+        else:
+            self.update_abstract_lvl(lvl_num, entry_name, temp_dict)        
         
     def publish_trigger(self):
         """Send a trigger event message to all KAs."""
@@ -541,7 +557,6 @@ class Blackboard(Agent):
         else:
             abstract_lvl = self.abstract_lvls[lvl_name][panel]
             lvl_format = self.abstract_lvls_format[lvl_name][panel]
-        
         for entry_name, entry_type in entry.items():
             try:
                 assert entry_name in lvl_format.keys()
@@ -561,7 +576,7 @@ class Blackboard(Agent):
         sleep_time = 0
         if self._new_entry == False and len(self._kaar) % 10 == 0:
             self.write_to_h5()
-        while not self._new_entry: # Figure out a way to 'loopback' and determine if we have been written to
+        while not self._new_entry:
             time.sleep(1)
             sleep_time += 1
             if sleep_time > self._sleep_limit:
@@ -593,7 +608,6 @@ class Blackboard(Agent):
         self.log_info("Writing blackboard to archive")
         h5 = h5py.File(self.archive_name, 'r+')
         for level, entry in self.abstract_lvls.items():
-            time.sleep(2)
             group_level = h5[level]
             for name, data in entry.items():
                 if name in group_level.keys():

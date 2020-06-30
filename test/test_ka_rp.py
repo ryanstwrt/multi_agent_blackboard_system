@@ -208,8 +208,8 @@ def test_karp_exploit_init():
     assert rp.get_attr('old_panel') == 'old'
     assert rp.get_attr('_objective_accuracy') == 2
     assert rp.get_attr('walk_length') == 10
-    assert rp.get_attr('lvl_data') == 10
-    assert rp.get_attr('lvl_read') == 10
+    assert rp.get_attr('lvl_data') == None
+    assert rp.get_attr('lvl_read') == None
     ns.shutdown()
     time.sleep(0.1)
 

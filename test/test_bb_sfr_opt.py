@@ -77,20 +77,6 @@ def test_connect_agent():
     ns.shutdown()
     time.sleep(0.1)
     
-    
-def test_wait_for_ka():
-    ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-
-    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
-    bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
-    bb.determine_complete()
-    
-    assert bb.get_attr('_complete') == False
-    ns.shutdown()
-    time.sleep(0.1)
-
-    
 def test_add_ka_specific():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
