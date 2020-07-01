@@ -45,7 +45,7 @@ class KaBr(ka.KaBase):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
         lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         lvl_data = self.bb.get_attr('abstract_lvls')['level 3']
-                    
+                
         lvl_1 = {}
         for panel in lvl.values():
             lvl_1.update(panel)
@@ -54,8 +54,8 @@ class KaBr(ka.KaBase):
             lvl_3.update(panel)
 
         self.lvl_write = lvl_1
-        self.lvl_read = lvl_read
-        self.lvl_data = lvl_3
+        self.lvl_read  = lvl_read
+        self.lvl_data  = lvl_3
         self._num_entries = len(self.lvl_read)
 
         new_entry = self.read_bb_lvl()
@@ -66,16 +66,16 @@ class KaBr(ka.KaBase):
         
     def read_bb_lvl(self):
         for core_name, core_entry in self.lvl_read.items():
-            valid = self.determine_validity(core_name)
-            if valid[0]:
-                self.add_entry((core_name,valid[1]))
+            valid_core, opt_type = self.determine_validity(core_name)
+            if valid_core:
+                self.add_entry((core_name,opt_type))
                 return True
         return False
     
     def clear_bb_lvl(self):
         for core_name, core_entry in self.lvl_read.items():
-            valid = self.determine_validity(core_name)
-            if not valid[0]:
+            valid_core, opt_type = self.determine_validity(core_name)
+            if not valid_core:
                 self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel, write_complete=False)
                 
     def move_dominated_entries(self):
@@ -124,20 +124,18 @@ class KaBr_lvl2(KaBr):
         if self.lvl_write == {}:
             self.log_debug('Core {} is initial core for level 1.'.format(core_name))
             return (True, 'pareto')
-        
-        optimal = False
+
         for opt_core in self.lvl_write.keys():
             pareto_opt = self.determine_optimal_type(self.lvl_data[core_name]['reactor parameters'], 
                                                      self.lvl_data[opt_core]['reactor parameters'])
             if pareto_opt == None:
-                break
-            elif pareto_opt:
-                self.log_debug('Core {} is {} optimal compared to {}.'.format(core_name,pareto_opt,opt_core))
-                optimal = True
-                break
-        return (optimal, pareto_opt)
+                return (False, pareto_opt)
+        return (True, pareto_opt)
 
     def determine_dominated_cores(self):
+        """
+        Determing if any cores in level 1 are dominated by any others, if so mark them for removal
+        """
         #Update level 1, as we have just added to it likely
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
                     
@@ -150,17 +148,17 @@ class KaBr_lvl2(KaBr):
         self._dominated_designs = {}
         for core_1 in self.lvl_write.keys():
             for core_2 in self.lvl_write.keys():
-                if core_1 == core_2:
-                    pass
-                else:
+                if core_1 != core_2:
                     pareto_opt = self.determine_optimal_type(self.lvl_data[core_1]['reactor parameters'], 
                                                              self.lvl_data[core_2]['reactor parameters'])
                     if pareto_opt == None:
                         self._dominated_designs[core_1] = self.lvl_write[core_1]
-                        break
     
     def determine_fitness_function(self, core_name, core_parmeters):
-        fitness =0
+        """
+        Calculate the total fitness function based on upper and lower limits.
+        """
+        fitness = 0
         for param, obj_dict in self._objective_ranges.items():
             scaled_fit = self.objective_scaler(obj_dict['ll'], obj_dict['ul'], core_parmeters[param])
             fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
@@ -208,8 +206,8 @@ class KaBr_lvl2(KaBr):
         """
         #Move all dominated entries on level 2
         for core_name, core_entry in self.lvl_read.items():
-            valid = self.determine_validity(core_name)
-            if not valid[0]:
+            valid_core, opt_type = self.determine_validity(core_name)
+            if not valid_core:
                 self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel, write_complete=False)
 
                 
@@ -225,8 +223,6 @@ class KaBr_lvl3(KaBr):
         
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""
-        rx_params = self.lvl_data[core_name]['reactor parameters']
-
         for param_name, obj_dict in self._objective_ranges.items():     
             param = self.lvl_data[core_name]['reactor parameters'][param_name]
             if param < obj_dict['ll'] or param > obj_dict['ul']:
@@ -234,5 +230,8 @@ class KaBr_lvl3(KaBr):
         return (True, None)
     
     def add_entry(self, core_name):
+        """
+        Update the entr name and entry value.
+        """
         self._entry_name = core_name[0]
         self._entry = {'valid': True}

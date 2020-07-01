@@ -244,13 +244,33 @@ class KaRpExploit(KaRpExplore):
         Basic hill climbing algorithm for local search.
         
         Searches local area by taking some x number of steps to determine a more optimal solution.
-        """
-        hill_dv = random.choice(list(self.design_variables))
-        hill_dvs = copy.copy(base_design_variables)
-        hill_best = None
-        convergence = False
         
-        while not convergence:
+        1. Cycle through each DV and increment/decrement by step_value
+        2. Determine which DV has the steepest descent
+        2a. If no increase descent, decrease step size
+        2b. If increase descent, increase step size; Replace design with current DV
+        3a. If step_size < some value exit
+        3b. Else, repeat 
+        """
+
+        core, entry = random.choice(list(self.lvl_read.items()))
+
+        step = self.step_size
+        design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        while step < 0.5:
+            steepest_dict = {}
+            for dv in self.design_variables:
+                temp_design = copy.copy(design_)
+                temp_design[dv] += temp_design[dv] * step
+                self.current_design_variables = temp_design
+                self.calc_objectives()
+                steepest_dict['+ {}'.format(dv)] = {temp_design, self.objective_functions}
+                temp_design = copy.copy(design_)
+                temp_design[dv] -= temp_design[dv] * step
+                self.current_design_variables = temp_design
+                self.calc_objectives()
+                steepest_dict['- {}'.format(dv)] = {temp_design, self.objective_functions}
+             
             hill_dvs[hill_dv] += hill_dv * self.step_size
             
     
