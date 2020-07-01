@@ -51,13 +51,10 @@ class KaBase(Agent):
         self.bb_lvl = 0
         self._entry = None
         self._entry_name = None
-
         self._writer_addr = None
         self._writer_alias = None
-        
         self._executor_addr = None
         self._executor_alias = None
-        
         self._trigger_response_alias = 'trigger_response_{}'.format(self.name)
         self._trigger_response_addr = None
         self._trigger_publish_alias = None

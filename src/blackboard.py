@@ -260,7 +260,7 @@ class Blackboard(Agent):
         """Holder for determining when a problem will be completed."""
         pass
                 
-    def determine_h5_type(self, data_type, data_val):
+    def convert_to_h5_type(self, data_type, data_val):
         """
         Converts a data value into an appropriate H5 format for storage.
         
@@ -271,7 +271,6 @@ class Blackboard(Agent):
         data_val : data_type
             Transforms the class of data into a useable formato for H5.
             
-            
         Returns
         -------
         dava_val : varies
@@ -281,9 +280,7 @@ class Blackboard(Agent):
             return [np.string_(data_val)]
         elif data_type in (bool, int, float, tuple):
             return [data_val]
-        elif data_type == list:
-            return data_val
-        elif data_type == dict:
+        elif data_type in (list, dict):
             return data_val
         else:
             self.log_warning('Data {} was not a recongnized data type ({}), please add statment requiring how to store it.'.format(data_name, data_type))
@@ -306,10 +303,8 @@ class Blackboard(Agent):
         for k,v in data_dict.items():
             if type(v) == dict:
                 self.dict_writer(k, v, group_level[data_name])
-            elif None:
-                pass
             else:
-                group_level[data_name][k] = self.determine_h5_type(type(v), v)
+                group_level[data_name][k] = self.convert_to_h5_type(type(v), v)
                 group_level[data_name][k].attrs['type'] = repr(type(v))
         
     def finish_writing_to_bb(self):
@@ -434,25 +429,22 @@ class Blackboard(Agent):
                         self.add_panel(lvl_num, [entry_name])
                     else:
                         for panel_entry_name, panel_entry in entry.items():
-                            self.some_sub_class(lvl_num, panel_entry_name, panel_entry, panel=entry_name)
+                            self.load_h5_add_abstract_lvl(lvl_num, panel_entry_name, panel_entry, panel=entry_name)
                 else:
-                    self.some_sub_class(lvl_num, entry_name, entry)
+                    self.load_h5_add_abstract_lvl(lvl_num, entry_name, entry)
         h5.close()
 
-    def some_sub_class(self, lvl_num, entry_name, entry, panel=False):
+    def load_h5_add_abstract_lvl(self, lvl_num, entry_name, entry, panel=None):
         data_dict = self.get_data_types(entry)
-        if not self.abstract_lvls.get('level {}'.format(lvl_num), False):
-            sub_data_dict = {}
+        if lvl_num not in self.abstract_lvls.keys():
+            data_type_dict = {}
             for data_name, data_type in data_dict.items():
-                sub_data_dict[data_name] = self.get_data_types(entry[data_name]) if data_type == dict else data_dict[data_name]
-            self.add_abstract_lvl(lvl_num, sub_data_dict)
+                data_type_dict[data_name] = self.get_data_types(entry[data_name]) if data_type == dict else data_dict[data_name]
+            self.add_abstract_lvl(lvl_num, data_type_dict)
         temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}
-        if panel:
-            if panel not in self.abstract_lvls['level {}'.format(lvl_num)].keys():
-                self.add_panel(lvl_num, [panel])
-            self.update_abstract_lvl(lvl_num, entry_name, temp_dict, panel=panel)        
-        else:
-            self.update_abstract_lvl(lvl_num, entry_name, temp_dict)        
+        if (panel and panel not in self.abstract_lvls['level {}'.format(lvl_num)].keys()):
+            self.add_panel(lvl_num, [panel])
+        self.update_abstract_lvl(lvl_num, entry_name, temp_dict, panel=panel)              
         
     def publish_trigger(self):
         """Send a trigger event message to all KAs."""
@@ -499,15 +491,15 @@ class Blackboard(Agent):
         
         Returns
         -------
-        join_str : class
+        data_type_str : class
             class of the evaluated data type 'string'
         """
         split_str = string.split(' ')
         re_str = re.findall('[a-z]', split_str[1])
-        join_str = ''.join(re_str)
-        return eval(join_str)
+        data_type_str = ''.join(re_str)
+        return eval(data_type_str)
     
-    def recursive_dict(self, dict_, lvl_format):
+    def dict_type_checker(self, dict_, lvl_format):
         """
         Allows the use of nested dicts in the abstract levels
         
@@ -524,15 +516,15 @@ class Blackboard(Agent):
             dictionary of data for the blackboard
         """
         formatted_dict = {}
-        for x,y in dict_.items():
-            if type(y) == dict:
-                formatted_dict[x] = self.recursive_dict(y, lvl_format[x])
+        for k,v in dict_.items():
+            if type(v) == dict:
+                formatted_dict[k] = self.dict_type_checker(v, lvl_format[k])
             else:
-                formatted_dict[x] = type(y)
+                formatted_dict[k] = type(v)
                 try:
-                    assert type(y) == lvl_format
+                    assert formatted_dict[k] == lvl_format
                 except (TypeError, AssertionError):
-                    assert type(y) == lvl_format[x]
+                    assert formatted_dict[k] == lvl_format[k]
         return formatted_dict
             
     def update_abstract_lvl(self, level, name, entry, panel=None):
@@ -551,25 +543,26 @@ class Blackboard(Agent):
             boolean logic to determine if we are writing to a panel on an abstract level
         """
         lvl_name = 'level {}'.format(level)
-        if not panel:
-            abstract_lvl = self.abstract_lvls[lvl_name]
-            lvl_format = self.abstract_lvls_format[lvl_name]
-        else:
+        if panel:
             abstract_lvl = self.abstract_lvls[lvl_name][panel]
             lvl_format = self.abstract_lvls_format[lvl_name][panel]
+        else:
+            abstract_lvl = self.abstract_lvls[lvl_name]
+            lvl_format = self.abstract_lvls_format[lvl_name]
+            
         for entry_name, entry_type in entry.items():
             try:
                 assert entry_name in lvl_format.keys()
-                if type(entry_type) == dict:                        
-                    a = self.recursive_dict(entry_type, lvl_format[entry_name])
+                if type(entry_type) == dict:
+                    self.dict_type_checker(entry_type, lvl_format[entry_name])
                 else:
                     assert type(entry_type) == lvl_format[entry_name]
             except AssertionError:
-                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys: {}\n with value types: {}.\n Entry was not added.'.format(name, level, entry.keys(), entry.values(), lvl_format.keys(), lvl_format.values()))
-                self.finish_writing_to_bb()
+                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys: {}\n with value types: {}.\n Entry was not added.'.format(name, level, [x for x in entry.keys()], [x for x in entry.values()], [x for x in lvl_format.keys()], [x for x in lvl_format.values()]))
                 return
         
         abstract_lvl[name] = entry
+        return
                       
             
     def write_to_h5(self):
@@ -588,7 +581,7 @@ class Blackboard(Agent):
             - 3.1415
         """
         if not os.path.isfile(self.archive_name):
-            self.log_info('Creating {}'.format(self.archive_name))
+            self.log_info('Creating New Database: {}'.format(self.archive_name))
             h5 = h5py.File(self.archive_name, 'w')
             for level in self.abstract_lvls.keys():
                 h5.create_group(level)
@@ -599,18 +592,14 @@ class Blackboard(Agent):
         for level, entry in self.abstract_lvls.items():
             group_level = h5[level]
             for name, data in entry.items():
-                if name in group_level.keys():
-                    pass
-                else:
+                if name not in group_level.keys():
                     group_level.create_group(name)
                     for data_name, data_val in data.items():
                         data_type = type(data_val)
                         if data_type == dict:
                             self.dict_writer(data_name, data_val, group_level[name])
-                        elif None:
-                            pass
                         else:
-                            group_level[name][data_name] = self.determine_h5_type(data_type, data_val)
+                            group_level[name][data_name] = self.convert_to_h5_type(data_type, data_val)
                             group_level[name][data_name].attrs['type'] = repr(data_type)
         self.log_info("Finished writing to archive")
         h5.close()
