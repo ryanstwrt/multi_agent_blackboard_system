@@ -21,18 +21,6 @@ def test_BbSfrOpt_init():
     assert bb.get_attr('_new_entry') == False
     assert bb.get_attr('archive_name') == 'blackboard_archive.h5'
     assert bb.get_attr('_sleep_limit') == 10
-
-    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str, 'fitness function': float}, 
-                                                               'old':{'pareto type': str, 'fitness function': float}},
-                                                   'level 2': {'new': {'valid': bool}, 
-                                                               'old': {'valid': bool}},
-                                                   'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
-                                                               'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
-
-    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 
-                                            'level 2': {'new':{}, 'old':{}}, 
-                                            'level 3': {'new': {}, 'old': {}}}
-    
     assert bb.get_attr('_ka_to_execute') == (None, 0) 
     assert bb.get_attr('_trigger_event') == 0
     assert bb.get_attr('_kaar') == {}
@@ -49,8 +37,45 @@ def test_BbSfrOpt_init():
     assert bb.get_attr('_complete') == False
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
+    
+def test_BbSfrOpt_initalize_abstract_level_3_basic():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str, 'fitness function': float}, 
+                                                               'old':{'pareto type': str, 'fitness function': float}},
+                                                   'level 2': {'new': {'valid': bool}, 
+                                                               'old': {'valid': bool}},
+                                                   'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
+                                                               'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
 
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 
+                                            'level 2': {'new':{}, 'old':{}}, 
+                                            'level 3': {'new': {}, 'old': {}}}
+    ns.shutdown()
+    time.sleep(0.05)
+
+def test_BbSfrOpt_initalize_abstract_level_3():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    dv =   {'height':           {'ll': 50, 'ul': 80, 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str, 'fitness function': float}, 
+                                                               'old':{'pareto type': str, 'fitness function': float}},
+                                                   'level 2': {'new': {'valid': bool}, 
+                                                               'old': {'valid': bool}},
+                                                   'level 3': {'new': {'reactor parameters': {'height': float, 'reactivity swing': float, 'burnup': float}},
+                                                               'old': {'reactor parameters': {'height': float, 'reactivity swing': float, 'burnup': float}}}}
+
+    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 
+                                            'level 2': {'new':{}, 'old':{}}, 
+                                            'level 3': {'new': {}, 'old': {}}}
+    ns.shutdown()
+    time.sleep(0.1)
+    
 def test_connect_agent():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
@@ -103,7 +128,7 @@ def test_add_ka_specific():
                                                     'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
             
     ns.shutdown()
-    time.sleep(0.1)  
+    time.sleep(0.05)  
 
 def test_determine_complete():
     ns = run_nameserver()
@@ -121,13 +146,14 @@ def test_determine_complete():
     assert ns.agents() == ['blackboard']
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_handler_writer():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     rp = run_agent(name='explore', base=karp.KaRpExplore)
     rp1 = run_agent(name='exploit', base=karp.KaRpExploit)
+    bb.initialize_abstract_level_3()
     rp.add_blackboard(bb)
     rp1.add_blackboard(bb)
     rp.connect_writer()
@@ -166,4 +192,4 @@ def test_handler_writer():
     
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)

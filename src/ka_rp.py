@@ -167,13 +167,11 @@ class KaRpExploit(KaRpExplore):
         """
         dv_dict = self.design_variables[dv]
         dv_cur_val = self.current_design_variables[dv]
-        print(dv, dv_cur_val)
         if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
             self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
         elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in self.lvl_data.keys():
             self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
         else:
-            print('hereererer')
             self.calc_objectives()
             self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=complete)
             self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    

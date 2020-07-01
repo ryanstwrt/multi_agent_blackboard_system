@@ -25,7 +25,7 @@ def test_ka_init_agent():
     assert ka_b.get_attr('_shutdown_addr') == None
     assert ka_b.get_attr('_shutdown_alias') == None
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_add_blackboard():
     ns = run_nameserver()
@@ -38,7 +38,7 @@ def test_add_blackboard():
     assert ka_b.get_attr('bb') == bb
     assert bb.get_attr('agent_addrs') == {'ka_base': {}}
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_connect_executor():
     ns = run_nameserver()
@@ -51,7 +51,7 @@ def test_connect_executor():
     assert bb.get_attr('agent_addrs')['ka_base']['executor'] == (ka_b.get_attr('_executor_alias'), ka_b.get_attr('_executor_addr'))
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_connect_trigger_event():
     ns = run_nameserver()
@@ -66,7 +66,7 @@ def test_connect_trigger_event():
     assert ka_b.get_attr('_trigger_publish_addr') == bb.get_attr('_pub_trigger_addr')
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_connect_shutdown():
     ns = run_nameserver()
@@ -77,7 +77,7 @@ def test_connect_shutdown():
     assert ka_b.get_attr('_shutdown_alias') == 'shutdown_ka_base'
     assert bb.get_attr('agent_addrs')['ka_base']['shutdown'] == (ka_b.get_attr('_shutdown_alias'), ka_b.get_attr('_shutdown_addr'))
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_connect_writer():
     ns = run_nameserver()
@@ -88,7 +88,7 @@ def test_connect_writer():
     assert ka_b.get_attr('_writer_alias') == 'writer_ka_base'
     assert bb.get_attr('agent_addrs')['ka_base']['writer'] == (ka_b.get_attr('_writer_alias'), ka_b.get_attr('_writer_addr'))
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_move_curent_entry():
     ns = run_nameserver()
@@ -107,7 +107,7 @@ def test_move_curent_entry():
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old' : {'core_1' : {'valid' : True}}}
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
     
 def test_write_to_blackboard():
@@ -128,7 +128,7 @@ def test_write_to_blackboard():
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': (0,1,0), 'entry 2': [0,1,0], 'entry 3': 'test'}}}
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_trigger_event():
     ns = run_nameserver()
@@ -157,7 +157,7 @@ def test_trigger_event():
     assert bb.get_attr('_ka_to_execute') == ('ka_base1', 1)
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_shutdown():
     ns = run_nameserver()
@@ -171,4 +171,4 @@ def test_shutdown():
     assert ns.agents() ==['blackboard']
 
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.05)    

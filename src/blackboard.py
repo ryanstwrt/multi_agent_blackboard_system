@@ -570,19 +570,8 @@ class Blackboard(Agent):
                 return
         
         abstract_lvl[name] = entry
-        
-    def wait_for_ka(self):
-        """Write to H5 file and sleep while waiting for agents."""
-        sleep_time = 0
-        if self._new_entry == False and len(self._kaar) % 10 == 0:
-            self.write_to_h5()
-        while not self._new_entry:
-            time.sleep(1)
-            sleep_time += 1
-            if sleep_time > self._sleep_limit:
-                break
-        self._new_entry = False
-                            
+                      
+            
     def write_to_h5(self):
         """BB will convert data from abstract levels to H5 file.
         

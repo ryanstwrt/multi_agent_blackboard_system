@@ -41,7 +41,7 @@ def test_karp_init():
     assert rp.get_attr('_objective_accuracy') == 2
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 #----------------------------------------------------------
 # Tests fopr KA-RP-Explore
@@ -77,11 +77,12 @@ def test_karp_explore_init():
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('_objective_accuracy') == 2
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_explore_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
 
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga) 
@@ -101,11 +102,12 @@ def test_explore_handler_executor():
     assert rp.get_attr('_trigger_val') == 0
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_explore_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
     bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp')
     
     bb.publish_trigger()
@@ -121,7 +123,7 @@ def test_explore_handler_trigger_publish():
     assert bb.get_attr('_ka_to_execute') == ('ka_rp', 0.50)
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_explore_mc_design_variables():
     ns = run_nameserver()
@@ -136,14 +138,15 @@ def test_explore_mc_design_variables():
     assert rp.get_attr('current_design_variables') != {}
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_create_sm_interpolate():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.set_attr(objectives={'keff': {'ll':0.95, 'ul': 1.25, 'goal':'gt', 'variable type': float}, 
+    objs={'keff': {'ll':0.95, 'ul': 1.25, 'goal':'gt', 'variable type': float}, 
                             'void': {'ll':-200, 'ul': 0, 'goal':'lt',  'variable type': float}, 
-                            'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}})
+                            'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
     bb.generate_sm()
     
     sm = bb.get_attr('_sm')
@@ -151,17 +154,18 @@ def test_create_sm_interpolate():
     assert keff == 0.9992587833657331
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_create_sm_regression():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.set_attr(objectives={'keff': {'ll':0.95, 'ul':1.25, 'goal':'gt', 'variable type': float}, 
-                            'void': {'ll':-200, 'ul':0, 'goal':'lt',  'variable type': float}, 
-                            'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}})    
+    objs={'keff': {'ll':0.95, 'ul':1.25, 'goal':'gt', 'variable type': float}, 
+          'void': {'ll':-200, 'ul':0, 'goal':'lt',  'variable type': float}, 
+          'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
     bb.set_attr(sm_type='lr')
     bb.generate_sm()
-    
+    time.sleep(1)
     sm = bb.get_attr('_sm')
     objs = sm.predict('lr', [[61.37,51.58,0.7340]])
     assert round(objs[0][0], 8) == 1.00290541
@@ -169,7 +173,7 @@ def test_create_sm_regression():
     assert sm.models['lr']['mse_score'] == 0.13092446889225426
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 #----------------------------------------------------------
 # Tests fopr KA-RP-Exploit
@@ -211,11 +215,12 @@ def test_karp_exploit_init():
     assert rp.get_attr('lvl_data') == None
     assert rp.get_attr('lvl_read') == None
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_determine_model_applicability():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
@@ -247,11 +252,12 @@ def test_determine_model_applicability():
     assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[70.0, 65.0, 0.42]']
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_exploit_handler_executor_pert():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
@@ -280,11 +286,12 @@ def test_exploit_handler_executor_pert():
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_exploit_handler_executor_rw():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga) 
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
@@ -307,7 +314,7 @@ def test_exploit_handler_executor_rw():
     except AssertionError:
         assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 9    
     ns.shutdown()
-    time.sleep(0.1)  
+    time.sleep(0.05)  
     
     
 def test_exploit_mc_design_variables():
@@ -323,11 +330,12 @@ def test_exploit_mc_design_variables():
     assert rp.get_attr('current_design_variables') != {}
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_exploit_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga) 
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp')
@@ -346,12 +354,13 @@ def test_exploit_handler_trigger_publish():
     assert bb.get_attr('_ka_to_execute') == ('ka_rp', 5)
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
     
 def test_exploit_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
@@ -378,7 +387,7 @@ def test_exploit_perturb_design():
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_[65.0, 65.0, 0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_exploit_move_entry():
     ns = run_nameserver()
@@ -396,12 +405,13 @@ def test_exploit_move_entry():
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new' : {}, 'old' : {'core 1' : {'pareto type' : 'weak', 'fitness function' : 1.0}}}    
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_exploit_write_to_bb():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     ka = run_agent(name='ka_rp_exploit', base=ka_rp.KaRpExploit)
+    bb.initialize_abstract_level_3()
     ka.add_blackboard(bb)
     ka.connect_writer()
     
@@ -435,11 +445,12 @@ def test_exploit_write_to_bb():
     assert bb.get_attr('_agent_writing') == False
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_random_walk_algorithm():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
@@ -463,4 +474,4 @@ def test_random_walk_algorithm():
         assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 9
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)

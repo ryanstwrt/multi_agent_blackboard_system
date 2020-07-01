@@ -32,7 +32,7 @@ def test_kabr_init():
     assert ka_b.get_attr('_num_allowed_entries') == 25
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_kabr_trigger_handler_publish():
     ns = run_nameserver()
@@ -53,7 +53,7 @@ def test_kabr_trigger_handler_publish():
     assert bb.get_attr('_kaar') == {1: {'ka_br': 0}}
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_kabr_clear_entry():
     ns = run_nameserver()
@@ -67,7 +67,7 @@ def test_kabr_clear_entry():
     assert ka_b.get_attr('_entry_name') == None 
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 #-----------------------------------------
 # Test of KaBr_lvl2
@@ -100,7 +100,7 @@ def test_kabr_lvl2_init():
     assert ka_br2.get_attr('_fitness') == 0.0
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_kabr_lvl2_add_entry():
     ns = run_nameserver()
@@ -112,7 +112,7 @@ def test_kabr_lvl2_add_entry():
     assert ka_br_lvl2.get_attr('_entry_name') == 'core_1'
     
     ns.shutdown()
-    time.sleep(0.1) 
+    time.sleep(0.05) 
     
 def test_kabr_lvl2_determine_validity():
     ns = run_nameserver()
@@ -171,7 +171,7 @@ def test_kabr_lvl2_determine_validity():
     assert bol == False
     
     ns.shutdown()
-    time.sleep(0.1) 
+    time.sleep(0.05) 
     
 def test_move_curent_entry():
     ns = run_nameserver()
@@ -196,7 +196,7 @@ def test_move_curent_entry():
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new' : {}, 'old' : {'core_1' : {'valid' : True}}}
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_kabr_lvl2_determine_optimal_type():
     ns = run_nameserver()
@@ -231,7 +231,7 @@ def test_kabr_lvl2_determine_optimal_type():
     assert bool_ == None
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_determine_fitness_function():
     ns = run_nameserver()
@@ -244,7 +244,7 @@ def test_determine_fitness_function():
     assert fitness == 1.4
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_objective_scaler():
     ns = run_nameserver()
@@ -252,11 +252,12 @@ def test_objective_scaler():
     assert ka_br_lvl2.objective_scaler(0, 2, 1.0) == 0.5
     
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.05)    
     
 def test_kabr_lvl2_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.initialize_abstract_level_3()
     bb.connect_agent(ka_br.KaBr_lvl2, 'ka_br_lvl2')
     br = ns.proxy('ka_br_lvl2')
     br.set_attr(_num_allowed_entries=1)
@@ -278,7 +279,7 @@ def test_kabr_lvl2_handler_trigger_publish():
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl2', 5)
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_kabr_lvl2_handler_executor():
     ns = run_nameserver()
@@ -358,7 +359,7 @@ def test_kabr_lvl2_handler_executor():
                                                                'core_3' : {'valid' : True},
                                                                'core_4' : {'valid' : True}}}       
     ns.shutdown()
-    time.sleep(0.1) 
+    time.sleep(0.05) 
     
 #-----------------------------------------
 # Test of KaBr_lvl3
@@ -387,7 +388,7 @@ def test_kabr_lvl3_init():
     assert ka_br2.get_attr('_num_allowed_entries') == 25
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_kabr_lvl3_determine_validity():
     ns = run_nameserver()
@@ -441,12 +442,13 @@ def test_kabr_lvl3_read_bb_lvl():
     assert ka_br_lvl3.get_attr('_entry_name') == 'core_1'
 
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.05)    
 
 def test_kabr_lvl3_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     br = run_agent(name='ka_br_lvl3', base=ka_br.KaBr_lvl3)
+    bb.initialize_abstract_level_3()
     br.add_blackboard(bb)
     br.connect_trigger()
     br.connect_writer()
@@ -489,7 +491,7 @@ def test_kabr_lvl3_handler_trigger_publish():
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_kabr_lvl3_handler_executor():
     ns = run_nameserver()
@@ -539,7 +541,7 @@ def test_kabr_lvl3_handler_executor():
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True},
                                                               'core_2': {'valid': True}}, 'old': {}}
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_kabr_lvl3_add_entry():
     ns = run_nameserver()
@@ -551,4 +553,4 @@ def test_kabr_lvl3_add_entry():
     assert ka_br_lvl3.get_attr('_entry_name') == 'core_1'
     
     ns.shutdown()
-    time.sleep(0.1) 
+    time.sleep(0.05) 

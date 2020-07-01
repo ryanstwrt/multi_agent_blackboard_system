@@ -32,7 +32,6 @@ class KaBr(ka.KaBase):
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
-#        new_entry = self.read_bb_lvl()
         self.clear_bb_lvl()
         if self._entry:
             self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel, complete=False)

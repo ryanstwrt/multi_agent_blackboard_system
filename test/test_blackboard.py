@@ -28,7 +28,7 @@ def test_blackboard_init_agent():
     assert bb.get_attr('_pub_trigger_alias') == 'trigger'
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_add_abstract_lvl():
     ns = run_nameserver()
@@ -40,7 +40,7 @@ def test_add_abstract_lvl():
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'entry 1': str, 'entry 2': bool, 'entry 3': int}}
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_add_panel():
     ns = run_nameserver()
@@ -59,7 +59,7 @@ def test_add_panel():
     assert bb.get_attr('abstract_lvls') == {'level 1': {'panel_a': {'test_name': {'entry 1': 'foo', 'entry 2': 5}},'panel_b': {},'panel_c': {}}}
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_connect_executor():
     ns = run_nameserver()
@@ -68,7 +68,7 @@ def test_connect_executor():
     bb.connect_executor('test')
     assert bb.get_attr('agent_addrs')['test']['executor'][0] == 'executor_test'
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_connect_executor_agent():
     ns = run_nameserver()
@@ -78,7 +78,7 @@ def test_connect_executor_agent():
     ka_base.connect_executor()
     assert bb.get_attr('agent_addrs')['ka_b']['executor'][0] == 'executor_ka_b'
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_connect_trigger_agent():
     ns = run_nameserver()
@@ -89,7 +89,7 @@ def test_connect_trigger_agent():
     assert bb.get_attr('agent_addrs')['ka_b']['trigger_response'][0] == 'trigger_response_ka_b'
 
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.05)    
 
 def test_connect_shutdown():
     ns = run_nameserver()
@@ -99,7 +99,7 @@ def test_connect_shutdown():
     assert bb.get_attr('agent_addrs')['test']['shutdown'][0] == 'shutdown_test'
 
     ns.shutdown()
-    time.sleep(0.1) 
+    time.sleep(0.05) 
     
 def test_connect_shutdown_agent():
     ns = run_nameserver()
@@ -110,7 +110,7 @@ def test_connect_shutdown_agent():
     assert bb.get_attr('agent_addrs')['ka']['shutdown'][0] == 'shutdown_ka'
 
     ns.shutdown()
-    time.sleep(0.1) 
+    time.sleep(0.05) 
     
 def test_connect_writer():
     ns = run_nameserver()
@@ -119,7 +119,7 @@ def test_connect_writer():
     bb.connect_writer('test')
     assert bb.get_attr('agent_addrs')['test']['writer'][0] == 'writer_test'
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_connect_writer_agent():
     ns = run_nameserver()
@@ -136,7 +136,7 @@ def test_connect_writer_agent():
     assert bb.get_attr('agent_addrs')['ka_b1']['writer'][0] == 'writer_ka_b1'
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_connect_agent():
     ns = run_nameserver()
@@ -156,7 +156,7 @@ def test_connect_agent():
     assert bb.get_attr('agent_addrs')['base']['writer'] == (base.get_attr('_writer_alias'), base.get_attr('_writer_addr'))
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_controller():
     ns = run_nameserver()
@@ -176,7 +176,7 @@ def test_controller():
     assert bb.get_attr('_ka_to_execute') == ('ka_b1', 2)
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_diagnostics_agent_present():
     ns = run_nameserver()
@@ -186,7 +186,7 @@ def test_diagnostics_agent_present():
     assert bb.diagnostics_agent_present('ka_b') == True
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_diagnostics_replace_agent():
     ns = run_nameserver()
@@ -199,7 +199,7 @@ def test_diagnostics_replace_agent():
     bb.diagnostics_replace_agent()
     assert ns.agents() == ['blackboard', 'ka_b']
     bb.send('shutdown_ka_b', 'message')
-    time.sleep(0.1)
+    time.sleep(0.05)
     assert ns.agents() == ['blackboard']
     bb.diagnostics_replace_agent()
     assert ns.agents() == ['blackboard', 'ka_b']
@@ -209,7 +209,7 @@ def test_diagnostics_replace_agent():
     assert ns.agents() == ['blackboard', 'ka_b']
 
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.05)    
     
 def test_send_executor():
     ns = run_nameserver()
@@ -225,7 +225,7 @@ def test_send_executor():
         pass
 
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.05)    
 
 def test_remove_bb_entry():
     ns = run_nameserver()
@@ -243,7 +243,7 @@ def test_remove_bb_entry():
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 'level 2': {'new':{}, 'old':{}}}
 
     ns.shutdown()
-    time.sleep(0.1) 
+    time.sleep(0.05) 
     
 def test_remove_bb_entry_agent():
     ns = run_nameserver()
@@ -270,7 +270,7 @@ def test_remove_bb_entry_agent():
     assert bb.get_attr('abstract_lvls') == {'level 1': {},
                                             'level 2': {'core_2': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_update_abstract_lvl():
     ns = run_nameserver()
@@ -292,7 +292,7 @@ def test_update_abstract_lvl():
                                              'core_2':  {'entry 1': 'test_2', 'entry 2': True, 'entry 3': 6}}}
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_update_abstract_lvl_agent():
     ns = run_nameserver()
@@ -307,7 +307,7 @@ def test_update_abstract_lvl_agent():
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_update_abstract_lvl_overwrite():
     ns = run_nameserver()
@@ -320,7 +320,7 @@ def test_update_abstract_lvl_overwrite():
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1' : {'entry 1': 'testing', 'entry 2': True, 'entry 3': 5}}}
 
     ns.shutdown()
-    time.sleep(0.1)   
+    time.sleep(0.05)   
     
 def test_update_abstract_lvl_mult():
     ns = run_nameserver()
@@ -340,7 +340,7 @@ def test_update_abstract_lvl_mult():
                                             'level 2': {'core_2': {'entry 1': 1.2, 'entry 2': 'testing'}},
                                             'level 3': {'core_2': {'entry 3': {'foo': 1.1, 'spam': 3.2}}}}
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_update_abstract_lvl_multi_agent():
     ns = run_nameserver()
@@ -363,7 +363,7 @@ def test_update_abstract_lvl_multi_agent():
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                             'level 2': {'core_2': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}}}
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 def test_rewrite_bb_entry():
     ns = run_nameserver()
@@ -390,7 +390,7 @@ def test_rewrite_bb_entry():
     assert bb.get_attr('abstract_lvls') == {'level 1': {'core_1': {'entry 1': 'test', 'entry 2': False, 'entry 3': 2}},
                                             'level 2': {'core_2': {'entry 1': 'test_new', 'entry 2': True, 'entry 3': 5}}}
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_write_to_h5():
     ns = run_nameserver()
@@ -408,7 +408,7 @@ def test_write_to_h5():
     bb.update_abstract_lvl(4, 'core_4', {'entry 1': {'test 1': {'nested_test': 3}}})
 
     
-    time.sleep(0.1)
+    time.sleep(0.05)
     bb.write_to_h5()
     
     abs_lvls = bb.get_attr('abstract_lvls')
@@ -436,7 +436,7 @@ def test_write_to_h5():
     bb_archive.close()
     os.remove('blackboard_archive.h5')
     ns.shutdown()    
-    time.sleep(0.1)  
+    time.sleep(0.05)  
 
 def test_load_h5():
     ns = run_nameserver()
@@ -456,7 +456,7 @@ def test_load_h5():
     bb.update_abstract_lvl(3, 'core_3', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1,2,3]})
     bb.update_abstract_lvl(4, 'core_4', {'entry 1': {'test 1': {'nested_test': 3}}})
     
-    time.sleep(0.1)
+    time.sleep(0.05)
     bb.write_to_h5()
     time.sleep(1)
     bb1.load_h5(panels={1: ['new','old']})
@@ -468,4 +468,4 @@ def test_load_h5():
     ns.shutdown()   
     os.remove('blackboard_archive.h5')
     
-    time.sleep(0.1)    
+    time.sleep(0.05)    

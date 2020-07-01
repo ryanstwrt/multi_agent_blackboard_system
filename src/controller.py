@@ -15,7 +15,7 @@ class Controller(object):
     
     The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
     
-    def __init__(self, bb_name='bb', bb_type=blackboard.Blackboard, ka={}, archive='bb_archive', agent_wait_time=30, plot_progress=False):
+    def __init__(self, bb_name='bb', bb_type=blackboard.Blackboard, ka={}, objectives=None, design_variables=None, archive='bb_archive', agent_wait_time=30, plot_progress=False):
         self.bb_name = bb_name
         self.bb_type = bb_type
         self.agent_wait_time = agent_wait_time
@@ -23,8 +23,9 @@ class Controller(object):
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
         self.plot_progress = plot_progress
-        
+
         if bb_type == bb_sfr_opt.BbSfrOpt:
+            self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
             self.bb.set_attr(_sm='gpr')
             self.bb.generate_sm()
         
@@ -47,11 +48,11 @@ class Controller(object):
             self.bb.controller()
             self.bb.set_attr(_new_entry=False)
             self.bb.send_executor()
-            # Some type of dynamic sleeping until triggered agent starts execution?
+            # TODO Keep track of how long each agent takes to run, increase the agents TV based on how long it takes
             agent_wait = 0
             while self.bb.get_attr('_new_entry') == False:
-                time.sleep(1.0)
-                agent_wait += 1
+                time.sleep(0.1)
+                agent_wait += 0.1
                 if agent_wait > self.agent_wait_time:
                     break
             self.bb.determine_complete()

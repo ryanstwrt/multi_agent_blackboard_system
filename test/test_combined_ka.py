@@ -121,7 +121,7 @@ def test_combined_kabr_karp():
     ns = run_nameserver()
     
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-
+    bb.initialize_abstract_level_3()
     model = 'ann'
     with open('test/sm_{}.pkl'.format(model), 'rb') as pickle_file:
         sm_ga = pickle.load(pickle_file)

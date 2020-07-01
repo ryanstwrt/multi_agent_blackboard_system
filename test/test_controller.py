@@ -12,7 +12,7 @@ def test_controller_init():
     assert bb_controller.bb_type == blackboard.Blackboard
     assert bb_controller.agent_wait_time == 30
     bb_controller.ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_controller_init_sfr_opt():
     kas = {'ka_rp_explore': ka_rp.KaRpExplore, 
@@ -29,7 +29,7 @@ def test_controller_init_sfr_opt():
     assert [x for x in agents.keys()] == ['ka_rp_explore', 'ka_rp_exploit', 'ka_br_lvl3', 'ka_br_lvl2']
     
     bb_controller.ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_run_single_agent_bb():
     kas = {'ka_rp_explore': ka_rp.KaRpExplore, 
@@ -48,4 +48,4 @@ def test_run_single_agent_bb():
     assert bb_controller.bb.get_attr('_complete') == True
     bb_controller.ns.shutdown()
     os.remove('sfr_opt.h5')
-    time.sleep(0.1)
+    time.sleep(0.05)
