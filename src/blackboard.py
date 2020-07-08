@@ -212,7 +212,6 @@ class Blackboard(Agent):
         """Holder for implementing and connect a specific knowledge agent."""
         pass
         
-        
     def controller(self):
         """Determines which KA to select after a trigger event."""
         self.log_debug('Determining which KA to execute')
@@ -221,6 +220,8 @@ class Blackboard(Agent):
             if v > self._ka_to_execute[1]:
                 self._ka_to_execute = (k,v)                
     
+    def controller_update_kaar(self, trig_num, time):
+        self._kaar[trig_num].update({'time': (self._ka_to_execute[0], time)})
     
     def diagnostics_agent_present(self, agent):
         """

@@ -7,6 +7,8 @@ import blackboard
 import time
 import bb_sfr_opt
 
+import os
+import pickle
 
 # Can the controller keep track of the BB levels and update the trigger values of different agents as needed?
 
@@ -23,9 +25,15 @@ class Controller(object):
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
         self.plot_progress = plot_progress
+        self.agent_time = 0
 
         if bb_type == bb_sfr_opt.BbSfrOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
+#            model = 'ann'
+#            with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
+#                sm_ga = pickle.load(pickle_file)
+#            self.bb.set_attr(sm_type=model)
+#            self.bb.set_attr(_sm=sm_ga)
             self.bb.set_attr(_sm='gpr')
             self.bb.generate_sm()
         
@@ -49,12 +57,12 @@ class Controller(object):
             self.bb.set_attr(_new_entry=False)
             self.bb.send_executor()
             # TODO Keep track of how long each agent takes to run, increase the agents TV based on how long it takes
-            agent_wait = 0
             while self.bb.get_attr('_new_entry') == False:
                 time.sleep(0.1)
-                agent_wait += 0.1
-                if agent_wait > self.agent_wait_time:
+                self.agent_time += 0.1
+                if self.agent_time > self.agent_wait_time:
                     break
+            self.update_bb_trigger_values(trig_num)
             self.bb.determine_complete()
             if len(self.bb.get_attr('_kaar')) % 50 == 0 or self.bb.get_attr('_complete') == True:
                 self.bb.write_to_h5()
@@ -62,12 +70,14 @@ class Controller(object):
                     self.bb.plot_progress()
                 self.bb.diagnostics_replace_agent()
                 
-    def update_ka_trigger_val(self, ka):
+    def update_bb_trigger_values(self, trig_num):
         """
         Update a knowledge agents trigger value.
         
         If BB has too many entries on a abstract level, the KA trigger value gets increased by 1.
         If the BB has few entries on the abstract level, the KA trigger value is reduced by 1.
         """
-        current_val = ka.get_attr('_trigger_val')
-        ka.set_attr(_trigger_val=current_val+1)
+        print(self.bb.get_attr('_kaar')[trig_num])
+        self.bb.controller_update_kaar(trig_num, round(self.agent_time,2))
+        print(self.bb.get_attr('_kaar')[trig_num])
+        self.agent_time = 0

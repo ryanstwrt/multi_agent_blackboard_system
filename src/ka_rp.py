@@ -75,11 +75,11 @@ class KaRpExplore(KaRp):
         design = [x for x in self.current_design_variables.values()]
         if self.sm_type == 'interpolate':
             for obj_name, interpolator in self._sm.items():
-                self.objective_functions[obj_name] = float(interpolator(tuple(design)))
+                self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
         else:
             obj_list = self._sm.predict(self.sm_type, [design])
             for num, obj in enumerate(self.objectives.keys()):
-                self.objective_functions[obj] = float(obj_list[0][num])
+                self.objective_functions[obj] = round(float(obj_list[0][num]), self._objective_accuracy)
         a = self.current_design_variables.copy()
         a.update(self.objective_functions)
         self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in a.items()]))
@@ -150,8 +150,12 @@ class KaRpExploit(KaRpExplore):
         self._base_trigger_val = 5
         self.bb_lvl_read = 1
         self.step_size = 0.05
-        self._design_accuracy = 3
+        self.step_rate = 0.1
+        self.step_limit = 100
+        self.convergence_criteria = 0.005
+        self._design_accuracy = 5
         self._fitness_selection_fraction = 0.7
+        self.avg_diff_limit = 5
         self.new_panel = 'new'
         self.old_panel = 'old'
         self.local_search = 'perturbation'
@@ -189,6 +193,8 @@ class KaRpExploit(KaRpExplore):
             self.perturb_design()
         elif self.local_search == 'random walk':
             self.random_walk_algorithm()
+        elif self.local_search == 'hill climbing':
+            self.hill_climbing_algorithm()
         else:
             self.log_debug('{} option is not implemented as a search method, using perutbation instead.')
             self.perturb_design()
@@ -257,23 +263,76 @@ class KaRpExploit(KaRpExplore):
 
         step = self.step_size
         design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
-        while step < 0.5:
+        design_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.objectives.keys()}
+        step_number = 0
+        hc_log = {}
+        avg_diff = 0
+        prev_avg = 1
+        while step > self.convergence_criteria:
             steepest_dict = {}
             for dv in self.design_variables:
-                temp_design = copy.copy(design_)
-                temp_design[dv] += temp_design[dv] * step
-                self.current_design_variables = temp_design
-                self.calc_objectives()
-                steepest_dict['+ {}'.format(dv)] = {temp_design, self.objective_functions}
-                temp_design = copy.copy(design_)
-                temp_design[dv] -= temp_design[dv] * step
-                self.current_design_variables = temp_design
-                self.calc_objectives()
-                steepest_dict['- {}'.format(dv)] = {temp_design, self.objective_functions}
-             
-            hill_dvs[hill_dv] += hill_dv * self.step_size
+                for direction in ['+', '-']:
+                    temp_design = copy.copy(design_)
+                    if direction == '+':
+                        temp_design[dv] += temp_design[dv] * step
+                    else:
+                        temp_design[dv] -= temp_design[dv] * step
+                    temp_design[dv] = round(temp_design[dv], 5)
+                    if temp_design[dv] >= self.design_variables[dv]['ll'] and temp_design[dv] <= self.design_variables[dv]['ul']:
+                        self.current_design_variables = temp_design
+                        self.calc_objectives()
+                        steepest_dict['{} {}'.format(direction,dv)] = {'design variables': temp_design, 
+                                                                       'objective functions': {k:round(v,3) for k,v in self.objective_functions.items()}}
+            if steepest_dict:
+                next_step, diff = self.determine_step(design_, design_objs, steepest_dict)
+                if next_step:
+                    hc_log[step_number] = diff
+                    avg_diff = sum(hc_log.values()) / len(hc_log)
+                    prev_avg = avg_diff
+                    design_ = steepest_dict[next_step]['design variables']
+                    design_objs = steepest_dict[next_step]['objective functions']
+                    self.current_design_variables = {k:v for k,v in steepest_dict[next_step]['design variables'].items()}
+                    self.determine_model_applicability(next_step.split(' ')[1], complete=False)
+                if len(hc_log) > self.avg_diff_limit:
+                    step = round(step * (1-self.step_rate),5) if abs(1 - avg_diff/prev_avg) < step else step
+                if next_step == None:
+                    step = round(step * (1-self.step_rate),5)
+            else:
+                step = round(step * (1-self.step_rate), 5)
+            hc_log.pop(list(hc_log)[0]) if len(hc_log) > self.avg_diff_limit else hc_log
+            step_number += 1
+            if step_number > self.step_limit:
+                break
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)    
+
+
+    def determine_step(self, base, base_design, design_dict):
+        """
+        Determine which design we should use to take a step.
+        """
+        design = {}
+        best_design = {}
+        best_design['total'] = 0
+        for pert_dv, dict_ in design_dict.items():
+            dv = pert_dv.split(' ')[1]
+            design[pert_dv] = {}
+            design[pert_dv]['total'] = 0
+            for name, obj in self.objectives.items():
+                base_obj = base_design[name]
+                new_obj = dict_['objective functions'][name]
+                if new_obj >= self.objectives[name]['ll'] and new_obj <= self.objectives[name]['ul']:
+                    diff = (new_obj - base_obj) if obj['goal'] == 'gt' else (base_obj - new_obj)
+     #               print(pert_dv, name, base_obj, new_obj, diff)
+                    design[pert_dv][name] = (diff / base_obj)
+                    design[pert_dv]['total'] += (diff / base_obj)
+                    if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total']:
+                        best_design = design[pert_dv]
+                        best_design['pert'] = pert_dv
+        if best_design['total'] > 0:
+            return (best_design['pert'], best_design['total'])
+        else:
+            return (None, None)
             
-    
     def random_walk_algorithm(self):
         """
         Basic random walk algorithm for searching around a viable design.
@@ -287,7 +346,7 @@ class KaRpExploit(KaRpExplore):
             direction = random.choice(['+','-'])
             design[dv] = design[dv] + step if direction == '+' else design[dv] - step
             design[dv] = round(design[dv], self._design_accuracy)
-            self.log_debug('Design Variable: {} Step: {}{}\n New Design: {}'.format(dv, direction, step, design))
+            self.log_debug('Design Variable: {} Step: {} {}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
             self.determine_model_applicability(dv, complete=False)
         self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)    
