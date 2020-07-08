@@ -303,8 +303,7 @@ class KaRpExploit(KaRpExplore):
             step_number += 1
             if step_number > self.step_limit:
                 break
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)    
-
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True) 
 
     def determine_step(self, base, base_design, design_dict):
         """
