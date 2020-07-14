@@ -8,6 +8,7 @@ import bb_sfr_opt as bb_sfr
 import pickle
 import time
 import copy
+import math
 
 def test_hypervolume_indicator_base():    
     lower_ref = [0,0]
@@ -64,7 +65,6 @@ def test_hypervolume_indicator_sfr():
         rx_params = [core['reactor parameters']['reactivity swing'], -core['reactor parameters']['burnup']]
         pf.append(rx_params)
     hv3 = pm.hypervolume_indicator(pf, lower_ref, upper_ref)
-#    assert hv3 == 0.75
     
     ## Keep this in mind for determining the importance of an objective
     for num, var in enumerate(pf):   
@@ -73,5 +73,79 @@ def test_hypervolume_indicator_sfr():
         hv = pm.hypervolume_indicator(pf_test, lower_ref, upper_ref)
         print('New Volume: {}, Contribution: {}'.format(hv, hv3-hv))
     ns.shutdown()
-    time.sleep(0.05)
-    assert 1 > 2
+    
+def test_dci_init():
+    lb = {'f1':0, 'f2':0}
+    ub = {'f1':5, 'f2':5}
+    pf = {'a': {'f1':0.25, 'f2':4.5}, 
+          'b': {'f1':0.75, 'f2':3.5}, 
+          'c': {'f1':2.5, 'f2':2.5}, 
+          'd': {'f1':4.25, 'f2':0.5}}    
+
+    dci = pm.diversity_comparison_indicator(lb, ub, 5, [pf])
+    
+    assert dci.ideal_point == lb
+    assert dci.nadir_point == ub
+    assert dci.num_objectives == 2
+    assert dci.pf == pf
+    assert dci.div == 5
+    assert dci._hyperbox_grid == {'f1': 1, 'f2': 1}
+    assert dci._pf_grid_coordinates == [(0,4), (0,3), (2,2), (4,0)]
+
+def test_dci_hyperbox_distance():
+    lb = {'f1':0, 'f2':0}
+    ub = {'f1':5, 'f2':5}
+    pf = {'a': {'f1':0.25, 'f2':4.5}, 
+          'b': {'f1':0.75, 'f2':3.5}, 
+          'c': {'f1':2.5, 'f2':2.5}, 
+          'd': {'f1':4.25, 'f2':0.5}}    
+
+    dci = pm.diversity_comparison_indicator(lb, ub, 5, [pf])
+    dist = dci._hyperbox_distance((0,3), (2,2))
+    assert dist == math.sqrt(5)
+    
+def test_dci_pf_point_to_hyperbox():
+    lb = {'f1':0, 'f2':0}
+    ub = {'f1':5, 'f2':5}
+    pf = {'a': {'f1':0.25, 'f2':4.5}, 
+          'b': {'f1':0.75, 'f2':3.5}, 
+          'c': {'f1':2.5, 'f2':2.5}, 
+          'd': {'f1':4.25, 'f2':0.5}}    
+
+    dci = pm.diversity_comparison_indicator(lb, ub, 5, [pf])  
+    dist = dci._pf_point_to_hyperbox(pf, (1,3))
+    assert dist == 1
+
+def test_dci():
+
+    
+    lb = {'f1':0, 'f2':0}
+    ub = {'f1':8, 'f2':8}
+    pf1 = {'a': {'f1':0.5, 'f2':6.5}, 
+          'b':  {'f1':1.5, 'f2':4.5}, 
+          'c':  {'f1':2.5, 'f2':2.5}, 
+          'd':  {'f1':4.5, 'f2':2.5},
+          'e':  {'f1':5.5, 'f2':1.5},
+          'f':  {'f1':7.5, 'f2':0.5}}
+    pf2 = {'g': {'f1':0.5, 'f2':7.5}, 
+          'h':  {'f1':0.5, 'f2':6.5}, 
+          'i':  {'f1':4.5, 'f2':1.5}, 
+          'j':  {'f1':6.5, 'f2':0.5},
+          'k':  {'f1':7.5, 'f2':0.5}}
+    pf3 = {'l': {'f1':1.5, 'f2':4.5}, 
+          'm':  {'f1':1.5, 'f2':3.5}, 
+          'n':  {'f1':3.5, 'f2':2.5}, 
+          'o':  {'f1':3.5, 'f2':2.5},
+          'p':  {'f1':4.5, 'f2':2.5}}
+    pfs = [pf1, pf2, pf3]
+    
+    dci = pm.diversity_comparison_indicator(lb, ub, 8, pfs)
+    
+    dci._grid_generator()
+    dci.compute_dci(pf1)
+    assert round(dci.dci,3) == 0.848
+    dci.compute_dci(pf2)
+    assert round(dci.dci,3) == 0.606
+    dci.compute_dci(pf3)
+    assert round(dci.dci,3) == 0.515
+    

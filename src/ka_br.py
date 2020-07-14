@@ -60,7 +60,7 @@ class KaBr(ka.KaBase):
 
         new_entry = self.read_bb_lvl()
         trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
-        self._trigger_val = self._trigger_val_base + int(trig_prob) if trig_prob > random.random() else 0
+        self._trigger_val = self._trigger_val_base + int(trig_prob) if trig_prob > 0 else 0 #random.random() else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
