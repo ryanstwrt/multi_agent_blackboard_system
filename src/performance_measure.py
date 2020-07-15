@@ -30,12 +30,11 @@ def diversity_indicatory(pf_names, pf, lower_ref, upper_ref):
 
 class diversity_comparison_indicator(object):
     
-    def __init__(self, lb, ub, divisions, pf):
+    def __init__(self, lb, ub, div, pf):
         self.ideal_point = lb
         self.nadir_point = ub
         self.num_objectives = len(self.nadir_point)
-        print(self.num_objectives)
-        self.div = divisions
+        self.div = div
         self.pf = {}
         self._hyperbox_grid = None
         self._pf_grid_coordinates = None
@@ -65,7 +64,7 @@ class diversity_comparison_indicator(object):
         """
         Generate the hyperbox size for each objective.
         """
-        self._hyperbox_grid = {obj: (ul - self.ideal_point[obj])/self.div for obj,ul in self.nadir_point.items()}
+        self._hyperbox_grid = {obj: (ul - self.ideal_point[obj])/self.div[obj] for obj,ul in self.nadir_point.items()}
     
     def _pareto_grid_locations(self, pf):
         """

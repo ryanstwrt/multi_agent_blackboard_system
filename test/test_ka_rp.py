@@ -507,11 +507,12 @@ def test_hill_climbing_algorithm():
     rp.hill_climbing_algorithm()
     time.sleep(2)
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) ==  9
-    assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.9955, 69.95625, 0.44376]'] ==  {'reactor parameters': {'height': 79.9955, 'smear': 69.95625, 'pu_content': 0.44376, 'reactivity swing' : 300.89, 'burnup' : 39.69}}
+    print(bb.get_attr('abstract_lvls')['level 3']['new'])
+    assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.9955, 69.95625, 0.43824]'] ==  {'reactor parameters': {'height': 79.9955, 'smear': 69.95625, 'pu_content': 0.43824, 'reactivity swing' : 301.54, 'burnup' : 39.7}}
    
     ns.shutdown()
     time.sleep(0.05)
-
+    
 def test_determine_step():
     #Add extra test for determine_step
     pass

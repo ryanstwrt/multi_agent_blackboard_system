@@ -7,7 +7,7 @@ import ka
 import train_surrogate_models as tm
 import copy
 import database_generator as dg
-
+import math
 
 class KaRp(ka.KaBase):
     """
@@ -36,6 +36,10 @@ class KaRp(ka.KaBase):
         self.objectives = {}
         self.objective_functions = {}
         self._objective_accuracy = 2
+    
+    def scale_objective(self, val, ll, ul):
+        """Scale an objective based on the upper/lower"""
+        return (val - ll) / (ul - ll)
 
 class KaRpExplore(KaRp):
     """
@@ -268,6 +272,7 @@ class KaRpExploit(KaRpExplore):
         hc_log = {}
         avg_diff = 0
         prev_avg = 1
+        
         while step > self.convergence_criteria:
             steepest_dict = {}
             for dv in self.design_variables:
@@ -278,6 +283,7 @@ class KaRpExploit(KaRpExplore):
                     else:
                         temp_design[dv] -= temp_design[dv] * step
                     temp_design[dv] = round(temp_design[dv], 5)
+                    
                     if temp_design[dv] >= self.design_variables[dv]['ll'] and temp_design[dv] <= self.design_variables[dv]['ul']:
                         self.current_design_variables = temp_design
                         self.calc_objectives()
@@ -293,6 +299,7 @@ class KaRpExploit(KaRpExplore):
                     design_objs = steepest_dict[next_step]['objective functions']
                     self.current_design_variables = {k:v for k,v in steepest_dict[next_step]['design variables'].items()}
                     self.determine_model_applicability(next_step.split(' ')[1], complete=False)
+                    
                 if len(hc_log) > self.avg_diff_limit:
                     step = round(step * (1-self.step_rate),5) if abs(1 - avg_diff/prev_avg) < step else step
                 if next_step == None:
@@ -320,13 +327,18 @@ class KaRpExploit(KaRpExplore):
                 base_obj = base_design[name]
                 new_obj = dict_['objective functions'][name]
                 if new_obj >= self.objectives[name]['ll'] and new_obj <= self.objectives[name]['ul']:
-                    diff = (new_obj - base_obj) if obj['goal'] == 'gt' else (base_obj - new_obj)
-     #               print(pert_dv, name, base_obj, new_obj, diff)
-                    design[pert_dv][name] = (diff / base_obj)
-                    design[pert_dv]['total'] += (diff / base_obj)
-                    if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total']:
-                        best_design = design[pert_dv]
-                        best_design['pert'] = pert_dv
+                    scaled_new = self.scale_objective(new_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
+                    scaled_base = self.scale_objective(base_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
+                    diff_scaled = (scaled_new - scaled_base) if obj['goal'] == 'lt' else (scaled_base - scaled_new)
+
+                    dv_diff = base_obj*(base[dv] - design_dict[pert_dv]['design variables'][dv])
+                    design[pert_dv][name] = (diff_scaled / abs(dv_diff))
+                    design[pert_dv]['total'] += (diff_scaled / abs(dv_diff))
+
+            if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total']:
+                best_design = design[pert_dv]
+                best_design['pert'] = pert_dv
+                
         if best_design['total'] > 0:
             return (best_design['pert'], best_design['total'])
         else:

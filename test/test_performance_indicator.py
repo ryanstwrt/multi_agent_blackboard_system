@@ -77,42 +77,45 @@ def test_hypervolume_indicator_sfr():
 def test_dci_init():
     lb = {'f1':0, 'f2':0}
     ub = {'f1':5, 'f2':5}
+    div = {'f1': 5, 'f2': 5}
     pf = {'a': {'f1':0.25, 'f2':4.5}, 
           'b': {'f1':0.75, 'f2':3.5}, 
           'c': {'f1':2.5, 'f2':2.5}, 
           'd': {'f1':4.25, 'f2':0.5}}    
 
-    dci = pm.diversity_comparison_indicator(lb, ub, 5, [pf])
+    dci = pm.diversity_comparison_indicator(lb, ub, div, [pf])
     
     assert dci.ideal_point == lb
     assert dci.nadir_point == ub
     assert dci.num_objectives == 2
     assert dci.pf == pf
-    assert dci.div == 5
+    assert dci.div == div
     assert dci._hyperbox_grid == {'f1': 1, 'f2': 1}
     assert dci._pf_grid_coordinates == [(0,4), (0,3), (2,2), (4,0)]
 
 def test_dci_hyperbox_distance():
     lb = {'f1':0, 'f2':0}
     ub = {'f1':5, 'f2':5}
+    div = {'f1': 5, 'f2': 5}
     pf = {'a': {'f1':0.25, 'f2':4.5}, 
           'b': {'f1':0.75, 'f2':3.5}, 
           'c': {'f1':2.5, 'f2':2.5}, 
           'd': {'f1':4.25, 'f2':0.5}}    
 
-    dci = pm.diversity_comparison_indicator(lb, ub, 5, [pf])
+    dci = pm.diversity_comparison_indicator(lb, ub, div, [pf])
     dist = dci._hyperbox_distance((0,3), (2,2))
     assert dist == math.sqrt(5)
     
 def test_dci_pf_point_to_hyperbox():
     lb = {'f1':0, 'f2':0}
     ub = {'f1':5, 'f2':5}
+    div = {'f1': 5, 'f2': 5}
     pf = {'a': {'f1':0.25, 'f2':4.5}, 
           'b': {'f1':0.75, 'f2':3.5}, 
           'c': {'f1':2.5, 'f2':2.5}, 
           'd': {'f1':4.25, 'f2':0.5}}    
 
-    dci = pm.diversity_comparison_indicator(lb, ub, 5, [pf])  
+    dci = pm.diversity_comparison_indicator(lb, ub, div, [pf])  
     dist = dci._pf_point_to_hyperbox(pf, (1,3))
     assert dist == 1
 
@@ -121,6 +124,7 @@ def test_dci():
     
     lb = {'f1':0, 'f2':0}
     ub = {'f1':8, 'f2':8}
+    div = {'f1': 8, 'f2': 8}
     pf1 = {'a': {'f1':0.5, 'f2':6.5}, 
           'b':  {'f1':1.5, 'f2':4.5}, 
           'c':  {'f1':2.5, 'f2':2.5}, 
@@ -139,7 +143,7 @@ def test_dci():
           'p':  {'f1':4.5, 'f2':2.5}}
     pfs = [pf1, pf2, pf3]
     
-    dci = pm.diversity_comparison_indicator(lb, ub, 8, pfs)
+    dci = pm.diversity_comparison_indicator(lb, ub, div, pfs)
     
     dci._grid_generator()
     dci.compute_dci(pf1)
