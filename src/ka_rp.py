@@ -314,7 +314,7 @@ class KaRpExploit(KaRpExplore):
 
     def determine_step(self, base, base_design, design_dict):
         """
-        Determine which design we should use to take a step.
+        Determine which design we should use to take a step, based on a scaled derivative (objectives and dv are scaled)
         """
         design = {}
         best_design = {}
@@ -327,13 +327,17 @@ class KaRpExploit(KaRpExplore):
                 base_obj = base_design[name]
                 new_obj = dict_['objective functions'][name]
                 if new_obj >= self.objectives[name]['ll'] and new_obj <= self.objectives[name]['ul']:
-                    scaled_new = self.scale_objective(new_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
-                    scaled_base = self.scale_objective(base_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
-                    diff_scaled = (scaled_new - scaled_base) if obj['goal'] == 'lt' else (scaled_base - scaled_new)
-
-                    dv_diff = base_obj*(base[dv] - design_dict[pert_dv]['design variables'][dv])
-                    design[pert_dv][name] = (diff_scaled / abs(dv_diff))
-                    design[pert_dv]['total'] += (diff_scaled / abs(dv_diff))
+                    obj_scaled_new = self.scale_objective(new_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
+                    obj_scaled_base = self.scale_objective(base_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
+                    
+                    dv_scaled_new = self.scale_objective(base[dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
+                    dv_scaled_base = self.scale_objective(design_dict[pert_dv]['design variables'][dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
+        
+                    obj_diff = (obj_scaled_new - obj_scaled_base) if obj['goal'] == 'gt' else (obj_scaled_base - obj_scaled_new)
+                    dv_diff = abs(dv_scaled_new- dv_scaled_base)
+                    derivative = obj_diff / dv_diff
+                    design[pert_dv][name] = derivative
+                    design[pert_dv]['total'] += derivative
 
             if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total']:
                 best_design = design[pert_dv]
