@@ -6,6 +6,8 @@ from osbrain import run_nameserver
 import blackboard
 import time
 import bb_sfr_opt
+import moo_benchmarks as mb
+import benchmark_bb
 
 import os
 import pickle
@@ -17,7 +19,7 @@ class Controller(object):
     
     The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
     
-    def __init__(self, bb_name='bb', bb_type=blackboard.Blackboard, ka={}, objectives=None, design_variables=None, archive='bb_archive', agent_wait_time=30, plot_progress=False):
+    def __init__(self, bb_name='bb', bb_type=blackboard.Blackboard, ka={}, objectives=None, design_variables=None, archive='bb_archive', agent_wait_time=30, benchmark=None, plot_progress=False):
         self.bb_name = bb_name
         self.bb_type = bb_type
         self.agent_wait_time = agent_wait_time
@@ -36,6 +38,11 @@ class Controller(object):
 #            self.bb.set_attr(_sm=sm_ga)
             self.bb.set_attr(_sm='gpr')
             self.bb.generate_sm()
+        
+        elif bb_type == benchmark_bb.BenchmarkBB:
+            self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
+            self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
+            self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))
         
         for ka_name, ka_type in ka.items():
             self.bb.connect_agent(ka_type, ka_name)
@@ -77,7 +84,10 @@ class Controller(object):
         If BB has too many entries on a abstract level, the KA trigger value gets increased by 1.
         If the BB has few entries on the abstract level, the KA trigger value is reduced by 1.
         """
-        print(self.bb.get_attr('_kaar')[trig_num])
-        self.bb.controller_update_kaar(trig_num, round(self.agent_time,2))
-        print(self.bb.get_attr('_kaar')[trig_num])
+#        print(self.bb.get_attr('_kaar')[trig_num])
+#        self.bb.controller_update_kaar(trig_num, round(self.agent_time,2))
+#        print(self.bb.get_attr('_kaar')[trig_num])
         self.agent_time = 0
+        
+    def shutdown(self):
+        self.ns.shutdown()

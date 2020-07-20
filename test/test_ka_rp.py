@@ -181,7 +181,7 @@ def test_create_sm_regression():
 
 def test_karp_exploit_init():
     ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
+    rp = run_agent(name='ka_rp', base=ka_rp.KaLocal)
     
     assert rp.get_attr('bb') == None
     assert rp.get_attr('bb_lvl') == 3
@@ -211,7 +211,6 @@ def test_karp_exploit_init():
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
     assert rp.get_attr('_objective_accuracy') == 2
-    assert rp.get_attr('walk_length') == 10
     assert rp.get_attr('lvl_data') == None
     assert rp.get_attr('lvl_read') == None
     ns.shutdown()
@@ -223,7 +222,7 @@ def test_determine_model_applicability():
     bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga)
-    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
 
@@ -260,7 +259,7 @@ def test_exploit_handler_executor_pert():
     bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga)
-    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
@@ -294,7 +293,7 @@ def test_exploit_handler_executor_rw():
     bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga) 
-    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
@@ -316,29 +315,13 @@ def test_exploit_handler_executor_rw():
     ns.shutdown()
     time.sleep(0.05)  
     
-    
-def test_exploit_mc_design_variables():
-    ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
-    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
-                                 'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-                                 'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})
-    
-    assert rp.get_attr('current_design_variables') == {}
-    assert rp.get_attr('_entry_name') == None
-    rp.mc_design_variables()
-    assert rp.get_attr('current_design_variables') != {}
-    
-    ns.shutdown()
-    time.sleep(0.05)
-    
 def test_exploit_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga) 
-    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp')
+    bb.connect_agent(ka_rp.KaLocal, 'ka_rp')
     
     bb.publish_trigger()
     time.sleep(0.25)
@@ -363,7 +346,7 @@ def test_exploit_perturb_design():
     bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga)
-    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
 
     rp = ns.proxy('ka_rp_exploit')
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
@@ -376,7 +359,7 @@ def test_exploit_perturb_design():
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_[65.0, 65.0, 0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}, 'old': {}}
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1']['new'])
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.perturb_design()
+    rp.search_method()
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
                                                            'core_[61.75, 65.0, 0.4]', 
                                                            'core_[68.25, 65.0, 0.4]',
@@ -392,7 +375,7 @@ def test_exploit_perturb_design():
 def test_exploit_move_entry():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExploit)
+    rp = run_agent(name='ka_rp', base=ka_rp.KaLocal)
     rp.add_blackboard(bb)
     rp.connect_writer()
     
@@ -410,7 +393,7 @@ def test_exploit_move_entry():
 def test_exploit_write_to_bb():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    ka = run_agent(name='ka_rp_exploit', base=ka_rp.KaRpExploit)
+    ka = run_agent(name='ka_rp_exploit', base=ka_rp.KaLocal)
     bb.initialize_abstract_level_3()
     ka.add_blackboard(bb)
     ka.connect_writer()
@@ -447,16 +430,15 @@ def test_exploit_write_to_bb():
     ns.shutdown()
     time.sleep(0.05)
     
-def test_random_walk_algorithm():
+def test_kalocalrw():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga)
-    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
-    rp.set_attr(local_search='random walk')
 
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
                                                                 'pu_content': 0.42, 'cycle length': 365.0, 
@@ -466,7 +448,7 @@ def test_random_walk_algorithm():
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='new')
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1']['new'])
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.random_walk_algorithm()
+    rp.search_method()
     assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {}, 'old': {'core_[65.0, 65.0, 0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
     try:
         assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 10
@@ -476,7 +458,7 @@ def test_random_walk_algorithm():
     ns.shutdown()
     time.sleep(0.05)
     
-def test_hill_climbing_algorithm():
+def test_kalocalhc():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
 
@@ -490,10 +472,9 @@ def test_hill_climbing_algorithm():
     bb.initialize_abstract_level_3(objectives=objs)
     bb.initialize_abstract_level_3()
 
-    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaLocalHC, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
-    rp.set_attr(local_search='hill climbing')
     rp.set_attr(step_rate=0.5)
     rp.set_attr(step_limit = 150)
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
@@ -503,7 +484,7 @@ def test_hill_climbing_algorithm():
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0}, panel='new')
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1']['new'])
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.hill_climbing_algorithm()
+    rp.search_method()
     time.sleep(2)
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) ==  9
     assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.9955, 69.95625, 0.44376]'] ==  {'reactor parameters': {'height': 79.9955, 'smear': 69.95625, 'pu_content': 0.44376, 'reactivity swing' : 300.89, 'burnup' : 39.69}}

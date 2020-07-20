@@ -31,10 +31,9 @@ def test_hypervolume_indicator_sfr():
     bb.initialize_abstract_level_3(objectives=objs)
     bb.initialize_abstract_level_3()
 
-    bb.connect_agent(ka_rp.KaRpExploit, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaLocalHC, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
-    rp.set_attr(local_search='hill climbing')
     rp.set_attr(step_rate=0.5)
     rp.set_attr(step_limit = 150)
     lower_ref = [0,    -200]
@@ -120,8 +119,6 @@ def test_dci_pf_point_to_hyperbox():
     assert dist == 1
 
 def test_dci():
-
-    
     lb = {'f1':0, 'f2':0}
     ub = {'f1':8, 'f2':8}
     div = {'f1': 8, 'f2': 8}

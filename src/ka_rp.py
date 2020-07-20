@@ -36,39 +36,7 @@ class KaRp(ka.KaBase):
         self.objectives = {}
         self.objective_functions = {}
         self._objective_accuracy = 2
-    
-    def scale_objective(self, val, ll, ul):
-        """Scale an objective based on the upper/lower"""
-        return (val - ll) / (ul - ll)
-
-class KaRpExplore(KaRp):
-    """
-    Knowledge agent to solve portions reactor physics problems using a SM.
-    
-    Inherets from KaBase.
-    
-    Attibutes:
-
-    design_variables : dict
-        Dictionary of the independent design variables for the current design (key - variable name, value - variable value)
-    objective_funcionts : dict
-        Dictionary of the objective functions for the current design (key - objective name, value - objective value)
-    objectives : list
-        List of the objective name for optimization
-    design_variables : dict
-        Dictionary of design variables for the problem and allowable rannge for the variables (key - variable name, value - tuple of min/max value)
-    _sm : dict/trained_sm class
-        Reference to the surrogate model that is used for determining objective functions.
-        This can either be a scipy interpolator or a sci-kit learn regression function.
-    sm_type : str
-        Name of the surrogate model to be used.
-        Valid options: (interpolator, lr, pr, gpr, mars, ann, rf)
-        See surrogate_modeling for more details
-    """
-
-    def on_init(self):
-        super().on_init()
-
+        
     def calc_objectives(self):
         """
         Calculate the objective functions based on the core design variables.
@@ -77,7 +45,11 @@ class KaRpExplore(KaRp):
         """
         self.log_debug('Determining core parameters based on SM')
         design = [x for x in self.current_design_variables.values()]
-        if self.sm_type == 'interpolate':
+        if 'benchmark' in self.sm_type:
+            obj_list = self._sm.predict(self.sm_type.split()[0], design, len(design), len(self.objectives.keys()))
+            for num, obj in enumerate(self.objectives.keys()):
+                self.objective_functions[obj] = round(float(obj_list[num]), self._objective_accuracy)
+        elif self.sm_type == 'interpolate':
             for obj_name, interpolator in self._sm.items():
                 self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
         else:
@@ -119,6 +91,38 @@ class KaRpExplore(KaRp):
         self._trigger_val += self._base_trigger_val
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+    
+    def scale_objective(self, val, ll, ul):
+        """Scale an objective based on the upper/lower"""
+        return (val - ll) / (ul - ll)
+
+class KaRpExplore(KaRp):
+    """
+    Knowledge agent to solve portions reactor physics problems using a SM.
+    
+    Inherets from KaBase.
+    
+    Attibutes:
+
+    design_variables : dict
+        Dictionary of the independent design variables for the current design (key - variable name, value - variable value)
+    objective_funcionts : dict
+        Dictionary of the objective functions for the current design (key - objective name, value - objective value)
+    objectives : list
+        List of the objective name for optimization
+    design_variables : dict
+        Dictionary of design variables for the problem and allowable rannge for the variables (key - variable name, value - tuple of min/max value)
+    _sm : dict/trained_sm class
+        Reference to the surrogate model that is used for determining objective functions.
+        This can either be a scipy interpolator or a sci-kit learn regression function.
+    sm_type : str
+        Name of the surrogate model to be used.
+        Valid options: (interpolator, lr, pr, gpr, mars, ann, rf)
+        See surrogate_modeling for more details
+    """
+
+    def on_init(self):
+        super().on_init()
         
     def mc_design_variables(self):
         """
@@ -129,7 +133,7 @@ class KaRpExplore(KaRp):
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
 
 
-class KaRpExploit(KaRpExplore):
+class KaLocal(KaRp):
     """
     Knowledge agent to solve portions reactor physics problems using a SM.
     
@@ -154,9 +158,6 @@ class KaRpExploit(KaRpExplore):
         self._base_trigger_val = 5
         self.bb_lvl_read = 1
         self.step_size = 0.05
-        self.step_rate = 0.1
-        self.step_limit = 100
-        self.convergence_criteria = 0.005
         self._design_accuracy = 5
         self._fitness_selection_fraction = 0.7
         self.avg_diff_limit = 5
@@ -165,7 +166,6 @@ class KaRpExploit(KaRpExplore):
         self.local_search = 'perturbation'
         self.lvl_data = None
         self.lvl_read = None
-        self.walk_length = 10
 
     def determine_model_applicability(self, dv, complete=False):
         """
@@ -193,17 +193,8 @@ class KaRpExploit(KaRpExplore):
         self.log_debug('Executing agent {}'.format(self.name))
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         self.lvl_data = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
-        if self.local_search == 'perturbation':
-            self.perturb_design()
-        elif self.local_search == 'random walk':
-            self.random_walk_algorithm()
-        elif self.local_search == 'hill climbing':
-            self.hill_climbing_algorithm()
-        else:
-            self.log_debug('{} option is not implemented as a search method, using perutbation instead.')
-            self.perturb_design()
-           
-            
+        self.search_method()
+                      
     def handler_trigger_publish(self, message):
         """
         Read the BB level and determine if an entry is available.
@@ -227,8 +218,8 @@ class KaRpExploit(KaRpExplore):
         self._trigger_val = self._base_trigger_val if new_entry else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
-           
-    def perturb_design(self):
+        
+    def search_method(self):
         """
         Perturb a core design
         
@@ -247,9 +238,37 @@ class KaRpExploit(KaRpExplore):
                 design[dv] = round(dv_value * pert, self._design_accuracy)
                 self.current_design_variables = design
                 self.determine_model_applicability(dv, complete=False)
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True) 
+                
+    def genetic_algorithm(self):
+        """
+        Basic genetic algorithm for expediting our search
+        """
+        pass
+    
+    def read_bb_lvl(self):
+        """
+        Determine if there are any 'new' entries on level 1.
         
-    def hill_climbing_algorithm(self):
+        Returns
+        -------
+            True -  if level has entries
+            False -  if level is empty
+        """
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        return True if lvl != {} else False
+    
+class KaLocalHC(KaLocal):
+    
+    def on_init(self):
+        super().on_init()
+        self.step_size = 0.05
+        self.step_rate = 0.1
+        self.step_limit = 100
+        self.convergence_criteria = 0.005
+        self.hc_type = 'steepest descent'
+        
+    def search_method(self):
         """
         Basic hill climbing algorithm for local search.
         
@@ -347,8 +366,15 @@ class KaRpExploit(KaRpExplore):
             return (best_design['pert'], best_design['total'])
         else:
             return (None, None)
-            
-    def random_walk_algorithm(self):
+        
+class KaLocalRW(KaLocal):
+    
+    def on_init(self):
+        super().on_init()
+        self.step_size = 0.01
+        self.walk_length = 10
+        
+    def search_method(self):
         """
         Basic random walk algorithm for searching around a viable design.
         """
@@ -364,22 +390,4 @@ class KaRpExploit(KaRpExplore):
             self.log_debug('Design Variable: {} Step: {} {}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
             self.determine_model_applicability(dv, complete=False)
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)    
-                
-    def genetic_algorithm(self):
-        """
-        Basic genetic algorithm for expediting our search
-        """
-        pass
-    
-    def read_bb_lvl(self):
-        """
-        Determine if there are any 'new' entries on level 1.
-        
-        Returns
-        -------
-            True -  if level has entries
-            False -  if level is empty
-        """
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        return True if lvl != {} else False
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)   

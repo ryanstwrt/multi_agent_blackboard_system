@@ -12,6 +12,7 @@ import numpy as np
 import train_surrogate_models as tm
 import scipy.interpolate
 import plotly.express as px
+import performance_measure as pm
 
 
 cur_dir = os.path.dirname(__file__)
@@ -39,6 +40,8 @@ class BbSfrOpt(blackboard.Blackboard):
 
         self.total_solutions = 50
         
+        self.hv_dict = {}
+        self.hv_convergence = 0.05
         self._sm = None
         self.sm_type = 'interpolate'
 
@@ -95,6 +98,30 @@ class BbSfrOpt(blackboard.Blackboard):
             self._complete = True
         else:
             pass
+        
+    def determine_complete_hv(self):
+        """
+        Determine if the problem is complete using the convergence of the hypervolume
+        """
+        pf = []
+        hv_indicator =  self.hv_indicator()
+        self.hv_dict[self._trigger_event] = hv_indicator
+        if hv_indicator < self.hv_convergence:
+            self._complete = True
+        
+    def hv_indicator(self):
+        pf = []
+        core_old = [x for x in self.abstract_lvls['level 1']['old'].keys()]
+        core_new = [x for x in self.abstract_lvls['level 1']['new'].keys()]
+        cores = core_old + core_new
+        bb_lvl3 = self.abstract_lvls['level 3']['old']
+        ll = [x['ll'] for x in self.objectives.values()]
+        ul = [x['ul'] for x in self.objectives.values()]
+        for core in cores:
+            rx_params = [bb_lvl3[core]['reactor parameters'][param] for param in self.objectives.keys()]
+            pf.append(rx_params)
+        return pm.hypervolume_indicator(pf, ll, ul)
+        
     
     def generate_sm(self):
         objectives = [x for x in self.objectives.keys()]

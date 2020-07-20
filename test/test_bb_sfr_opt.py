@@ -106,7 +106,7 @@ def test_add_ka_specific():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.connect_agent(karp.KaRpExplore, 'ka_rp_explore')
-    bb.connect_agent(karp.KaRpExploit, 'ka_rp_exploit')
+    bb.connect_agent(karp.KaLocal, 'ka_rp_exploit')
     bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
     bb.connect_agent(kabr.KaBr_lvl3, 'ka_br_lvl3')
 
@@ -152,7 +152,7 @@ def test_handler_writer():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     rp = run_agent(name='explore', base=karp.KaRpExplore)
-    rp1 = run_agent(name='exploit', base=karp.KaRpExploit)
+    rp1 = run_agent(name='exploit', base=karp.KaLocal)
     bb.initialize_abstract_level_3()
     rp.add_blackboard(bb)
     rp1.add_blackboard(bb)
