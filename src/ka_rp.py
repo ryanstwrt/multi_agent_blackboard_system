@@ -228,7 +228,7 @@ class KaLocal(KaRp):
         
         These results are written to the BB level 3, so there are design_vars * pert added to level 3.
         """
-        core, entry = random.choice(list(self.lvl_read.items())) if random.random() > self._fitness_selection_fraction else min(list(self.lvl_read.items()))
+        core, entry = random.choice(list(self.lvl_read.items()))
 
         design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
         perts = [1.0 - self.perturbation_size, 1.0 + self.perturbation_size]

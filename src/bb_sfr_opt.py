@@ -41,7 +41,7 @@ class BbSfrOpt(blackboard.Blackboard):
         self.total_solutions = 50
         
         self.hv_dict = {0:0}
-        self.hv_convergence = 0.05
+        self.hv_convergence = 1e-6
         self.num_calls = 25
         self._sm = None
         self.sm_type = 'interpolate'
@@ -116,6 +116,9 @@ class BbSfrOpt(blackboard.Blackboard):
         except KeyError:
             pass
         if hv_indicator < self.hv_convergence:
+            self.log_info('Problem complete, shutting agents down')
+            for agent_name, connections in self.agent_addrs.items():
+                self.send(connections['shutdown'][0], "shutdown")
             self._complete = True
     
     def hv_indicator(self):
@@ -207,8 +210,8 @@ class BbSfrOpt(blackboard.Blackboard):
         # Plot HV Convergece
         x = [x for x in self.hv_dict.keys()]
         y = [y for y in self.hv_dict.values()]
-        fig1 = px.line(x=x, y=y, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
-        fig1.show()
+        fig3 = px.line(x=x, y=y, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
+        fig3.show()
             
     def send_executor(self):
         """Send an executor message to the triggered KA."""

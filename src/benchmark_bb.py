@@ -35,7 +35,7 @@ class BenchmarkBB(bb_sfr_opt.BbSfrOpt):
         self.design_variables =  {'x1':  {'ll':0, 'ul':1, 'variable type': float},
                                   'x2':  {'ll':0, 'ul':1, 'variable type': float}}
         
-        self.total_solutions = 50
+        self.hv_convergence = 1e-6
         self._sm = None
         self.sm_type = 'interpolate'
         
@@ -67,5 +67,10 @@ class BenchmarkBB(bb_sfr_opt.BbSfrOpt):
 
             fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':'f1', 'y':'f2'})
             fig1.show()
+            # Plot HV Convergece
+            x = [x for x in self.hv_dict.keys()]
+            y = [y for y in self.hv_dict.values()]
+            fig3 = px.line(x=x, y=y, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
+            fig3.show()
         except KeyError:
             pass
