@@ -167,51 +167,32 @@ class BbSfrOpt(blackboard.Blackboard):
         bu = []
         pu_mass = []
         fitness = []
-        
-        if self.problem == 'prelims':
-            for core, values in lvl_1.items():
-                core_params = lvl_3[core]['reactor parameters']
-                cycle_length.append(core_params['keff'])
-                height.append(core_params['doppler'])
-                smear.append(core_params['void'])            
-                pu_content.append(core_params['pu_content'])
-            fig = px.scatter_3d(x=smear, y=height, z=cycle_length, color=pu_content, labels={'y':'Doppler Coeff', 'x': 'Void Coeff', 'z':'k-eff','color':'Pu Frac.'})
-            fig.show()
-            
-        else:
-            obj_dict = {}
-            for core, values in lvl_1.items():
-                fitness.append(round(values['fitness function'],5))
-                core_params = lvl_3[core]['reactor parameters']
-                height.append(core_params['height'])
-                smear.append(core_params['smear'])
-                pu_content.append(core_params['pu_content'])
-        
-                for obj in self.objectives.keys():
-                    if obj in obj_dict.keys():
-                        obj_dict[obj].append(core_params[obj])
-                    else:
-                        obj_dict[obj] = [core_params[obj]]
-            objs = [x for x in self.objectives.keys()]
-            obj_labels = {'fitness': 'fitness',
-                           'burnup': 'Burnup (GWD/MTHM)',
-                           'cycle length': 'Cycle Length(days)',
-                           'pu mass': 'Pu Mass (kg/year)',
-                           'reactivity swing' : 'Rx Swing (pcm/month)'}
-            if len(obj_dict.keys()) == 2:
-                fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], color=pu_content, labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'color': 'pu_content'})
-                fig2 = px.scatter_3d(x=height, y=smear, z=pu_content, color=obj_dict[objs[1]], labels={'x':'Height (cm)', 'y': 'Smear', 'z':'Pu Content','color':objs[1]})
 
-            else:
-                fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=obj_dict[objs[3]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]], 'color': obj_labels[objs[3]]})
-            fig1.show()
-#            fig2.show()
+        obj_dict = {}
+        for core, values in lvl_1.items():
+            fitness.append(round(values['fitness function'],5))
+            core_params = lvl_3[core]['reactor parameters']
+        
+            for obj in self.objectives.keys():
+                if obj in obj_dict.keys():
+                    obj_dict[obj].append(core_params[obj])
+                else:
+                    obj_dict[obj] = [core_params[obj]]
+        objs = [x for x in self.objectives.keys()]
+        obj_labels = {'fitness': 'fitness',
+                      'burnup': 'Burnup (GWD/MTHM)',
+                      'cycle length': 'Cycle Length(days)',
+                      'pu mass': 'Pu Mass (kg/year)',
+                      'reactivity swing' : 'Rx Swing (pcm/month)'}
+        if len(obj_dict.keys()) == 2:
+            fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]]})
+        else:
+            fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=obj_dict[objs[3]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]], 'color': obj_labels[objs[3]]})
+        fig1.show()
 
         # Plot HV Convergece
-        x = [x for x in self.hv_dict.keys()]
-        y = [y for y in self.hv_dict.values()]
-        fig3 = px.line(x=x, y=y, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
-        fig3.show()
+        fig2 = px.line(x=[x for x in self.hv_dict.keys()], y=[y for y in self.hv_dict.values()], labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
+        fig2.show()
             
     def send_executor(self):
         """Send an executor message to the triggered KA."""
