@@ -38,14 +38,16 @@ def test_run_single_agent_bb():
            'ka_br_lvl2': ka_br.KaBr_lvl2}
     bb_controller = controller.Controller(bb_name='sfr_opt', bb_type=bb_sfr.BbSfrOpt, ka=kas, archive='sfr_opt', agent_wait_time=5)
 
-    bb_controller.bb.set_attr(total_solutions=0)
     bb_controller.bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
                                                                 'pu_content': 0.4, 'cycle length': 365.0, 
                                                                 'pu mass': 500.0, 'reactivity swing' : 600.0,
                                                                 'burnup' : 50.0}}, panel='old')
     bb_controller.bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0}, panel='new')    
+    bb_controller.bb.set_attr(hv_convergence=1)
+    bb_controller.progress_rate=10
+    bb_controller.bb.set_attr(num_calls=1)
     bb_controller.run_single_agent_bb()
     assert bb_controller.bb.get_attr('_complete') == True
-    bb_controller.ns.shutdown()
+    bb_controller.shutdown()
     os.remove('sfr_opt.h5')
     time.sleep(0.05)

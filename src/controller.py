@@ -28,6 +28,7 @@ class Controller(object):
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
         self.plot_progress = plot_progress
         self.agent_time = 0
+        self.progress_rate = 100
 
         if bb_type == bb_sfr_opt.BbSfrOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
@@ -70,9 +71,10 @@ class Controller(object):
                 if self.agent_time > self.agent_wait_time:
                     break
             self.update_bb_trigger_values(trig_num)
-            self.bb.determine_complete()
-            if len(self.bb.get_attr('_kaar')) % 50 == 0 or self.bb.get_attr('_complete') == True:
+            self.bb.hv_indicator()
+            if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
                 self.bb.write_to_h5()
+                self.bb.determine_complete_hv()
                 if self.plot_progress:
                     self.bb.plot_progress()
                 self.bb.diagnostics_replace_agent()
@@ -85,7 +87,7 @@ class Controller(object):
         If the BB has few entries on the abstract level, the KA trigger value is reduced by 1.
         """
 #        print(self.bb.get_attr('_kaar')[trig_num])
-#        self.bb.controller_update_kaar(trig_num, round(self.agent_time,2))
+        self.bb.controller_update_kaar(trig_num, round(self.agent_time,2))
 #        print(self.bb.get_attr('_kaar')[trig_num])
         self.agent_time = 0
         

@@ -40,8 +40,9 @@ class BbSfrOpt(blackboard.Blackboard):
 
         self.total_solutions = 50
         
-        self.hv_dict = {}
+        self.hv_dict = {0:0}
         self.hv_convergence = 0.05
+        self.num_calls = 25
         self._sm = None
         self.sm_type = 'interpolate'
 
@@ -104,11 +105,19 @@ class BbSfrOpt(blackboard.Blackboard):
         Determine if the problem is complete using the convergence of the hypervolume
         """
         pf = []
-        hv_indicator =  self.hv_indicator()
-        self.hv_dict[self._trigger_event] = hv_indicator
+        old = []
+        new = []
+        hv_indicator = 1
+        try:
+            for num in range(self.num_calls):
+                old.append(self.hv_dict[self._trigger_event-self.num_calls-num])
+                new.append(self.hv_dict[self._trigger_event-num])
+            hv_indicator = sum(new) / self.num_calls - sum(old) / self.num_calls
+        except KeyError:
+            pass
         if hv_indicator < self.hv_convergence:
             self._complete = True
-        
+    
     def hv_indicator(self):
         pf = []
         core_old = [x for x in self.abstract_lvls['level 1']['old'].keys()]
@@ -120,7 +129,7 @@ class BbSfrOpt(blackboard.Blackboard):
         for core in cores:
             rx_params = [bb_lvl3[core]['reactor parameters'][param] for param in self.objectives.keys()]
             pf.append(rx_params)
-        return pm.hypervolume_indicator(pf, ll, ul)
+        self.hv_dict[self._trigger_event] = pm.hypervolume_indicator(pf, ll, ul)
         
     
     def generate_sm(self):
@@ -194,6 +203,12 @@ class BbSfrOpt(blackboard.Blackboard):
                 fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=obj_dict[objs[3]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]], 'color': obj_labels[objs[3]]})
             fig1.show()
 #            fig2.show()
+
+        # Plot HV Convergece
+        x = [x for x in self.hv_dict.keys()]
+        y = [y for y in self.hv_dict.values()]
+        fig1 = px.line(x=x, y=y, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
+        fig1.show()
             
     def send_executor(self):
         """Send an executor message to the triggered KA."""

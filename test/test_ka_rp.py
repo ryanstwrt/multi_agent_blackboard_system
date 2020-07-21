@@ -38,7 +38,7 @@ def test_karp_init():
     assert rp.get_attr('design_variables') == {}    
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('objectives') == {}
-    assert rp.get_attr('_objective_accuracy') == 2
+    assert rp.get_attr('_objective_accuracy') == 5
     
     ns.shutdown()
     time.sleep(0.05)
@@ -75,7 +75,7 @@ def test_karp_explore_init():
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('objectives') == {}
     assert rp.get_attr('design_variables') == {}
-    assert rp.get_attr('_objective_accuracy') == 2
+    assert rp.get_attr('_objective_accuracy') == 5
     ns.shutdown()
     time.sleep(0.05)
     
@@ -207,10 +207,10 @@ def test_karp_exploit_init():
     assert rp.get_attr('objective_functions') == {}
     assert rp.get_attr('objectives') == {}
     assert rp.get_attr('design_variables') == {}
-    assert rp.get_attr('step_size') == 0.05
+    assert rp.get_attr('perturbation_size') == 0.05
     assert rp.get_attr('new_panel') == 'new'
     assert rp.get_attr('old_panel') == 'old'
-    assert rp.get_attr('_objective_accuracy') == 2
+    assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('lvl_data') == None
     assert rp.get_attr('lvl_read') == None
     ns.shutdown()
@@ -487,7 +487,7 @@ def test_kalocalhc():
     rp.search_method()
     time.sleep(2)
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) ==  9
-    assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.9955, 69.95625, 0.44376]'] ==  {'reactor parameters': {'height': 79.9955, 'smear': 69.95625, 'pu_content': 0.44376, 'reactivity swing' : 300.89, 'burnup' : 39.69}}
+    assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.9955, 69.95625, 0.44376]'] ==  {'reactor parameters': {'height': 79.9955, 'smear': 69.95625, 'pu_content': 0.44376, 'reactivity swing' : 300.89273, 'burnup' : 39.69085}}
    
     ns.shutdown()
     time.sleep(0.05)

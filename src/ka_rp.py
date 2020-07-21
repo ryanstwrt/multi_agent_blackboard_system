@@ -32,10 +32,10 @@ class KaRp(ka.KaBase):
         self.sm_type = 'interpolate'
         self.design_variables = {}
         self.current_design_variables = {}
-        self._design_accuracy = 2
+        self._design_accuracy = 5
         self.objectives = {}
         self.objective_functions = {}
-        self._objective_accuracy = 2
+        self._objective_accuracy = 5
         
     def calc_objectives(self):
         """
@@ -157,15 +157,15 @@ class KaLocal(KaRp):
         super().on_init()
         self._base_trigger_val = 5
         self.bb_lvl_read = 1
-        self.step_size = 0.05
+        self.perturbation_size = 0.05
         self._design_accuracy = 5
         self._fitness_selection_fraction = 0.7
         self.avg_diff_limit = 5
         self.new_panel = 'new'
         self.old_panel = 'old'
-        self.local_search = 'perturbation'
         self.lvl_data = None
         self.lvl_read = None
+        self.analyzed_design = {}
 
     def determine_model_applicability(self, dv, complete=False):
         """
@@ -231,15 +231,16 @@ class KaLocal(KaRp):
         core, entry = random.choice(list(self.lvl_read.items())) if random.random() > self._fitness_selection_fraction else min(list(self.lvl_read.items()))
 
         design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
-        perts = [1.0 - self.step_size, 1.0 + self.step_size]
+        perts = [1.0 - self.perturbation_size, 1.0 + self.perturbation_size]
         for dv, dv_value in design_.items():
             for pert in perts:
                 design = copy.copy(design_)
                 design[dv] = round(dv_value * pert, self._design_accuracy)
                 self.current_design_variables = design
                 self.determine_model_applicability(dv, complete=False)
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True) 
-                
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
+        self.analyzed_design[core] = {'Analyzed': True}
+        
     def genetic_algorithm(self):
         """
         Basic genetic algorithm for expediting our search
@@ -330,6 +331,7 @@ class KaLocalHC(KaLocal):
             if step_number > self.step_limit:
                 break
         self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True) 
+        self.analyzed_design[core] = {'Analyzed': True}
 
     def determine_step(self, base, base_design, design_dict):
         """
@@ -390,4 +392,5 @@ class KaLocalRW(KaLocal):
             self.log_debug('Design Variable: {} Step: {} {}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
             self.determine_model_applicability(dv, complete=False)
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)   
+        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
+        self.analyzed_design[core] = {'Analyzed': True}
