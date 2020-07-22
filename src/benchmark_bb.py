@@ -26,7 +26,6 @@ class BenchmarkBB(bb_sfr_opt.BbSfrOpt):
         self._complete = False
         self.problem = 'benchmark'
         self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
-        self.add_panel(1, ['new', 'old'])       
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
 
@@ -51,9 +50,8 @@ class BenchmarkBB(bb_sfr_opt.BbSfrOpt):
             for panel in lvls['level 3'].values():
                 lvl_3.update(panel)
     
-            lvl_1 = {}
-            for panel in lvls['level 1'].values():
-                    lvl_1.update(panel)
+            lvl_1 = lvls['level 1']
+
 
             obj_dict = {}
             objs = [x for x in objectives.keys()]
@@ -67,10 +65,13 @@ class BenchmarkBB(bb_sfr_opt.BbSfrOpt):
 
             fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':'f1', 'y':'f2'})
             fig1.show()
+        except KeyError:
+            pass
+        try:
             # Plot HV Convergece
             x = [x for x in self.hv_dict.keys()]
             y = [y for y in self.hv_dict.values()]
             fig3 = px.line(x=x, y=y, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
             fig3.show()
-        except KeyError:
+        except:
             pass

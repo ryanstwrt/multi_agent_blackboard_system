@@ -147,10 +147,6 @@ class KaLocal(KaRp):
         Abstract level that the Ka reads from to gather information
     perturbations : list of floats
         List of values to perturb each independent variable by
-    new_panel : str
-        Name of the panel where new information can be found 
-    old_panel : str
-        Name of the panel where information that has already been examined can be found
     """
 
     def on_init(self):
@@ -158,14 +154,10 @@ class KaLocal(KaRp):
         self._base_trigger_val = 5
         self.bb_lvl_read = 1
         self.perturbation_size = 0.05
-        self._design_accuracy = 5
-        self._fitness_selection_fraction = 0.7
-        self.avg_diff_limit = 5
-        self.new_panel = 'new'
-        self.old_panel = 'old'
         self.lvl_data = None
         self.lvl_read = None
         self.analyzed_design = {}
+        self.new_designs = []
 
     def determine_model_applicability(self, dv, complete=False):
         """
@@ -191,7 +183,7 @@ class KaLocal(KaRp):
         KA will perturb the core via the perturbations method and write all results the BB
         """
         self.log_debug('Executing agent {}'.format(self.name))
-        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
         self.lvl_data = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
         self.search_method()
                       
@@ -228,7 +220,10 @@ class KaLocal(KaRp):
         
         These results are written to the BB level 3, so there are design_vars * pert added to level 3.
         """
-        core, entry = random.choice(list(self.lvl_read.items()))
+        
+        core = random.choice(self.new_designs)
+        entry = self.lvl_read[core]
+
 
         design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
         perts = [1.0 - self.perturbation_size, 1.0 + self.perturbation_size]
@@ -238,8 +233,8 @@ class KaLocal(KaRp):
                 design[dv] = round(dv_value * pert, self._design_accuracy)
                 self.current_design_variables = design
                 self.determine_model_applicability(dv, complete=False)
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
         self.analyzed_design[core] = {'Analyzed': True}
+        self.write_to_bb(self.bb_lvl_read, core, entry, complete=True)
         
     def genetic_algorithm(self):
         """
@@ -256,17 +251,21 @@ class KaLocal(KaRp):
             True -  if level has entries
             False -  if level is empty
         """
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        return True if lvl != {} else False
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        cores = [x for x in self.analyzed_design.keys()]
+        self.new_designs = [key for key in lvl if not key in self.analyzed_design]
+        return True if self.new_designs else False
+
     
 class KaLocalHC(KaLocal):
     
     def on_init(self):
         super().on_init()
+        self.avg_diff_limit = 5
         self.step_size = 0.05
-        self.step_rate = 0.1
+        self.step_rate = 0.01
         self.step_limit = 100
-        self.convergence_criteria = 0.005
+        self.convergence_criteria = 0.001
         self.hc_type = 'steepest descent'
         
     def search_method(self):
@@ -283,8 +282,9 @@ class KaLocalHC(KaLocal):
         3b. Else, repeat 
         """
 
-        core, entry = random.choice(list(self.lvl_read.items()))
-
+        core = random.choice(self.new_designs)
+        entry = self.lvl_read[core]
+        
         step = self.step_size
         design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
         design_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.objectives.keys()}
@@ -302,35 +302,35 @@ class KaLocalHC(KaLocal):
                         temp_design[dv] += temp_design[dv] * step
                     else:
                         temp_design[dv] -= temp_design[dv] * step
-                    temp_design[dv] = round(temp_design[dv], 5)
+                    temp_design[dv] = round(temp_design[dv], self._design_accuracy)
                     
                     if temp_design[dv] >= self.design_variables[dv]['ll'] and temp_design[dv] <= self.design_variables[dv]['ul']:
                         self.current_design_variables = temp_design
                         self.calc_objectives()
                         steepest_dict['{} {}'.format(direction,dv)] = {'design variables': temp_design, 
-                                                                       'objective functions': {k:round(v,3) for k,v in self.objective_functions.items()}}
+                                                                       'objective functions': {k:v for k,v in self.objective_functions.items()}}
             if steepest_dict:
                 next_step, diff = self.determine_step(design_, design_objs, steepest_dict)
                 if next_step:
                     hc_log[step_number] = diff
-                    avg_diff = sum(hc_log.values()) / len(hc_log)
                     prev_avg = avg_diff
+                    avg_diff = sum(hc_log.values()) / len(hc_log)
                     design_ = steepest_dict[next_step]['design variables']
                     design_objs = steepest_dict[next_step]['objective functions']
                     self.current_design_variables = {k:v for k,v in steepest_dict[next_step]['design variables'].items()}
                     self.determine_model_applicability(next_step.split(' ')[1], complete=False)
                     
                 if len(hc_log) > self.avg_diff_limit:
-                    step = round(step * (1-self.step_rate),5) if abs(1 - avg_diff/prev_avg) < step else step
+                    step = step * (1-self.step_rate) if abs(1 - avg_diff/prev_avg) < step else step
                 if next_step == None:
-                    step = round(step * (1-self.step_rate),5)
+                    step = step * (1-self.step_rate)
             else:
-                step = round(step * (1-self.step_rate), 5)
+                step = step * (1-self.step_rate)
             hc_log.pop(list(hc_log)[0]) if len(hc_log) > self.avg_diff_limit else hc_log
             step_number += 1
             if step_number > self.step_limit:
                 break
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True) 
+        self.write_to_bb(self.bb_lvl_read, core, entry, complete=True)
         self.analyzed_design[core] = {'Analyzed': True}
 
     def determine_step(self, base, base_design, design_dict):
@@ -353,10 +353,11 @@ class KaLocalHC(KaLocal):
                     
                     dv_scaled_new = self.scale_objective(base[dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
                     dv_scaled_base = self.scale_objective(design_dict[pert_dv]['design variables'][dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
-        
+                    
+                    # We are trying following the steepest ascent, so positive is better
                     obj_diff = (obj_scaled_new - obj_scaled_base) if obj['goal'] == 'gt' else (obj_scaled_base - obj_scaled_new)
-                    dv_diff = abs(dv_scaled_new- dv_scaled_base)
-                    derivative = obj_diff / dv_diff
+                    dv_diff = abs(dv_scaled_new - dv_scaled_base)
+                    derivative = obj_diff / dv_diff if dv_diff != 0 else 0
                     design[pert_dv][name] = derivative
                     design[pert_dv]['total'] += derivative
 
@@ -380,7 +381,9 @@ class KaLocalRW(KaLocal):
         """
         Basic random walk algorithm for searching around a viable design.
         """
-        core, entry = random.choice(list(self.lvl_read.items()))
+        core = random.choice(self.new_designs)
+        entry = self.lvl_read[core]
+        
         design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
         
         for x in enumerate(range(self.walk_length)):
@@ -392,5 +395,4 @@ class KaLocalRW(KaLocal):
             self.log_debug('Design Variable: {} Step: {} {}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
             self.determine_model_applicability(dv, complete=False)
-        self.move_entry(self.bb_lvl_read, core, entry, self.old_panel, self.new_panel, write_complete=True)
         self.analyzed_design[core] = {'Analyzed': True}

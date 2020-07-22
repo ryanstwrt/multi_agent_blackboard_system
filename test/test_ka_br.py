@@ -127,7 +127,6 @@ def test_kabr_lvl2_determine_validity():
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
-    bb.add_panel(1, ['new', 'old'])
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
     bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float}})
@@ -149,21 +148,21 @@ def test_kabr_lvl2_determine_validity():
     assert p_type == 'pareto'
     assert bol == True
 
-    bb.update_abstract_lvl(1, 'core_1', {'pareto type': 'pareto', 'fitness function': 1.0}, panel='new')
+    bb.update_abstract_lvl(1, 'core_1', {'pareto type': 'pareto', 'fitness function': 1.0})
     bb.publish_trigger()
     time.sleep(0.25)
     bol, p_type = ka_br_lvl2.determine_validity('core_2')
     assert p_type == 'pareto'
     assert bol == True
 
-    bb.update_abstract_lvl(1, 'core_2', {'pareto type': 'pareto', 'fitness function': 1.0}, panel='new')
+    bb.update_abstract_lvl(1, 'core_2', {'pareto type': 'pareto', 'fitness function': 1.0})
     bb.publish_trigger()
     time.sleep(0.25)
     bol, p_type = ka_br_lvl2.determine_validity('core_3')
     assert p_type == 'weak'
     assert bol == True
 
-    bb.update_abstract_lvl(1, 'core_3', {'pareto type': 'weak', 'fitness function': 1.0}, panel='old')
+    bb.update_abstract_lvl(1, 'core_3', {'pareto type': 'weak', 'fitness function': 1.0})
     bb.publish_trigger()
     time.sleep(0.25)
     bol, p_type = ka_br_lvl2.determine_validity('core_4')
@@ -294,7 +293,6 @@ def test_kabr_lvl2_handler_executor():
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
-    bb.add_panel(1, ['new', 'old'])
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
     bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float}})
@@ -325,7 +323,7 @@ def test_kabr_lvl2_handler_executor():
     bb.send_executor()
     time.sleep(0.5)   
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.65}}, 'old' : {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.65}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_2' : {'valid' : True},
                                                                'core_3' : {'valid' : True},
                                                                'core_4' : {'valid' : True}}, 
@@ -338,8 +336,7 @@ def test_kabr_lvl2_handler_executor():
     bb.send_executor()
     time.sleep(1.0)   
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57}}, 
-                                                       'old' : {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_4' : {'valid' : True}}, 
                                                        'old': {'core_1' : {'valid' : True}, 
                                                                'core_2' : {'valid' : True},
@@ -350,9 +347,8 @@ def test_kabr_lvl2_handler_executor():
     bb.send_executor()
     time.sleep(1.0)   
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'new': {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57},
-                                                               'core_4' : {'pareto type' : 'weak', 'fitness function' : 2.13333}}, 
-                                                       'old' : {}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57},
+                                                        'core_4' : {'pareto type' : 'weak', 'fitness function' : 2.13333}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 
                                                        'old': {'core_1' : {'valid' : True}, 
                                                                'core_2' : {'valid' : True},

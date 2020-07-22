@@ -26,7 +26,6 @@ class BbSfrOpt(blackboard.Blackboard):
         self._complete = False
         self.problem = 'basic'
         self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
-        self.add_panel(1, ['new', 'old'])       
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
         
@@ -42,7 +41,7 @@ class BbSfrOpt(blackboard.Blackboard):
         
         self.hv_dict = {0:0}
         self.hv_convergence = 1e-6
-        self.num_calls = 25
+        self.num_calls = 150
         self._sm = None
         self.sm_type = 'interpolate'
 
@@ -112,9 +111,13 @@ class BbSfrOpt(blackboard.Blackboard):
             for num in range(self.num_calls):
                 old.append(self.hv_dict[self._trigger_event-self.num_calls-num])
                 new.append(self.hv_dict[self._trigger_event-num])
-            hv_indicator = sum(new) / self.num_calls - sum(old) / self.num_calls
+            hv_average = sum(new) / self.num_calls - sum(old) / self.num_calls
+            hv_max = min(new) - min(old)
+            hv_indicator = max([hv_average, hv_max])
+            self.log_info('Max: {} Average: {}'.format(hv_max, hv_average))
         except KeyError:
             pass
+        self.log_info('Convergence Rate: {} '.format(hv_indicator))
         if hv_indicator < self.hv_convergence:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
@@ -123,9 +126,7 @@ class BbSfrOpt(blackboard.Blackboard):
     
     def hv_indicator(self):
         pf = []
-        core_old = [x for x in self.abstract_lvls['level 1']['old'].keys()]
-        core_new = [x for x in self.abstract_lvls['level 1']['new'].keys()]
-        cores = core_old + core_new
+        cores = [x for x in self.abstract_lvls['level 1']]
         bb_lvl3 = self.abstract_lvls['level 3']['old']
         ll = [x['ll'] for x in self.objectives.values()]
         ul = [x['ul'] for x in self.objectives.values()]
@@ -155,9 +156,7 @@ class BbSfrOpt(blackboard.Blackboard):
         for panel in self.abstract_lvls['level 3'].values():
             lvl_3.update(panel)
 
-        lvl_1 = {}
-        for panel in self.abstract_lvls['level 1'].values():
-            lvl_1.update(panel)
+        lvl_1 = self.abstract_lvls['level 1']
 
         cycle_length = []
         rx_swing = []

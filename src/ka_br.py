@@ -46,9 +46,7 @@ class KaBr(ka.KaBase):
         lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         lvl_data = self.bb.get_attr('abstract_lvls')['level 3']
                 
-        lvl_1 = {}
-        for panel in lvl.values():
-            lvl_1.update(panel)
+        lvl_1 = lvl
         lvl_3 = {}
         for panel in lvl_data.values():
             lvl_3.update(panel)
@@ -106,11 +104,10 @@ class KaBr_lvl2(KaBr):
         self.log_debug('Executing agent {}'.format(self.name)) 
 
         self.clear_bb_lvl()
-        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel, complete=False)
+        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=False)
         
         self.determine_dominated_cores()
         self.remove_dominated_entries()
-
         entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
         self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel, write_complete=True)
         
@@ -137,11 +134,8 @@ class KaBr_lvl2(KaBr):
         Determing if any cores in level 1 are dominated by any others, if so mark them for removal
         """
         #Update level 1, as we have just added to it likely
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-                    
-        lvl_1 = {}
-        for panel in lvl.values():
-            lvl_1.update(panel)    
+        lvl_1 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
+                      
         self.lvl_write = lvl_1
 
         optimal = False
@@ -187,12 +181,11 @@ class KaBr_lvl2(KaBr):
     
     def remove_entry(self, name, entry, level):
         """Remove an entry that has been dominated."""
-        for panel_name, panel_entries in level.items():
-            for core in panel_entries.keys():
-                if core == name:
-                    self.log_info('Removing core {}, no longer optimal'.format(name))
-                    self.write_to_bb(self.bb_lvl, name, entry, panel=panel_name, complete=False, remove=True)
-                    return
+        for core in level.keys():
+            if core == name:
+                self.log_info('Removing core {}, no longer optimal'.format(name))
+                self.write_to_bb(self.bb_lvl, name, entry, complete=False, remove=True)
+                return
 
     def remove_dominated_entries(self):
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]

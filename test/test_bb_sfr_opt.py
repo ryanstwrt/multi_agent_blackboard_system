@@ -43,14 +43,13 @@ def test_BbSfrOpt_initalize_abstract_level_3_basic():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
-    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str, 'fitness function': float}, 
-                                                               'old':{'pareto type': str, 'fitness function': float}},
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
                                                    'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
                                                                'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
 
-    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 
+    assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
                                             'level 2': {'new':{}, 'old':{}}, 
                                             'level 3': {'new': {}, 'old': {}}}
     ns.shutdown()
@@ -63,14 +62,13 @@ def test_BbSfrOpt_initalize_abstract_level_3():
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     dv =   {'height':           {'ll': 50, 'ul': 80, 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
-    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'new':{'pareto type': str, 'fitness function': float}, 
-                                                               'old':{'pareto type': str, 'fitness function': float}},
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
                                                    'level 3': {'new': {'reactor parameters': {'height': float, 'reactivity swing': float, 'burnup': float}},
                                                                'old': {'reactor parameters': {'height': float, 'reactivity swing': float, 'burnup': float}}}}
 
-    assert bb.get_attr('abstract_lvls') == {'level 1': {'new':{}, 'old':{}}, 
+    assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
                                             'level 2': {'new':{}, 'old':{}}, 
                                             'level 3': {'new': {}, 'old': {}}}
     ns.shutdown()
@@ -138,7 +136,7 @@ def test_determine_complete():
     for x in range(51):
         name = 'core{}'.format(x)
         entry = {'pareto type': 'pareto'}
-        bb.update_abstract_lvl(1, name, entry, panel='new')
+        bb.update_abstract_lvl(1, name, entry)
     assert bb.get_attr('_complete') == False
     bb.determine_complete()
     time.sleep(0.1)

@@ -42,7 +42,7 @@ def test_run_single_agent_bb():
                                                                 'pu_content': 0.4, 'cycle length': 365.0, 
                                                                 'pu mass': 500.0, 'reactivity swing' : 600.0,
                                                                 'burnup' : 50.0}}, panel='old')
-    bb_controller.bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0}, panel='new')    
+    bb_controller.bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0})    
     bb_controller.bb.set_attr(hv_convergence=1)
     bb_controller.progress_rate=10
     bb_controller.bb.set_attr(num_calls=1)
