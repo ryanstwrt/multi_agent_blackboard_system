@@ -96,7 +96,7 @@ class KaRp(ka.KaBase):
         """Scale an objective based on the upper/lower"""
         return (val - ll) / (ul - ll)
 
-class KaRpExplore(KaRp):
+class KaGlobal(KaRp):
     """
     Knowledge agent to solve portions reactor physics problems using a SM.
     

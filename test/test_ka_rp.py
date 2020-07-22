@@ -50,7 +50,7 @@ def test_karp_init():
 
 def test_karp_explore_init():
     ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
+    rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
     
     assert rp.get_attr('bb') == None
     assert rp.get_attr('bb_lvl') == 3
@@ -88,7 +88,7 @@ def test_explore_handler_executor():
 
     bb.set_attr(sm_type=model)
     bb.set_attr(_sm=sm_ga) 
-    bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp_explore')
+    bb.connect_agent(ka_rp.KaGlobal, 'ka_rp_explore')
     
     rp = ns.proxy('ka_rp_explore')
     rp.set_attr(_trigger_val=1)
@@ -110,7 +110,7 @@ def test_explore_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
-    bb.connect_agent(ka_rp.KaRpExplore, 'ka_rp')
+    bb.connect_agent(ka_rp.KaGlobal, 'ka_rp')
     
     bb.publish_trigger()
     time.sleep(0.25)
@@ -129,7 +129,7 @@ def test_explore_handler_trigger_publish():
     
 def test_explore_mc_design_variables():
     ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=ka_rp.KaRpExplore)
+    rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
     rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})

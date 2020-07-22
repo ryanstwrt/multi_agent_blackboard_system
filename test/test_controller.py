@@ -15,7 +15,7 @@ def test_controller_init():
     time.sleep(0.05)
     
 def test_controller_init_sfr_opt():
-    kas = {'ka_rp_explore': ka_rp.KaRpExplore, 
+    kas = {'ka_rp_explore': ka_rp.KaGlobal, 
            'ka_rp_exploit': ka_rp.KaLocal,
            'ka_br_lvl3': ka_br.KaBr_lvl3,
            'ka_br_lvl2': ka_br.KaBr_lvl2}
@@ -32,7 +32,7 @@ def test_controller_init_sfr_opt():
     time.sleep(0.05)
     
 def test_run_single_agent_bb():
-    kas = {'ka_rp_explore': ka_rp.KaRpExplore, 
+    kas = {'ka_rp_explore': ka_rp.KaGlobal, 
            'ka_rp_exploit': ka_rp.KaLocal,
            'ka_br_lvl3': ka_br.KaBr_lvl3,
            'ka_br_lvl2': ka_br.KaBr_lvl2}
