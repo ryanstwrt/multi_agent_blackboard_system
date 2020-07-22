@@ -185,7 +185,9 @@ class BbSfrOpt(blackboard.Blackboard):
                       'reactivity swing' : 'Rx Swing (pcm/month)'}
         if len(obj_dict.keys()) == 2:
             fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]]})
-        else:
+        elif len(obj_dict.keys()) == 3:
+            fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]]})
+        elif len(obj_dict.keys()) > 3:
             fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=obj_dict[objs[3]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]], 'color': obj_labels[objs[3]]})
         fig1.show()
 

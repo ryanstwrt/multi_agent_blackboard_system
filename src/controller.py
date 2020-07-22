@@ -79,6 +79,29 @@ class Controller(object):
                     self.bb.plot_progress()
                 self.bb.diagnostics_replace_agent()
                 
+    def run_multi_agent_bb(self):
+        """Run a BB optimization problem single-agent mode."""
+        
+        while not self.bb.get_attr('_complete'):
+            self.bb.publish_trigger()
+            trig_num = self.bb.get_attr('_trigger_event')
+            responses = False
+            # Wait until all responses have been recieved
+            while not responses:
+                time.sleep(0.1)
+                if len(self.bb.get_attr('_kaar')[trig_num]) > 0:
+                    responses = True
+            self.bb.controller()
+            self.bb.send_executor()
+
+            self.bb.hv_indicator()
+            if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0:
+                self.bb.write_to_h5()
+                self.bb.determine_complete_hv()
+                if self.plot_progress:
+                    self.bb.plot_progress()
+                self.bb.diagnostics_replace_agent()
+                
     def update_bb_trigger_values(self, trig_num):
         """
         Update a knowledge agents trigger value.
