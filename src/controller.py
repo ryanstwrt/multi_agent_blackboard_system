@@ -30,9 +30,10 @@ class Controller(object):
         self.agent_time = 0
         self.progress_rate = 100
 
+
         if bb_type == bb_sfr_opt.BbSfrOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
-#            model = 'ann'
+            #            model = 'ann'
 #            with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
 #                sm_ga = pickle.load(pickle_file)
 #            self.bb.set_attr(sm_type=model)
@@ -86,7 +87,7 @@ class Controller(object):
             self.bb.publish_trigger()
             trig_num = self.bb.get_attr('_trigger_event')
             responses = False
-            # Wait until all responses have been recieved
+            # Wait until a response has been recieved
             while not responses:
                 time.sleep(0.1)
                 if len(self.bb.get_attr('_kaar')[trig_num]) > 0:

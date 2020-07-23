@@ -266,7 +266,7 @@ class KaLocalHC(KaLocal):
         self.step_rate = 0.01
         self.step_limit = 100
         self.convergence_criteria = 0.001
-        self.hc_type = 'steepest descent'
+        self.hc_type = 'simple'
         
     def search_method(self):
         """
@@ -340,7 +340,14 @@ class KaLocalHC(KaLocal):
         design = {}
         best_design = {}
         best_design['total'] = 0
-        for pert_dv, dict_ in design_dict.items():
+
+        design_list = [x for x in design_dict.keys()]
+        if self.hc_type == 'simple':
+            random.shuffle(design_list)
+
+        
+        for pert_dv in design_list:
+            dict_ = design_dict[pert_dv]
             dv = pert_dv.split(' ')[1]
             design[pert_dv] = {}
             design[pert_dv]['total'] = 0
@@ -354,13 +361,19 @@ class KaLocalHC(KaLocal):
                     dv_scaled_new = self.scale_objective(base[dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
                     dv_scaled_base = self.scale_objective(design_dict[pert_dv]['design variables'][dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
                     
-                    # We are trying following the steepest ascent, so positive is better
+                    # We are ollowing the steepest ascent, so positive is better
                     obj_diff = (obj_scaled_new - obj_scaled_base) if obj['goal'] == 'gt' else (obj_scaled_base - obj_scaled_new)
                     dv_diff = abs(dv_scaled_new - dv_scaled_base)
                     derivative = obj_diff / dv_diff if dv_diff != 0 else 0
                     design[pert_dv][name] = derivative
                     design[pert_dv]['total'] += derivative
 
+                    if derivative > 0 and self.hc_type == 'simple':
+                        if 'core_{}'.format([x for x in dict_['design variables'].values()]) in self.lvl_data.keys():
+                            pass
+                        else:
+                            return(pert_dv, derivative)
+            
             if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total']:
                 best_design = design[pert_dv]
                 best_design['pert'] = pert_dv
@@ -369,6 +382,7 @@ class KaLocalHC(KaLocal):
             return (best_design['pert'], best_design['total'])
         else:
             return (None, None)
+            
         
 class KaLocalRW(KaLocal):
     

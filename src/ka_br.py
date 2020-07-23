@@ -42,23 +42,20 @@ class KaBr(ka.KaBase):
                 
     def handler_trigger_publish(self, message):
         """Read the BB level and determine if an entry is available."""
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-        lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
         lvl_data = self.bb.get_attr('abstract_lvls')['level 3']
                 
-        lvl_1 = lvl
         lvl_3 = {}
         for panel in lvl_data.values():
             lvl_3.update(panel)
 
-        self.lvl_write = lvl_1
-        self.lvl_read  = lvl_read
         self.lvl_data  = lvl_3
         self._num_entries = len(self.lvl_read)
 
         new_entry = self.read_bb_lvl()
         trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
-        self._trigger_val = self._trigger_val_base + int(trig_prob) if trig_prob > 0 else 0 #random.random() else 0
+        self._trigger_val = self._trigger_val_base + int(trig_prob) if trig_prob > 0 else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
@@ -100,6 +97,16 @@ class KaBr_lvl2(KaBr):
         self._entry_name = core_name[0]
         self._entry = {'pareto type': core_name[1], 'fitness function': self._fitness}
 
+    def clear_bb_lvl(self):
+        """
+        Remove any core designs which hvae been dominated
+        """
+        #Move all dominated entries on level 2
+        for core_name, core_entry in self.lvl_read.items():
+            valid_core, opt_type = self.determine_validity(core_name)
+            if not valid_core:
+                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel, write_complete=False)
+        
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
 
@@ -119,7 +126,7 @@ class KaBr_lvl2(KaBr):
         self._fitness = self.determine_fitness_function(core_name, self.lvl_data[core_name]['reactor parameters'])
             
         if self.lvl_write == {}:
-            self.log_debug('Core {} is initial core for level 1.'.format(core_name))
+            self.log_debug('Design {} is initial optimal design.'.format(core_name))
             return (True, 'pareto')
 
         for opt_core in self.lvl_write.keys():
@@ -134,10 +141,8 @@ class KaBr_lvl2(KaBr):
         Determing if any cores in level 1 are dominated by any others, if so mark them for removal
         """
         #Update level 1, as we have just added to it likely
-        lvl_1 = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
+        self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
                       
-        self.lvl_write = lvl_1
-
         optimal = False
         self._dominated_designs = {}
         for core_1 in self.lvl_write.keys():
@@ -192,16 +197,6 @@ class KaBr_lvl2(KaBr):
         #Remove any dominated entires on level 1
         for core_name, entry in self._dominated_designs.items():
             self.remove_entry(core_name, entry, lvl)
-
-    def clear_bb_lvl(self):
-        """
-        Remove any core designs which hvae been dominated
-        """
-        #Move all dominated entries on level 2
-        for core_name, core_entry in self.lvl_read.items():
-            valid_core, opt_type = self.determine_validity(core_name)
-            if not valid_core:
-                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel, write_complete=False)
 
                 
 class KaBr_lvl3(KaBr):
