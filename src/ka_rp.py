@@ -133,6 +133,7 @@ class KaGlobal(KaRp):
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
 
 
+
 class KaLocal(KaRp):
     """
     Knowledge agent to solve portions reactor physics problems using a SM.
@@ -410,3 +411,84 @@ class KaLocalRW(KaLocal):
             self.current_design_variables = design
             self.determine_model_applicability(dv, complete=False)
         self.analyzed_design[core] = {'Analyzed': True}
+        
+class KaGA(KaLocal):
+    """
+    Pseudo-basic gentic algorithm for helping global and local searches
+    """
+    
+    def on_init(self):
+        super().on_init()
+        self._base_trigger_val = 10
+        self.previous_populations = {}
+        self.mutation_rate = 0.1
+        self.crossover_type = 'single point'
+        self.mutation_type = 'random'
+        self.pf_trigger_number = 20
+
+    def handler_trigger_publish(self, message):
+        """
+        Read the BB level and determine if an entry is available.
+        
+        Paremeters
+        ----------
+        message : str
+            Required message from BB
+        
+        Returns
+        -------
+        send : message
+            _trigger_response_alias : int
+                Alias for the trigger response 
+            name : str
+                Alias for the agent, such that the trigger value get assigned to the right agent on the BB
+            _trigger_val : int
+                Trigger value for knowledge agent
+        """
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        self._trigger_val = self._base_trigger_val if (len(lvl) % self.pf_trigger_number == 0 and len(lvl) != 0) else 0
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+
+        
+    def search_method(self):
+        
+        cores =  [x for x in self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)].keys()]
+        core = cores[0]
+        entry = self.lvl_read[core]
+
+        
+        population = [x for x in self.lvl_read.keys()]
+        children = []
+        while len(population) > 1:
+            parent1 = self.lvl_data[population.pop(random.choice(range(len(population))))]
+            parent2 = self.lvl_data[population.pop(random.choice(range(len(population))))]
+            if self.crossover_type == 'single point':
+                children = self.single_point_crossover(parent1, parent2, 1)
+            for child in children:
+                if (1 - random.random()) > self.mutation_rate:
+                    if self.mutation_type == 'random':
+                        child = self.random_mutation(child)
+                self.current_design_variables = child
+                self.determine_model_applicability(next(iter(child)), complete=False)
+        self.write_to_bb(self.bb_lvl_read, core, entry, complete=True)
+
+            
+    def single_point_crossover(self, genotype1, genotype2, num_crossover_points):
+        crossover = random.choice(range(len(self.design_variables)))
+        p1_dv = [genotype1['reactor parameters'][obj] for obj in self.design_variables.keys()]
+        p2_dv = [genotype2['reactor parameters'][obj] for obj in self.design_variables.keys()]
+
+        c1_dv = p1_dv[:crossover] + p2_dv[crossover:]
+        c2_dv = p2_dv[:crossover] + p1_dv[crossover:]
+        c1 = {dv:c1_dv[num] for num, dv in enumerate(self.design_variables.keys())}
+        c2 = {dv:c2_dv[num] for num, dv in enumerate(self.design_variables.keys())}
+
+        return [c1, c2]
+    
+    def random_mutation(self, genotype):
+        dv_mutate = random.choice([x for x in self.design_variables.keys()])
+        for dv, dv_dict in self.design_variables.items():
+            genotype[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy) if dv == dv_mutate else genotype[dv]
+                
+        return genotype

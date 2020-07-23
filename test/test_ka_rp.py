@@ -726,3 +726,43 @@ def test_kalocalhc_simple():
    
     ns.shutdown()
     time.sleep(0.05)
+    
+    
+def test_kalocalga():
+    ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
+
+    model = 'lr'
+    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
+        sm_ga = pickle.load(pickle_file)
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga)
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+
+    bb.connect_agent(ka_rp.KaGA, 'ka_rp_exploit')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(mutation_rate=0.0)
+    rp.set_attr(pf_trigger_number=2)
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                          'pu_content': 0.42, 'reactivity swing' : 704.11,
+                                                          'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 704.11,
+                                                          'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.search_method()
+    
+    time.sleep(2)
+    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 2
+   
+    ns.shutdown()
+    time.sleep(0.05)
