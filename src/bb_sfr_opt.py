@@ -38,10 +38,12 @@ class BbSfrOpt(blackboard.Blackboard):
                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
 
         self.total_solutions = 50
+        self.objectives_ll = []
+        self.objectives_ul = []
         
-        self.hv_dict = {0:0}
+        self.hv_list = [0]
         self.hv_convergence = 1e-6
-        self.num_calls = 150
+        self.num_calls = 25
         self._sm = None
         self.sm_type = 'interpolate'
 
@@ -53,6 +55,10 @@ class BbSfrOpt(blackboard.Blackboard):
             self.objectives = objectives
         if design_variables:
             self.design_variables = design_variables
+        
+        self.objectives_ll = [x['ll'] for x in self.objectives.values()]
+        self.objectives_ul = [x['ul'] for x in self.objectives.values()]
+
         
         rx_params = {iv: iv_dict['variable type'] for iv, iv_dict in self.design_variables.items()}
         rx_params.update({obj: obj_dict['variable type'] for obj, obj_dict in self.objectives.items()})
@@ -103,20 +109,12 @@ class BbSfrOpt(blackboard.Blackboard):
         """
         Determine if the problem is complete using the convergence of the hypervolume
         """
-        pf = []
-        old = []
-        new = []
-        hv_indicator = 1
-        try:
-            for num in range(self.num_calls):
-                old.append(self.hv_dict[self._trigger_event-self.num_calls-num])
-                new.append(self.hv_dict[self._trigger_event-num])
-            hv_average = sum(new) / self.num_calls - sum(old) / self.num_calls
-            hv_max = min(new) - min(old)
-            hv_indicator = max([hv_average, hv_max])
-            self.log_info('Max: {} Average: {}'.format(hv_max, hv_average))
-        except KeyError:
-            pass
+        
+        recent_hv = self.hv_list[-self.num_calls:]
+        prev_hv = self.hv_list[-2*self.num_calls:-self.num_calls]
+        hv_average = sum(recent_hv) / self.num_calls - sum(prev_hv) / self.num_calls
+        hv_max = min(recent_hv) - max(prev_hv)
+        hv_indicator = max([hv_average, hv_max])
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
         if hv_indicator < self.hv_convergence:
             self.log_info('Problem complete, shutting agents down')
@@ -125,17 +123,16 @@ class BbSfrOpt(blackboard.Blackboard):
             self._complete = True
     
     def hv_indicator(self):
+        """
+        Calcualte the Hypervolume for the current pareto front
+        """
         pf = []
         cores = [x for x in self.abstract_lvls['level 1']]
         bb_lvl3 = self.abstract_lvls['level 3']['old']
-        ll = [x['ll'] for x in self.objectives.values()]
-        ul = [x['ul'] for x in self.objectives.values()]
         for core in cores:
-            rx_params = [bb_lvl3[core]['reactor parameters'][param] for param in self.objectives.keys()]
-            pf.append(rx_params)
-        self.hv_dict[self._trigger_event] = pm.hypervolume_indicator(pf, ll, ul)
+            pf.append([bb_lvl3[core]['reactor parameters'][param] for param in self.objectives.keys()])
+        self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
         
-    
     def generate_sm(self):
         objectives = [x for x in self.objectives.keys()]
         design_var, objective_func = dg.get_data([x for x in self.design_variables.keys()], objectives)

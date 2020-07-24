@@ -23,7 +23,8 @@ class Controller(object):
         self.bb_name = bb_name
         self.bb_type = bb_type
         self.agent_wait_time = agent_wait_time
-        self.ns = run_nameserver()
+        self._ns = run_nameserver()
+        self._proxy_server = proxy.NSProxy()
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
         self.plot_progress = plot_progress
@@ -33,11 +34,6 @@ class Controller(object):
 
         if bb_type == bb_sfr_opt.BbSfrOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
-            #            model = 'ann'
-#            with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-#                sm_ga = pickle.load(pickle_file)
-#            self.bb.set_attr(sm_type=model)
-#            self.bb.set_attr(_sm=sm_ga)
             self.bb.set_attr(_sm='gpr')
             self.bb.generate_sm()
         
@@ -49,33 +45,39 @@ class Controller(object):
         for ka_name, ka_type in ka.items():
             self.bb.connect_agent(ka_type, ka_name)
             
+    def initialize_blackboard(self):
+        pass
             
     def run_single_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
-        
+        i=0
         while not self.bb.get_attr('_complete'):
             self.bb.publish_trigger()
             trig_num = self.bb.get_attr('_trigger_event')
             responses = False
             # Wait until all responses have been recieved
             while not responses:
-                time.sleep(0.1)
+                time.sleep(0.05)
                 if len(self.bb.get_attr('_kaar')[trig_num]) == len(self.bb.get_attr('agent_addrs')):
                     responses = True
             self.bb.controller()
             self.bb.set_attr(_new_entry=False)
             self.bb.send_executor()
-            # TODO Keep track of how long each agent takes to run, increase the agents TV based on how long it takes
+            
             while self.bb.get_attr('_new_entry') == False:
                 time.sleep(0.1)
                 self.agent_time += 0.1
                 if self.agent_time > self.agent_wait_time:
                     break
             self.update_bb_trigger_values(trig_num)
-            self.bb.hv_indicator()
+            ka_executed = self._proxy_server.proxy(self.bb.get_attr('_ka_to_execute')[0])
+            if ka_executed.get_attr('_update_hv') :
+                self.bb.hv_indicator()
+                i+=1
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
                 self.bb.write_to_h5()
-                self.bb.determine_complete_hv()
+                if len(self.bb.get_attr('hv_list')) > 2*self.bb.get_attr('num_calls'):
+                    self.bb.determine_complete_hv()
                 if self.plot_progress:
                     self.bb.plot_progress()
                 self.bb.diagnostics_replace_agent()
@@ -95,10 +97,12 @@ class Controller(object):
             self.bb.controller()
             self.bb.send_executor()
 
-            self.bb.hv_indicator()
+            if 'rp' in self.bb.get_attr('_kaar')[trig_num]:
+                self.bb.hv_indicator()
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0:
                 self.bb.write_to_h5()
-                self.bb.determine_complete_hv()
+                if len(self.bb.get_attr('hv_list')) > 2*self.bb.get_attr('num_calls'):
+                    self.bb.determine_complete_hv()
                 if self.plot_progress:
                     self.bb.plot_progress()
                 self.bb.diagnostics_replace_agent()
@@ -110,10 +114,8 @@ class Controller(object):
         If BB has too many entries on a abstract level, the KA trigger value gets increased by 1.
         If the BB has few entries on the abstract level, the KA trigger value is reduced by 1.
         """
-#        print(self.bb.get_attr('_kaar')[trig_num])
         self.bb.controller_update_kaar(trig_num, round(self.agent_time,2))
-#        print(self.bb.get_attr('_kaar')[trig_num])
         self.agent_time = 0
         
     def shutdown(self):
-        self.ns.shutdown()
+        self._ns.shutdown()

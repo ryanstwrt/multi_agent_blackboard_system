@@ -36,6 +36,7 @@ class KaRp(ka.KaBase):
         self.objectives = {}
         self.objective_functions = {}
         self._objective_accuracy = 5
+        self._update_hv = False
         
     def calc_objectives(self):
         """
@@ -287,47 +288,41 @@ class KaLocalHC(KaLocal):
         entry = self.lvl_read[core]
         
         step = self.step_size
-        design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
-        design_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.objectives.keys()}
+        step_design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        step_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.objectives.keys()}
         step_number = 0
-        hc_log = {}
-        avg_diff = 0
-        prev_avg = 1
         
         while step > self.convergence_criteria:
-            steepest_dict = {}
+            gradient_vector = {}
+            next_step = None
+            # Calculate our gradient vector
             for dv in self.design_variables:
                 for direction in ['+', '-']:
-                    temp_design = copy.copy(design_)
-                    if direction == '+':
-                        temp_design[dv] += temp_design[dv] * step
-                    else:
-                        temp_design[dv] -= temp_design[dv] * step
+                    temp_design = copy.copy(step_design)
+                    temp_design[dv] += temp_design[dv] * step if direction == '+' else temp_design[dv] * -step
                     temp_design[dv] = round(temp_design[dv], self._design_accuracy)
                     
                     if temp_design[dv] >= self.design_variables[dv]['ll'] and temp_design[dv] <= self.design_variables[dv]['ul']:
-                        self.current_design_variables = temp_design
-                        self.calc_objectives()
-                        steepest_dict['{} {}'.format(direction,dv)] = {'design variables': temp_design, 
+                        if 'core_{}'.format([x for x in temp_design.values()]) in self.lvl_data.keys():
+                            print('here')
+                            pass
+                        else:
+                            self.current_design_variables = temp_design
+                            self.calc_objectives()
+                            gradient_vector['{} {}'.format(direction,dv)] = {'design variables': temp_design, 
                                                                        'objective functions': {k:v for k,v in self.objective_functions.items()}}
-            if steepest_dict:
-                next_step, diff = self.determine_step(design_, design_objs, steepest_dict)
+            # Determine which step is the steepest, update our design, and write this to the BB
+            if gradient_vector:
+                next_step, diff = self.determine_step(step_design, step_objs, gradient_vector)
                 if next_step:
-                    hc_log[step_number] = diff
-                    prev_avg = avg_diff
-                    avg_diff = sum(hc_log.values()) / len(hc_log)
-                    design_ = steepest_dict[next_step]['design variables']
-                    design_objs = steepest_dict[next_step]['objective functions']
-                    self.current_design_variables = {k:v for k,v in steepest_dict[next_step]['design variables'].items()}
+                    step_design = gradient_vector[next_step]['design variables']
+                    step_objs = gradient_vector[next_step]['objective functions']
+                    self.current_design_variables = {k:v for k,v in step_design.items()}
                     self.determine_model_applicability(next_step.split(' ')[1], complete=False)
-                    
-                if len(hc_log) > self.avg_diff_limit:
-                    step = step * (1-self.step_rate) if abs(1 - avg_diff/prev_avg) < step else step
-                if next_step == None:
-                    step = step * (1-self.step_rate)
-            else:
+            
+            #If we don't have a gradient vector or a next step to take, reduce the step size
+            if gradient_vector == {} or next_step == None:
                 step = step * (1-self.step_rate)
-            hc_log.pop(list(hc_log)[0]) if len(hc_log) > self.avg_diff_limit else hc_log
             step_number += 1
             if step_number > self.step_limit:
                 break
@@ -346,7 +341,6 @@ class KaLocalHC(KaLocal):
         if self.hc_type == 'simple':
             random.shuffle(design_list)
 
-        
         for pert_dv in design_list:
             dict_ = design_dict[pert_dv]
             dv = pert_dv.split(' ')[1]
@@ -358,7 +352,6 @@ class KaLocalHC(KaLocal):
                 if new_obj >= self.objectives[name]['ll'] and new_obj <= self.objectives[name]['ul']:
                     obj_scaled_new = self.scale_objective(new_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
                     obj_scaled_base = self.scale_objective(base_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
-                    
                     dv_scaled_new = self.scale_objective(base[dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
                     dv_scaled_base = self.scale_objective(design_dict[pert_dv]['design variables'][dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
                     
@@ -370,10 +363,7 @@ class KaLocalHC(KaLocal):
                     design[pert_dv]['total'] += derivative
 
                     if derivative > 0 and self.hc_type == 'simple':
-                        if 'core_{}'.format([x for x in dict_['design variables'].values()]) in self.lvl_data.keys():
-                            pass
-                        else:
-                            return(pert_dv, derivative)
+                        return(pert_dv, derivative)
             
             if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total']:
                 best_design = design[pert_dv]
@@ -424,7 +414,7 @@ class KaGA(KaLocal):
         self.mutation_rate = 0.1
         self.crossover_type = 'single point'
         self.mutation_type = 'random'
-        self.pf_trigger_number = 20
+        self.pf_size = 10
 
     def handler_trigger_publish(self, message):
         """
@@ -446,23 +436,25 @@ class KaGA(KaLocal):
                 Trigger value for knowledge agent
         """
         lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-        self._trigger_val = self._base_trigger_val if (len(lvl) % self.pf_trigger_number == 0 and len(lvl) != 0) else 0
+        new = set([x for x in lvl.keys()])
+        old = set([x for x in self.analyzed_design.keys()])
+        intersection = old.intersection(new)
+        self._trigger_val = self._base_trigger_val if (len(lvl) % self.pf_size == 0 and intersection != new) else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 
         
     def search_method(self):
-        
-        cores =  [x for x in self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)].keys()]
-        core = cores[0]
-        entry = self.lvl_read[core]
-
-        
+        ## Figure out way to prevent doing the same population twice
         population = [x for x in self.lvl_read.keys()]
         children = []
         while len(population) > 1:
-            parent1 = self.lvl_data[population.pop(random.choice(range(len(population))))]
-            parent2 = self.lvl_data[population.pop(random.choice(range(len(population))))]
+            design1 = population.pop(random.choice(range(len(population))))
+            design2 = population.pop(random.choice(range(len(population))))
+            parent1 = self.lvl_data[design1]
+            parent2 = self.lvl_data[design2]
+            self.analyzed_design[design1] = {'Analyzed': True}
+            self.analyzed_design[design2] = {'Analyzed': True}
             if self.crossover_type == 'single point':
                 children = self.single_point_crossover(parent1, parent2, 1)
             for child in children:
@@ -470,8 +462,10 @@ class KaGA(KaLocal):
                     if self.mutation_type == 'random':
                         child = self.random_mutation(child)
                 self.current_design_variables = child
-                self.determine_model_applicability(next(iter(child)), complete=False)
-        self.write_to_bb(self.bb_lvl_read, core, entry, complete=True)
+                if child == children[-1]:
+                    self.determine_model_applicability(next(iter(child)), complete=True)
+                else:
+                    self.determine_model_applicability(next(iter(child)), complete=False)
 
             
     def single_point_crossover(self, genotype1, genotype2, num_crossover_points):

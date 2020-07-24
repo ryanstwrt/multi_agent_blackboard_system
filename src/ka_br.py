@@ -21,6 +21,7 @@ class KaBr(ka.KaBase):
         self._trigger_val_base = 0
         self.lvl_read = None
         self.lvl_write = None
+        self._update_hv = False
     
     def clear_entry(self):
         """Clear the KA entry"""
@@ -92,6 +93,7 @@ class KaBr_lvl2(KaBr):
         self._trigger_val_base = 4
         self._fitness = 0.0
         self._dominated_designs = {}
+        self._update_hv = True
         
     def add_entry(self, core_name):
         self._entry_name = core_name[0]

@@ -11,7 +11,7 @@ def test_controller_init():
     assert bb_controller.bb_name == 'bb'
     assert bb_controller.bb_type == blackboard.Blackboard
     assert bb_controller.agent_wait_time == 30
-    bb_controller.ns.shutdown()
+    bb_controller._ns.shutdown()
     time.sleep(0.05)
     
 def test_controller_init_sfr_opt():
@@ -28,7 +28,7 @@ def test_controller_init_sfr_opt():
     agents =  bb_controller.bb.get_attr('agent_addrs')
     assert [x for x in agents.keys()] == ['ka_rp_explore', 'ka_rp_exploit', 'ka_br_lvl3', 'ka_br_lvl2']
     
-    bb_controller.ns.shutdown()
+    bb_controller._ns.shutdown()
     time.sleep(0.05)
     
 def test_run_single_agent_bb():
