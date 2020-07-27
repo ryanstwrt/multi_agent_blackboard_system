@@ -7,6 +7,7 @@ import time
 import os
 import ka_br
 import bb_sfr_opt as bb_sfr
+import pickle
 
 def test_kabr_init():
     ns = run_nameserver()
@@ -68,6 +69,159 @@ def test_kabr_clear_entry():
     
     ns.shutdown()
     time.sleep(0.05)
+
+#-----------------------------------------
+# Test of KaBr_lvl1
+#-----------------------------------------
+
+def test_kabr_lvl1_init():
+    ns = run_nameserver()
+    ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
+    assert ka_br1.get_attr('bb') == None
+    assert ka_br1.get_attr('bb_lvl') == 1
+    assert ka_br1.get_attr('_entry') == None
+    assert ka_br1.get_attr('_entry_name') == None
+    assert ka_br1.get_attr('_writer_addr') == None
+    assert ka_br1.get_attr('_writer_alias') == None
+    assert ka_br1.get_attr('_executor_addr') == None
+    assert ka_br1.get_attr('_executor_alias') == None
+    assert ka_br1.get_attr('_trigger_response_addr') == None
+    assert ka_br1.get_attr('_trigger_response_alias') == 'trigger_response_ka_br_lvl1'
+    assert ka_br1.get_attr('_trigger_publish_addr') == None
+    assert ka_br1.get_attr('_trigger_publish_alias') == None
+    assert ka_br1.get_attr('_trigger_val') == 0
+    assert ka_br1.get_attr('bb_lvl_read') == 1
+    assert ka_br1.get_attr('_objectives') == None
+    assert ka_br1.get_attr('_shutdown_addr') == None
+    assert ka_br1.get_attr('_shutdown_alias') == None
+    assert ka_br1.get_attr('_trigger_val_base') == 5
+    assert ka_br1.get_attr('_pf_size') == 0
+    assert ka_br1.get_attr('_hvi_dict') == {}
+    assert ka_br1.get_attr('_upper_objective_reference_point') == None
+    assert ka_br1.get_attr('_lower_objective_reference_point') == None
+
+    ns.shutdown()
+    time.sleep(0.05)    
+
+def test_kabr_lvl1_publish():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    model = 'lr'
+    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
+        sm_ga = pickle.load(pickle_file)
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga)
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+    
+    bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
+    br = ns.proxy('ka_br_lvl1')
+    br.set_attr(_num_allowed_entries=1)
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                          'pu_content': 0.42, 'reactivity swing' : 704.11,
+                                                          'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 704.11,
+                                                          'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl1': 5}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl1', 5)
+
+    ns.shutdown()
+    time.sleep(0.05)       
+    
+def test_kabr_lvl1_executor():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    model = 'lr'
+    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
+        sm_ga = pickle.load(pickle_file)
+    bb.set_attr(sm_type=model)
+    bb.set_attr(_sm=sm_ga)
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+    
+    bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
+    br = ns.proxy('ka_br_lvl1')
+    br.set_attr(_lower_objective_reference_point=[0,0])
+    br.set_attr(_upper_objective_reference_point=[1,1])
+
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                          'pu_content': 0.42, 'reactivity swing' : 750.0,
+                                                          'burnup' : 75.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 500.0,
+                                                          'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[75.0, 55.0, 0.30]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 250.0,
+                                                          'burnup' : 25.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[75.0, 55.0, 0.30]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    bb.publish_trigger()
+    time.sleep(0.5)
+    bb.controller()
+    bb.send_executor()
+    time.sleep(0.5) 
+    assert br.get_attr('_pf_size') == 3
+    assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
+                                       'core_[75.0, 55.0, 0.30]': 0.0625}
+    
+    bb.update_abstract_lvl(3, 'core_[55.0, 55.0, 0.30]', {'reactor parameters': {'height': 55.0, 'smear': 55.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 300.0,
+                                                          'burnup' : 24.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[55.0, 55.0, 0.30]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    bb.publish_trigger()
+    time.sleep(0.5)
+    bb.controller()
+    bb.send_executor()
+    time.sleep(0.5) 
+    assert br.get_attr('_pf_size') == 3
+    
+    assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
+                                       'core_[75.0, 55.0, 0.30]': 0.014500000000000013, 'core_[55.0, 55.0, 0.30]': 0.0}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[75.0, 55.0, 0.30]':{'pareto type' : 'pareto', 'fitness function' : 1.0},
+                                                      'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                                                      'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+
+    ns.shutdown()
+    time.sleep(0.05)  
+
+def test_scale_pareto_front():
+    ns = run_nameserver()
+    ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
+    ka_br1.set_attr(_lower_objective_reference_point=[0,0])
+    ka_br1.set_attr(_upper_objective_reference_point=[1,1])
+    ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                              'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                              'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
+    ka_br1.set_attr(lvl_data={'new':{},'old': {'core_[65.0, 65.0, 0.42]': {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                          'pu_content': 0.42, 'reactivity swing' : 750.0, 'burnup' : 75.0}},
+                                              'core_[70.0, 60.0, 0.50]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 500.0, 'burnup' : 50.0}},
+                                              'core_[75.0, 55.0, 0.30]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 250.0, 'burnup' : 25.0}}}})
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
+    ka_br1.set_attr(_objectives=objs)
+    pf = ['core_[65.0, 65.0, 0.42]', 'core_[70.0, 60.0, 0.50]', 'core_[65.0, 65.0, 0.42]']
+#    scaled_pf = ka_br1.scale_pareto_front(pf)
+#    assert scaled_pf
+    ns.shutdown()
+    time.sleep(0.05)  
     
 #-----------------------------------------
 # Test of KaBr_lvl2
@@ -90,14 +244,14 @@ def test_kabr_lvl2_init():
     assert ka_br2.get_attr('_trigger_publish_alias') == None
     assert ka_br2.get_attr('_trigger_val') == 0
     assert ka_br2.get_attr('bb_lvl_read') == 2
-    assert ka_br2.get_attr('desired_results') == None
-    assert ka_br2.get_attr('_objective_ranges') == None
+    assert ka_br2.get_attr('_objectives') == None
     assert ka_br2.get_attr('_shutdown_addr') == None
     assert ka_br2.get_attr('_shutdown_alias') == None
     assert ka_br2.get_attr('_num_entries') == 0
     assert ka_br2.get_attr('_num_allowed_entries') == 10
     assert ka_br2.get_attr('_trigger_val_base') == 4
     assert ka_br2.get_attr('_fitness') == 0.0
+    assert ka_br2.get_attr('_update_hv') == True
     
     ns.shutdown()
     time.sleep(0.05)
@@ -122,7 +276,7 @@ def test_kabr_lvl2_determine_validity():
     ka_br_lvl2.connect_writer()
     ka_br_lvl2.connect_trigger()
     ka_br_lvl2.connect_executor()
-    ka_br_lvl2.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+    ka_br_lvl2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
@@ -179,7 +333,7 @@ def test_move_curent_entry():
     ka_br_lvl2.add_blackboard(bb)
     ka_br_lvl2.connect_writer()
 
-    ka_br_lvl2.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+    ka_br_lvl2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
@@ -200,7 +354,7 @@ def test_move_curent_entry():
 def test_kabr_lvl2_determine_optimal_type():
     ns = run_nameserver()
     ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
-    ka_br_lvl2.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+    ka_br_lvl2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})    
     bool_ = ka_br_lvl2.determine_optimal_type(
@@ -235,23 +389,19 @@ def test_kabr_lvl2_determine_optimal_type():
 def test_determine_fitness_function():
     ns = run_nameserver()
     ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
-    ka_br_lvl2.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                           'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                           'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
+    ka_br_lvl2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+                                           'void_coeff':  {'ll': -200, 'ul': -100, 'goal':'lt', 'variable type': float}, 
+                                           'pu_content':  {'ll': 0.0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
-    fitness = ka_br_lvl2.determine_fitness_function('core_1', {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.3})
-    assert fitness == 1.4
-    
-    ns.shutdown()
-    time.sleep(0.05)
-    
-def test_objective_scaler():
-    ns = run_nameserver()
-    ka_br_lvl2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
-    assert ka_br_lvl2.objective_scaler(0, 2, 1.0) == 0.5
+    fitness = ka_br_lvl2.determine_fitness_function('core_1', {'keff': 1.2, 'void_coeff': -200.0, 'pu_content': 0.0})
+    assert fitness == 3.0
+    fitness = ka_br_lvl2.determine_fitness_function('core_2', {'keff': 1.0, 'void_coeff': -100.0, 'pu_content': 0.6})
+    assert fitness == 0.0
+    fitness = ka_br_lvl2.determine_fitness_function('core_2', {'keff': 1.1, 'void_coeff': -150.0, 'pu_content': 0.3})
+    assert fitness == 1.5
     
     ns.shutdown()
-    time.sleep(0.05)    
+    time.sleep(0.05)   
     
 def test_kabr_lvl2_handler_trigger_publish():
     ns = run_nameserver()
@@ -288,7 +438,7 @@ def test_kabr_lvl2_handler_executor():
     ka_br_lvl2.connect_writer()
     ka_br_lvl2.connect_trigger()
     ka_br_lvl2.connect_executor()
-    ka_br_lvl2.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+    ka_br_lvl2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
@@ -323,7 +473,7 @@ def test_kabr_lvl2_handler_executor():
     bb.send_executor()
     time.sleep(0.5)   
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.65}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.35}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_2' : {'valid' : True},
                                                                'core_3' : {'valid' : True},
                                                                'core_4' : {'valid' : True}}, 
@@ -336,7 +486,7 @@ def test_kabr_lvl2_handler_executor():
     bb.send_executor()
     time.sleep(1.0)   
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.43}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_4' : {'valid' : True}}, 
                                                        'old': {'core_1' : {'valid' : True}, 
                                                                'core_2' : {'valid' : True},
@@ -347,8 +497,8 @@ def test_kabr_lvl2_handler_executor():
     bb.send_executor()
     time.sleep(1.0)   
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.57},
-                                                        'core_4' : {'pareto type' : 'weak', 'fitness function' : 2.13333}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.43},
+                                                        'core_4' : {'pareto type' : 'weak', 'fitness function' : 0.86667}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 
                                                        'old': {'core_1' : {'valid' : True}, 
                                                                'core_2' : {'valid' : True},
@@ -392,7 +542,7 @@ def test_kabr_lvl3_determine_validity():
     ka_br_lvl3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
     ka_br_lvl3.add_blackboard(bb)
     ka_br_lvl3.connect_trigger()
-    ka_br_lvl3.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+    ka_br_lvl3.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
@@ -419,7 +569,7 @@ def test_kabr_lvl3_read_bb_lvl():
     ka_br_lvl3.add_blackboard(bb)
     ka_br_lvl3.connect_writer()
     ka_br_lvl3.connect_trigger()
-    ka_br_lvl3.set_attr(_objective_ranges={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+    ka_br_lvl3.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
@@ -448,7 +598,7 @@ def test_kabr_lvl3_handler_trigger_publish():
     br.add_blackboard(bb)
     br.connect_trigger()
     br.connect_writer()
-    br.set_attr(_objective_ranges={'cycle length':     {'ll':300, 'ul':400,  'goal':'gt', 'variable type': float},
+    br.set_attr(_objectives={'cycle length':     {'ll':300, 'ul':400,  'goal':'gt', 'variable type': float},
                                    'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
                                    'pu mass':          {'ll':500, 'ul':1000, 'goal':'lt', 'variable type': float},
                                    'burnup':           {'ll':25,  'ul':75,   'goal':'gt', 'variable type': float}})
@@ -498,7 +648,7 @@ def test_kabr_lvl3_handler_executor():
     ka_br_lvl3.connect_executor()
     ka_br_lvl3.connect_trigger()
 
-    ka_br_lvl3.set_attr(_objective_ranges={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+    ka_br_lvl3.set_attr(_objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                            'pu_content':    {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float},
                                            'doppler_coeff': {'ll':-1.0,  'ul':-0.6, 'goal':'lt', 'variable type': float}})

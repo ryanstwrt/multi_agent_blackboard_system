@@ -6,7 +6,7 @@ def hypervolume_indicator(pf, lower_ref, upper_ref):
     Calculates the hypervolume for the Pareto Front.
     """
     hyp = plat.indicators.Hypervolume(minimum=lower_ref, maximum=upper_ref)
-    problem = plat.Problem(len(lower_ref),len(lower_ref))
+    problem = plat.Problem(len(lower_ref),len(upper_ref))
     solutions = []
     for objs in pf:
         solution = plat.Solution(problem)

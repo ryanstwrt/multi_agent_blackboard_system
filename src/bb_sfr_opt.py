@@ -82,7 +82,7 @@ class BbSfrOpt(blackboard.Blackboard):
             ka.set_attr(objectives=self.objectives)
             ka.set_attr(design_variables=self.design_variables)
         elif 'lvl' in agent:
-            ka.set_attr(_objective_ranges=self.objectives)
+            ka.set_attr(_objectives=self.objectives)
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return

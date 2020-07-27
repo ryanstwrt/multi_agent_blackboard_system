@@ -2,6 +2,7 @@ import osbrain
 from osbrain import Agent
 import ka
 import random
+import performance_measure as pm
 
 class KaBr(ka.KaBase):
     """
@@ -19,6 +20,7 @@ class KaBr(ka.KaBase):
         self._num_entries = 0
         self._num_allowed_entries = 25
         self._trigger_val_base = 0
+        self._objectives = None
         self.lvl_read = None
         self.lvl_write = None
         self._update_hv = False
@@ -80,6 +82,91 @@ class KaBr(ka.KaBase):
     def remove_dominated_entries(self):
         pass
 
+    def scale_objective(self, val, ll, ul):
+        """Scale an objective based on the upper/lower value"""
+        return (val - ll) / (ul - ll)
+    
+class KaBr_lvl1(KaBr):
+    """
+    Reads `level 1` on the blackboard.
+    - Determines pareto optimal solutions
+    - Calculates the hypervolume contribution for each entry
+    """
+    
+    def on_init(self):
+        super().on_init()
+        self.bb_lvl = 1
+        self.bb_lvl_read = 1
+        self._update_hv = False
+        self._trigger_val_base = 5
+        self._pf_size = 0
+        self._lower_objective_reference_point = None
+        self._upper_objective_reference_point = None
+        self._hvi_dict = {}
+        self._lvl_data = {}
+        
+    def handler_trigger_publish(self, message):
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        new_pf_size = len(self.lvl_read)
+        
+        self._trigger_val = self._trigger_val_base if new_pf_size > self._pf_size else 0
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+
+    def handler_executor(self, message):
+        """
+        BR_lvl1 calculates the hypervolume contribution for each entry and removed dominated entries
+        """
+        self.log_debug('Executing agent {}'.format(self.name)) 
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        self._pf_size = len(self.lvl_read)
+
+        # Make sure this is okay for larger numbers of entries otherwise revert to old method
+        for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
+            self._lvl_data.update(panel)
+            
+        self.calculate_hvi_contribution()
+        self.remove_dominated_entries()
+
+    def scale_pareto_front(self, pf):
+        """
+        Scale the objective functions for the pareto front and return a scaled pareto front for the hypervolume.
+        """
+        scaled_pf = []
+        for x in pf:
+            design_objectives = []
+            for obj in self._objectives.keys():
+                scaled_obj = self.scale_objective(self._lvl_data[x]['reactor parameters'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'])
+                design_objectives.append(scaled_obj if self._objectives[obj]['goal'] == 'lt' else (1.0-scaled_obj))
+            scaled_pf.append(design_objectives)
+        return scaled_pf
+
+    def calculate_hvi_contribution(self):
+        pf = [x for x in self.lvl_read.keys()]
+        scaled_pf = self.scale_pareto_front(pf)
+        hvi = self.calculate_hvi(scaled_pf)
+
+        for design_name, design in zip(pf, scaled_pf):
+            design_hvi_contribution = hvi - self.calculate_hvi([x for x in scaled_pf if x != design])
+            self._hvi_dict[design_name] = design_hvi_contribution
+        
+    def calculate_hvi(self, pf):
+        """
+        Calculate the hypervolume indicator for the given pareto front.
+        """
+        hvi = pm.hypervolume_indicator(pf, self._lower_objective_reference_point, self._upper_objective_reference_point)
+        return hvi
+    
+    def remove_dominated_entries(self):
+        """
+        Remove designs that do not contibute to the Pareto front (i.e. designs with HV values of 0)
+        """
+        for design, hv_contribution in self._hvi_dict.items():
+            if hv_contribution <= 0 :
+                self.log_info('Removing core {}, no longer optimal'.format(design))
+                self.write_to_bb(self.bb_lvl, design, self.lvl_read[design], complete=False, remove=True)
+                self._pf_size -= 1
+            
         
 class KaBr_lvl2(KaBr):
     """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
@@ -87,8 +174,6 @@ class KaBr_lvl2(KaBr):
         super().on_init()
         self.bb_lvl = 1
         self.bb_lvl_read = 2
-        self.desired_results = None
-        self._objective_ranges = None
         self._num_allowed_entries = 10
         self._trigger_val_base = 4
         self._fitness = 0.0
@@ -101,7 +186,7 @@ class KaBr_lvl2(KaBr):
 
     def clear_bb_lvl(self):
         """
-        Remove any core designs which hvae been dominated
+        Remove any core designs which have been dominated 
         """
         #Move all dominated entries on level 2
         for core_name, core_entry in self.lvl_read.items():
@@ -113,6 +198,7 @@ class KaBr_lvl2(KaBr):
         self.log_debug('Executing agent {}'.format(self.name)) 
 
         self.clear_bb_lvl()
+        # Can we write a for loop to add all entries in this level?
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=False)
         
         self.determine_dominated_cores()
@@ -160,8 +246,8 @@ class KaBr_lvl2(KaBr):
         Calculate the total fitness function based on upper and lower limits.
         """
         fitness = 0
-        for param, obj_dict in self._objective_ranges.items():
-            scaled_fit = self.objective_scaler(obj_dict['ll'], obj_dict['ul'], core_parmeters[param])
+        for param, obj_dict in self._objectives.items():
+            scaled_fit = self.scale_objective(core_parmeters[param], obj_dict['ll'], obj_dict['ul'])
             fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
         return round(fitness, 5)
     
@@ -169,22 +255,18 @@ class KaBr_lvl2(KaBr):
         """Determine if the solution is Pareto, weak, or not optimal"""
         optimal = 0
         pareto_optimal = 0
-        for param, obj_dict in self._objective_ranges.items():
+        for param, obj_dict in self._objectives.items():
             new_val = -new_rx[param] if obj_dict['goal'] == 'gt' else new_rx[param]
             opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]            
             optimal += 1 if new_val <= opt_val else 0
             pareto_optimal += 1 if new_val < opt_val else 0
             
-        if optimal == len(self._objective_ranges.keys()) and pareto_optimal > 0:
+        if optimal == len(self._objectives.keys()) and pareto_optimal > 0:
             return 'pareto'
         elif pareto_optimal > 0:
             return 'weak'
         else:
             return None
-        
-    def objective_scaler(self, minimum, maximum, value):
-        """Scale the objective function between the minimum and maximum allowable values"""
-        return (maximum - value) / (maximum-minimum)
     
     def remove_entry(self, name, entry, level):
         """Remove an entry that has been dominated."""
@@ -207,13 +289,11 @@ class KaBr_lvl3(KaBr):
         super().on_init()
         self.bb_lvl = 2
         self.bb_lvl_read = 3
-        self._objective_ranges = None
-        self.read_results = []
         self._trigger_val_base = 3
         
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""
-        for param_name, obj_dict in self._objective_ranges.items():     
+        for param_name, obj_dict in self._objectives.items():     
             param = self.lvl_data[core_name]['reactor parameters'][param_name]
             if param < obj_dict['ll'] or param > obj_dict['ul']:
                 return (False, None)

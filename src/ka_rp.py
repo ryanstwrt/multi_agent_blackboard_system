@@ -94,7 +94,7 @@ class KaRp(ka.KaBase):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
     
     def scale_objective(self, val, ll, ul):
-        """Scale an objective based on the upper/lower"""
+        """Scale an objective based on the upper/lower value"""
         return (val - ll) / (ul - ll)
 
 class KaGlobal(KaRp):
@@ -159,6 +159,7 @@ class KaLocal(KaRp):
         self.lvl_data = None
         self.lvl_read = None
         self.analyzed_design = {}
+        self.generated_designs = {}
         self.new_designs = []
 
     def determine_model_applicability(self, dv, complete=False):
@@ -175,6 +176,7 @@ class KaLocal(KaRp):
             self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
         else:
             self.calc_objectives()
+            self.generated_designs = {'HV': 0}
             self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=complete)
             self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
         
@@ -304,7 +306,6 @@ class KaLocalHC(KaLocal):
                     
                     if temp_design[dv] >= self.design_variables[dv]['ll'] and temp_design[dv] <= self.design_variables[dv]['ul']:
                         if 'core_{}'.format([x for x in temp_design.values()]) in self.lvl_data.keys():
-                            print('here')
                             pass
                         else:
                             self.current_design_variables = temp_design
@@ -327,7 +328,7 @@ class KaLocalHC(KaLocal):
             if step_number > self.step_limit:
                 break
         self.write_to_bb(self.bb_lvl_read, core, entry, complete=True)
-        self.analyzed_design[core] = {'Analyzed': True}
+        self.analyzed_design[core] = {'Analyzed': True, 'HV': 0}
 
     def determine_step(self, base, base_design, design_dict):
         """
@@ -400,7 +401,7 @@ class KaLocalRW(KaLocal):
             self.log_debug('Design Variable: {} Step: {} {}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
             self.determine_model_applicability(dv, complete=False)
-        self.analyzed_design[core] = {'Analyzed': True}
+        self.analyzed_design[core] = {'Analyzed': True, 'HV': 0}
         
 class KaGA(KaLocal):
     """
