@@ -69,6 +69,18 @@ def test_kabr_clear_entry():
     
     ns.shutdown()
     time.sleep(0.05)
+    
+def test_kabr_scale_objective():
+    ns = run_nameserver()
+    ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
+    obj1 = ka_b.scale_objective(2,0,10)
+    assert obj1 == 0.2
+    obj1 = ka_b.scale_objective(0,-10,10)
+    assert obj1 == 0.5
+    obj1 = ka_b.scale_objective(0,29,5925)
+    assert obj1 == None
+    ns.shutdown()
+    time.sleep(0.05)    
 
 #-----------------------------------------
 # Test of KaBr_lvl1
@@ -200,7 +212,41 @@ def test_kabr_lvl1_executor():
     ns.shutdown()
     time.sleep(0.05)  
 
-def test_scale_pareto_front():
+def test_kabr_lvl1_scale_pareto_front():
+    ns = run_nameserver()
+    ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
+    ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                              'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                              'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
+    ka_br1.set_attr(_lvl_data={'core_[65.0, 65.0, 0.42]': {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                          'pu_content': 0.42, 'reactivity swing' : 750.0, 'burnup' : 75.0}},
+                                              'core_[70.0, 60.0, 0.50]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 500.0, 'burnup' : 50.0}},
+                                              'core_[75.0, 55.0, 0.30]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 250.0, 'burnup' : 25.0}}})
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
+    ka_br1.set_attr(_objectives=objs)
+    pf = ['core_[65.0, 65.0, 0.42]', 'core_[70.0, 60.0, 0.50]', 'core_[75.0, 55.0, 0.30]']
+    scaled_pf = ka_br1.scale_pareto_front(pf)
+    assert scaled_pf == [[0.75,0.25], [0.5,0.5], [0.25,0.75]]
+    ns.shutdown()
+    time.sleep(0.05)
+    
+def test_kabr_lvl1_calculate_hvi():
+    ns = run_nameserver()
+    ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
+    ka_br1.set_attr(_lower_objective_reference_point=[0,0])
+    ka_br1.set_attr(_upper_objective_reference_point=[1,1])
+    pf = [[0.75,0.25], [0.5,0.5], [0.25,0.75]]
+    hvi = ka_br1.calculate_hvi(pf)
+    
+    assert hvi == 0.375
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
+def test_kabr_lvl1_calculate_hvi_contribution():
     ns = run_nameserver()
     ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
     ka_br1.set_attr(_lower_objective_reference_point=[0,0])
@@ -208,21 +254,45 @@ def test_scale_pareto_front():
     ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                               'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                               'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
-    ka_br1.set_attr(lvl_data={'new':{},'old': {'core_[65.0, 65.0, 0.42]': {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+    ka_br1.set_attr(_lvl_data={'core_[65.0, 65.0, 0.42]': {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
                                                           'pu_content': 0.42, 'reactivity swing' : 750.0, 'burnup' : 75.0}},
                                               'core_[70.0, 60.0, 0.50]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
                                                           'pu_content': 0.50, 'reactivity swing' : 500.0, 'burnup' : 50.0}},
                                               'core_[75.0, 55.0, 0.30]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 250.0, 'burnup' : 25.0}}}})
+                                                          'pu_content': 0.50, 'reactivity swing' : 250.0, 'burnup' : 25.0}}})
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
     ka_br1.set_attr(_objectives=objs)
-    pf = ['core_[65.0, 65.0, 0.42]', 'core_[70.0, 60.0, 0.50]', 'core_[65.0, 65.0, 0.42]']
-#    scaled_pf = ka_br1.scale_pareto_front(pf)
-#    assert scaled_pf
-    ns.shutdown()
-    time.sleep(0.05)  
+    ka_br1.calculate_hvi_contribution()
+
+    assert ka_br1.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
+                                            'core_[75.0, 55.0, 0.30]': 0.0625}
     
+    ns.shutdown()
+    time.sleep(0.05)
+
+def test_kabr_lvl1_remove_dominated_entries():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
+    ka_br1 = ns.proxy('ka_br_lvl1')
+    ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                              'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                              'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[75.0, 55.0, 0.30]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    ka_br1.set_attr(_hvi_dict ={'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625, 'core_[75.0, 55.0, 0.30]': 0.0})
+    ka_br1.set_attr(_pf_size = 3)
+    ka_br1.remove_dominated_entries()
+    
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                                                       'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    assert ka_br1.get_attr('_pf_size') == 2
+    ns.shutdown()
+    time.sleep(0.05)                    
+                    
 #-----------------------------------------
 # Test of KaBr_lvl2
 #-----------------------------------------

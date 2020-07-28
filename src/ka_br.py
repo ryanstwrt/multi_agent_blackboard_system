@@ -84,7 +84,10 @@ class KaBr(ka.KaBase):
 
     def scale_objective(self, val, ll, ul):
         """Scale an objective based on the upper/lower value"""
-        return (val - ll) / (ul - ll)
+        if val < ll or val > ul:
+            return None
+        else:
+            return (val - ll) / (ul - ll)
     
 class KaBr_lvl1(KaBr):
     """
@@ -132,6 +135,9 @@ class KaBr_lvl1(KaBr):
         """
         Scale the objective functions for the pareto front and return a scaled pareto front for the hypervolume.
         """
+        # TODO If scale_objective returns a None, we need to figure out how to deal with it.
+        # Perhaps cancel the current iteration and tell the BB we are done
+        # Should we keep a log of what happened?
         scaled_pf = []
         for x in pf:
             design_objectives = []
