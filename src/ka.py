@@ -56,10 +56,13 @@ class KaBase(Agent):
         self._executor_addr = None
         self._executor_alias = None
         self._trigger_response_alias = 'trigger_response_{}'.format(self.name)
+        self._complete_alias = 'complete_{}'.format(self.name)
+        self._complete_addr = None
         self._trigger_response_addr = None
         self._trigger_publish_alias = None
         self._trigger_publish_addr = None
         self._trigger_val = 0
+        self._class = 'base'
         
         self._shutdown_addr = None
         self._shutdown_alias = None
@@ -78,6 +81,15 @@ class KaBase(Agent):
         bb_agent_addr = self.bb.get_attr('agent_addrs')
         bb_agent_addr[self.name] = {}
         self.bb.set_attr(agent_addrs=bb_agent_addr)
+    
+    def connect_complete(self):
+        """Create a push-pull communication channel to execute KA."""
+        if self.bb:
+            self._complete_addr = self.bind('PUSH', alias=self._complete_alias)
+            self.bb.connect_complete((self.name, self._complete_addr, self._complete_alias))
+            self.log_debug('Agent {} connected complete to BB'.format(self.name))
+        else:
+            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))        
 
     def connect_executor(self):
         """Create a push-pull communication channel to execute KA."""
@@ -85,6 +97,15 @@ class KaBase(Agent):
             self._executor_alias, self._executor_addr = self.bb.connect_executor(self.name)
             self.connect(self._executor_addr, alias=self._executor_alias, handler=self.handler_executor)
             self.log_debug('Agent {} connected executor to BB'.format(self.name))
+        else:
+            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
+            
+    def connect_shutdown(self):
+        """Creates a reply-requst communication channel for the KA to be shutdown by the BB"""
+        if self.bb:
+            self._shutdown_alias, self._shutdown_addr = self.bb.connect_shutdown(self.name)
+            self.connect(self._shutdown_addr, alias=self._shutdown_alias, handler=self.handler_shutdown)
+            self.log_debug('Agent {} connected shutdown to BB'.format(self.name))
         else:
             self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
 
@@ -110,15 +131,6 @@ class KaBase(Agent):
         else:
             self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
             
-    def connect_shutdown(self):
-        """Creates a reply-requst communication channel for the KA to be shutdown by the BB"""
-        if self.bb:
-            self._shutdown_alias, self._shutdown_addr = self.bb.connect_shutdown(self.name)
-            self.connect(self._shutdown_addr, alias=self._shutdown_alias, handler=self.handler_shutdown)
-            self.log_debug('Agent {} connected shutdown to BB'.format(self.name))
-        else:
-            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
-
     def handler_shutdown(self, message):
         """
         Shutdown the KA.
@@ -150,7 +162,13 @@ class KaBase(Agent):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
     
-    def move_entry(self, bb_lvl, entry_name, entry, new_panel, old_panel, write_complete=True):
+    def action_complete(self):
+        """
+        Send a message to the BB indicating it's completed its action
+        """
+        self.send(self._complete_alias, (self.name))
+    
+    def move_entry(self, bb_lvl, entry_name, entry, new_panel, old_panel):
         """
         Move an entry on a blackboard level from one blackbaord panel to another.
         
@@ -167,10 +185,10 @@ class KaBase(Agent):
         old_panel : str
             Panel that will remove old entry
         """
-        self.write_to_bb(bb_lvl, entry_name, entry, complete=False, panel=new_panel)
-        self.write_to_bb(bb_lvl, entry_name, entry, complete=write_complete, panel=old_panel, remove=True)
+        self.write_to_bb(bb_lvl, entry_name, entry, panel=new_panel)
+        self.write_to_bb(bb_lvl, entry_name, entry, panel=old_panel, remove=True)
         
-    def write_to_bb(self, bb_lvl, entry_name, entry, complete=True, panel=None, remove=False):
+    def write_to_bb(self, bb_lvl, entry_name, entry, panel=None, remove=False):
         """
         Write the KA's entry to the BB on the specified level.
         
@@ -188,7 +206,7 @@ class KaBase(Agent):
         self.log_debug('Sending writer trigger to BB.')
         write = False
         while not write:
-            bb_data = (self.name, bb_lvl, entry_name, entry, complete, panel, remove)
+            bb_data = (self.name, bb_lvl, entry_name, entry, panel, remove)
             self.send(self._writer_alias, (bb_data))
             write = self.recv(self._writer_alias)
             time.sleep(0.1)

@@ -76,13 +76,16 @@ class BbSfrOpt(blackboard.Blackboard):
         """
         ns = proxy.NSProxy()
         ka = ns.proxy(agent)
-        if 'rp' in agent:
+        agent_class = ka.get_attr('_class')
+        ka.set_attr(_objectives=self.objectives)
+        if 'search' in agent_class:
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
-            ka.set_attr(objectives=self.objectives)
             ka.set_attr(design_variables=self.design_variables)
-        elif 'lvl' in agent:
-            ka.set_attr(_objectives=self.objectives)
+        elif 'reader' in agent_class:
+            if 'lvl_1' in agent_class:
+                ka.set_attr(_lower_objective_reference_point=[0 for x in self.objectives.keys()])
+                ka.set_attr(_upper_objective_reference_point=[1 for x in self.objectives.keys()])
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return
@@ -189,7 +192,7 @@ class BbSfrOpt(blackboard.Blackboard):
         fig1.show()
 
         # Plot HV Convergece
-        fig2 = px.line(x=[x for x in self.hv_dict.keys()], y=[y for y in self.hv_dict.values()], labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
+        fig2 = px.line(x=[x for x in range(len(self.hv_list))], y=self.hv_list, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
         fig2.show()
             
     def send_executor(self):

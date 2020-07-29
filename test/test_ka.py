@@ -52,6 +52,19 @@ def test_connect_executor():
     
     ns.shutdown()
     time.sleep(0.05)
+    
+def test_connect_complete():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_b = run_agent(name='ka_base', base=ka.KaBase)
+    ka_b.add_blackboard(bb)
+    ka_b.connect_complete()
+
+    assert ka_b.get_attr('_complete_alias') == 'complete_ka_base'
+    assert bb.get_attr('agent_addrs')['ka_base']['complete'] == (ka_b.get_attr('_complete_alias'), ka_b.get_attr('_complete_addr'))
+    
+    ns.shutdown()
+    time.sleep(0.05)
 
 def test_connect_trigger_event():
     ns = run_nameserver()
@@ -172,3 +185,16 @@ def test_shutdown():
 
     ns.shutdown()
     time.sleep(0.05)    
+    
+def test_complete():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_b = run_agent(name='ka_base', base=ka.KaBase)
+    ka_b.add_blackboard(bb)
+    ka_b.connect_complete()
+    assert bb.get_attr('_new_entry') == False
+    ka_b.action_complete()
+    time.sleep(0.1)
+    assert bb.get_attr('_new_entry') == True
+    ns.shutdown()
+    time.sleep(0.05)  

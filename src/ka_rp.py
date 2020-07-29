@@ -33,10 +33,11 @@ class KaRp(ka.KaBase):
         self.design_variables = {}
         self.current_design_variables = {}
         self._design_accuracy = 5
-        self.objectives = {}
+        self._objectives = {}
         self.objective_functions = {}
         self._objective_accuracy = 5
         self._update_hv = False
+        self._class = 'search'
         
     def calc_objectives(self):
         """
@@ -47,15 +48,15 @@ class KaRp(ka.KaBase):
         self.log_debug('Determining core parameters based on SM')
         design = [x for x in self.current_design_variables.values()]
         if 'benchmark' in self.sm_type:
-            obj_list = self._sm.predict(self.sm_type.split()[0], design, len(design), len(self.objectives.keys()))
-            for num, obj in enumerate(self.objectives.keys()):
+            obj_list = self._sm.predict(self.sm_type.split()[0], design, len(design), len(self._objectives.keys()))
+            for num, obj in enumerate(self._objectives.keys()):
                 self.objective_functions[obj] = round(float(obj_list[num]), self._objective_accuracy)
         elif self.sm_type == 'interpolate':
             for obj_name, interpolator in self._sm.items():
                 self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
         else:
             obj_list = self._sm.predict(self.sm_type, [design])
-            for num, obj in enumerate(self.objectives.keys()):
+            for num, obj in enumerate(self._objectives.keys()):
                 self.objective_functions[obj] = round(float(obj_list[0][num]), self._objective_accuracy)
         a = self.current_design_variables.copy()
         a.update(self.objective_functions)
@@ -79,6 +80,7 @@ class KaRp(ka.KaBase):
         self.calc_objectives()
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
         self._trigger_val = 0
+        self.action_complete()
         
     def handler_trigger_publish(self, message):
         """
@@ -161,8 +163,10 @@ class KaLocal(KaRp):
         self.analyzed_design = {}
         self.generated_designs = {}
         self.new_designs = []
+        self._class = 'search_local'
 
-    def determine_model_applicability(self, dv, complete=False):
+
+    def determine_model_applicability(self, dv):
         """
         Determine if a design variable is valid, and if the design has already been examined.
         If the design isn't valid or has already been examined, skip this.
@@ -177,7 +181,7 @@ class KaLocal(KaRp):
         else:
             self.calc_objectives()
             self.generated_designs = {'HV': 0}
-            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new', complete=complete)
+            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
             self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
         
     def handler_executor(self, message):
@@ -190,6 +194,7 @@ class KaLocal(KaRp):
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
         self.lvl_data = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
         self.search_method()
+        self.action_complete()
                       
     def handler_trigger_publish(self, message):
         """
@@ -226,8 +231,6 @@ class KaLocal(KaRp):
         """
         
         core = random.choice(self.new_designs)
-        entry = self.lvl_read[core]
-
 
         design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
         perts = [1.0 - self.perturbation_size, 1.0 + self.perturbation_size]
@@ -236,9 +239,8 @@ class KaLocal(KaRp):
                 design = copy.copy(design_)
                 design[dv] = round(dv_value * pert, self._design_accuracy)
                 self.current_design_variables = design
-                self.determine_model_applicability(dv, complete=False)
+                self.determine_model_applicability(dv)
         self.analyzed_design[core] = {'Analyzed': True}
-        self.write_to_bb(self.bb_lvl_read, core, entry, complete=True)
         
     def genetic_algorithm(self):
         """
@@ -291,7 +293,7 @@ class KaLocalHC(KaLocal):
         
         step = self.step_size
         step_design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
-        step_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.objectives.keys()}
+        step_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self._objectives.keys()}
         step_number = 0
         
         while step > self.convergence_criteria:
@@ -319,7 +321,7 @@ class KaLocalHC(KaLocal):
                     step_design = gradient_vector[next_step]['design variables']
                     step_objs = gradient_vector[next_step]['objective functions']
                     self.current_design_variables = {k:v for k,v in step_design.items()}
-                    self.determine_model_applicability(next_step.split(' ')[1], complete=False)
+                    self.determine_model_applicability(next_step.split(' ')[1])
             
             #If we don't have a gradient vector or a next step to take, reduce the step size
             if gradient_vector == {} or next_step == None:
@@ -327,7 +329,7 @@ class KaLocalHC(KaLocal):
             step_number += 1
             if step_number > self.step_limit:
                 break
-        self.write_to_bb(self.bb_lvl_read, core, entry, complete=True)
+        self.write_to_bb(self.bb_lvl_read, core, entry)
         self.analyzed_design[core] = {'Analyzed': True, 'HV': 0}
 
     def determine_step(self, base, base_design, design_dict):
@@ -347,12 +349,12 @@ class KaLocalHC(KaLocal):
             dv = pert_dv.split(' ')[1]
             design[pert_dv] = {}
             design[pert_dv]['total'] = 0
-            for name, obj in self.objectives.items():
+            for name, obj in self._objectives.items():
                 base_obj = base_design[name]
                 new_obj = dict_['objective functions'][name]
-                if new_obj >= self.objectives[name]['ll'] and new_obj <= self.objectives[name]['ul']:
-                    obj_scaled_new = self.scale_objective(new_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
-                    obj_scaled_base = self.scale_objective(base_obj, self.objectives[name]['ll'], self.objectives[name]['ul'])
+                if new_obj >= self._objectives[name]['ll'] and new_obj <= self._objectives[name]['ul']:
+                    obj_scaled_new = self.scale_objective(new_obj, self._objectives[name]['ll'], self._objectives[name]['ul'])
+                    obj_scaled_base = self.scale_objective(base_obj, self._objectives[name]['ll'], self._objectives[name]['ul'])
                     dv_scaled_new = self.scale_objective(base[dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
                     dv_scaled_base = self.scale_objective(design_dict[pert_dv]['design variables'][dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
                     
@@ -400,7 +402,7 @@ class KaLocalRW(KaLocal):
             design[dv] = round(design[dv], self._design_accuracy)
             self.log_debug('Design Variable: {} Step: {} {}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
-            self.determine_model_applicability(dv, complete=False)
+            self.determine_model_applicability(dv)
         self.analyzed_design[core] = {'Analyzed': True, 'HV': 0}
         
 class KaGA(KaLocal):
@@ -463,10 +465,7 @@ class KaGA(KaLocal):
                     if self.mutation_type == 'random':
                         child = self.random_mutation(child)
                 self.current_design_variables = child
-                if child == children[-1]:
-                    self.determine_model_applicability(next(iter(child)), complete=True)
-                else:
-                    self.determine_model_applicability(next(iter(child)), complete=False)
+                self.determine_model_applicability(next(iter(child)))
 
             
     def single_point_crossover(self, genotype1, genotype2, num_crossover_points):

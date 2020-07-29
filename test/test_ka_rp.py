@@ -37,7 +37,7 @@ def test_karp_init():
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('design_variables') == {}    
     assert rp.get_attr('objective_functions') == {}
-    assert rp.get_attr('objectives') == {}
+    assert rp.get_attr('_objectives') == {}
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5
     
@@ -74,7 +74,7 @@ def test_karp_explore_init():
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('sm_type') == 'interpolate'
-    assert rp.get_attr('objectives') == {}
+    assert rp.get_attr('_objectives') == {}
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5
@@ -207,7 +207,7 @@ def test_karp_exploit_init():
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
-    assert rp.get_attr('objectives') == {}
+    assert rp.get_attr('_objectives') == {}
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('perturbation_size') == 0.05
     assert rp.get_attr('_objective_accuracy') == 5
@@ -251,7 +251,7 @@ def test_karp_exploit_init():
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5  
     assert rp.get_attr('objective_functions') == {}
-    assert rp.get_attr('objectives') == {}
+    assert rp.get_attr('_objectives') == {}
     assert rp.get_attr('design_variables') == {}
     assert rp.get_attr('bb_lvl_read') == 1
     assert rp.get_attr('_sm') == None
@@ -437,20 +437,19 @@ def test_exploit_write_to_bb():
     core_attrs = {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                          'cycle length': 100.0, 'reactivity swing': 110.0, 
                                          'burnup': 32.0, 'pu mass': 1000.0}}
-    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core1', core_attrs, complete=True, panel='new')
+    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core1', core_attrs, panel='new')
     time.sleep(1)
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': 
                                                                  {'height': 60.0, 'smear': 70.0, 
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 
                                                                   'reactivity swing': 110.0, 'burnup': 32.0, 
                                                                   'pu mass': 1000.0}}}
-    assert bb.get_attr('_new_entry') == True
     assert bb.get_attr('_agent_writing') == False
     
     core_attrs = {'reactor parameters': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2, 
                                          'cycle length': 100.0, 'reactivity swing': 110.0, 
                                          'burnup': 32.0, 'pu mass': 1000.0}}
-    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core2', core_attrs, complete=False, panel='new')
+    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core2', core_attrs, panel='new')
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': 
                                                                  {'height': 60.0, 'smear': 70.0, 
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 
@@ -461,7 +460,6 @@ def test_exploit_write_to_bb():
                                                                   'pu_content': 0.2, 'cycle length': 100.0, 
                                                                   'reactivity swing': 110.0, 'burnup': 32.0, 
                                                                   'pu mass': 1000.0}}}
-    assert bb.get_attr('_new_entry') == False
     assert bb.get_attr('_agent_writing') == False
     
     ns.shutdown()

@@ -105,13 +105,14 @@ def test_add_ka_specific():
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.connect_agent(karp.KaGlobal, 'ka_rp_explore')
     bb.connect_agent(karp.KaLocal, 'ka_rp_exploit')
+    bb.connect_agent(kabr.KaBr_lvl1, 'ka_br_lvl1')
     bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
     bb.connect_agent(kabr.KaBr_lvl3, 'ka_br_lvl3')
 
     for alias in ns.agents():
         agent = ns.proxy(alias)
         if 'rp' in alias:
-            assert agent.get_attr('objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
+            assert agent.get_attr('_objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
                                                     'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
                                                     'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
                                                     'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
@@ -129,23 +130,8 @@ def test_add_ka_specific():
     time.sleep(0.05)  
 
 def test_determine_complete():
-    ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
-    bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
+    pass
 
-    for x in range(51):
-        name = 'core{}'.format(x)
-        entry = {'pareto type': 'pareto'}
-        bb.update_abstract_lvl(1, name, entry)
-    assert bb.get_attr('_complete') == False
-    bb.determine_complete()
-    time.sleep(0.1)
-    assert bb.get_attr('_complete') == True
-    assert ns.agents() == ['blackboard']
-
-    ns.shutdown()
-    time.sleep(0.05)
-    
 def test_handler_writer():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
@@ -166,7 +152,7 @@ def test_handler_writer():
 
     entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                   'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}
-    rp1.write_to_bb(rp1.get_attr('bb_lvl'), 'core2', entry, complete=True, panel='new')
+    rp1.write_to_bb(rp1.get_attr('bb_lvl'), 'core2', entry, panel='new')
     
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                                                                         'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
@@ -174,20 +160,6 @@ def test_handler_writer():
 
     entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
                                   'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}
-
-    assert bb.get_attr('_new_entry') == True
-    bb.set_attr(_new_entry=False)
-    rp1.write_to_bb(rp1.get_attr('bb_lvl'), 'core3', entry, complete=False, panel='new')
-    assert bb.get_attr('_new_entry') == False
-
-    
-    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                                                                        'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
-                                                       'core2': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                                                                        'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}},
-                                                       'core3': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                                                                        'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
-    
     
     ns.shutdown()
     time.sleep(0.05)

@@ -137,9 +137,28 @@ class Blackboard(Agent):
         ka.connect_trigger()
         ka.connect_executor()
         ka.connect_shutdown()
+        ka.connect_complete()
         self.connect_ka_specific(agent_alias)
         self.agent_addrs[agent_alias].update({'class': agent_type})
         self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
+
+    def connect_complete(self, message):
+        """
+        Connects the BB's compelte communication with the KA.
+        
+        Parameters
+        ----------
+        message : tupple (agent_name, complete_addr, complete_alias)
+            agent_name : str
+                Alias of the agent to connect.
+            complete_addr : str
+                Address of the KA's trigger complete line of communication tor BB to connect with.
+            complete_alias : str
+                Alias of the KA's trigger complete line of communication.       
+        """
+        agent_name, complete_addr, complete_alias = message
+        self.agent_addrs[agent_name].update({'complete': (complete_alias, complete_addr)})
+        self.connect(complete_addr, alias=complete_alias, handler=self.handler_agent_complete)
         
     def connect_trigger(self, message):
         """
@@ -336,6 +355,18 @@ class Blackboard(Agent):
                 data_dict[k] = type_
         return data_dict
          
+    def handler_agent_complete(self, agent_name):
+        """
+        Handler for KAs complete response, i.e. when a KA has finished their action
+        
+        Parameters
+        ----------
+        agent_name : str
+            Alias for the KA
+        """
+        self._new_entry = True
+        self.log_debug('Logging agent {} complete.'.format(agent_name))
+        
     def handler_trigger_response(self, message):
         """
         Handler for KAs trigger response, stores all responses in `trigger_evemts`.
@@ -367,8 +398,7 @@ class Blackboard(Agent):
         bool
             True if agent can write, false if agent must wait
         """
-        agent_name, bb_lvl, entry_name, entry, complete, panel, remove = message
-        self._new_entry = complete
+        agent_name, bb_lvl, entry_name, entry, panel, remove = message
         
         if not self._agent_writing:
             self._agent_writing = True
@@ -382,7 +412,6 @@ class Blackboard(Agent):
             self.finish_writing_to_bb()
             return True
         else:
-            self._new_entry = False
             self.log_debug('Agent {} waiting to write'.format(agent_name))
             return False
        

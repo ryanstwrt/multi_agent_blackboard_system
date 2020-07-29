@@ -24,6 +24,7 @@ class KaBr(ka.KaBase):
         self.lvl_read = None
         self.lvl_write = None
         self._update_hv = False
+        self._class = 'reader'
     
     def clear_entry(self):
         """Clear the KA entry"""
@@ -37,9 +38,9 @@ class KaBr(ka.KaBase):
         self.log_debug('Executing agent {}'.format(self.name)) 
         self.clear_bb_lvl()
         if self._entry:
-            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel, complete=False)
+            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
             entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-            self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel, write_complete=True)
+            self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
         self.clear_entry()
         self._trigger_val = 0
                 
@@ -74,7 +75,7 @@ class KaBr(ka.KaBase):
         for core_name, core_entry in self.lvl_read.items():
             valid_core, opt_type = self.determine_validity(core_name)
             if not valid_core:
-                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel, write_complete=False)
+                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
                 
     def move_dominated_entries(self):
         pass
@@ -101,18 +102,20 @@ class KaBr_lvl1(KaBr):
         self.bb_lvl = 1
         self.bb_lvl_read = 1
         self._update_hv = False
-        self._trigger_val_base = 5
+        self._trigger_val_base = 6
         self._pf_size = 0
         self._lower_objective_reference_point = None
         self._upper_objective_reference_point = None
         self._hvi_dict = {}
         self._lvl_data = {}
+        self._designs_to_remove = []
+        self._class = 'reader_lvl1'
         
     def handler_trigger_publish(self, message):
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
         new_pf_size = len(self.lvl_read)
         
-        self._trigger_val = self._trigger_val_base if new_pf_size > self._pf_size else 0
+        self._trigger_val = self._trigger_val_base if new_pf_size > self._pf_size and new_pf_size > 1 else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 
@@ -127,10 +130,12 @@ class KaBr_lvl1(KaBr):
         # Make sure this is okay for larger numbers of entries otherwise revert to old method
         for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
             self._lvl_data.update(panel)
-            
         self.calculate_hvi_contribution()
-        self.remove_dominated_entries()
-
+        if len(self._designs_to_remove) > 0:
+            self.remove_dominated_entries()
+        self.action_complete()
+        self.clear_entry()
+            
     def scale_pareto_front(self, pf):
         """
         Scale the objective functions for the pareto front and return a scaled pareto front for the hypervolume.
@@ -151,10 +156,12 @@ class KaBr_lvl1(KaBr):
         pf = [x for x in self.lvl_read.keys()]
         scaled_pf = self.scale_pareto_front(pf)
         hvi = self.calculate_hvi(scaled_pf)
-
+        self._designs_to_remove = []
         for design_name, design in zip(pf, scaled_pf):
             design_hvi_contribution = hvi - self.calculate_hvi([x for x in scaled_pf if x != design])
             self._hvi_dict[design_name] = design_hvi_contribution
+            if design_hvi_contribution <= 0:
+                self._designs_to_remove.append(design_name)
         
     def calculate_hvi(self, pf):
         """
@@ -167,11 +174,10 @@ class KaBr_lvl1(KaBr):
         """
         Remove designs that do not contibute to the Pareto front (i.e. designs with HV values of 0)
         """
-        for design, hv_contribution in self._hvi_dict.items():
-            if hv_contribution <= 0 :
-                self.log_info('Removing core {}, no longer optimal'.format(design))
-                self.write_to_bb(self.bb_lvl, design, self.lvl_read[design], complete=False, remove=True)
-                self._pf_size -= 1
+        for design in self._designs_to_remove:
+            self.log_info('Removing core {}, no longer optimal'.format(design))
+            self._pf_size -= 1
+            self.write_to_bb(self.bb_lvl, design, self.lvl_read[design], remove=True)
             
         
 class KaBr_lvl2(KaBr):
@@ -183,34 +189,31 @@ class KaBr_lvl2(KaBr):
         self._num_allowed_entries = 10
         self._trigger_val_base = 4
         self._fitness = 0.0
-        self._dominated_designs = {}
         self._update_hv = True
         
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
         self._entry = {'pareto type': core_name[1], 'fitness function': self._fitness}
-
-    def clear_bb_lvl(self):
-        """
-        Remove any core designs which have been dominated 
-        """
-        #Move all dominated entries on level 2
-        for core_name, core_entry in self.lvl_read.items():
-            valid_core, opt_type = self.determine_validity(core_name)
-            if not valid_core:
-                self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel, write_complete=False)
         
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
 
         self.clear_bb_lvl()
         # Can we write a for loop to add all entries in this level?
-        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, complete=False)
+        # while entry != None:
+        #     self.clear_entry()
+        #     self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        #     new_entry = self.read_bb_lvl()
+        #     if new_entry:
+        #         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
+        #         entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+        #         self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
         
-        self.determine_dominated_cores()
-        self.remove_dominated_entries()
+
+        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
+        
         entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-        self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel, write_complete=True)
+        self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
         
         self.clear_entry()
         self._trigger_val = 0
@@ -218,34 +221,18 @@ class KaBr_lvl2(KaBr):
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
         self._fitness = self.determine_fitness_function(core_name, self.lvl_data[core_name]['reactor parameters'])
-            
+        
         if self.lvl_write == {}:
             self.log_debug('Design {} is initial optimal design.'.format(core_name))
             return (True, 'pareto')
-
+        pareto_opt = None
         for opt_core in self.lvl_write.keys():
-            pareto_opt = self.determine_optimal_type(self.lvl_data[core_name]['reactor parameters'], 
-                                                     self.lvl_data[opt_core]['reactor parameters'])
-            if pareto_opt == None:
-                return (False, pareto_opt)
+            if opt_core != core_name:
+                pareto_opt = self.determine_optimal_type(self.lvl_data[core_name]['reactor parameters'], 
+                                                         self.lvl_data[opt_core]['reactor parameters'])
+                if pareto_opt == None:
+                    return (False, pareto_opt)
         return (True, pareto_opt)
-
-    def determine_dominated_cores(self):
-        """
-        Determing if any cores in level 1 are dominated by any others, if so mark them for removal
-        """
-        #Update level 1, as we have just added to it likely
-        self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-                      
-        optimal = False
-        self._dominated_designs = {}
-        for core_1 in self.lvl_write.keys():
-            for core_2 in self.lvl_write.keys():
-                if core_1 != core_2:
-                    pareto_opt = self.determine_optimal_type(self.lvl_data[core_1]['reactor parameters'], 
-                                                             self.lvl_data[core_2]['reactor parameters'])
-                    if pareto_opt == None:
-                        self._dominated_designs[core_1] = self.lvl_write[core_1]
     
     def determine_fitness_function(self, core_name, core_parmeters):
         """
@@ -263,30 +250,15 @@ class KaBr_lvl2(KaBr):
         pareto_optimal = 0
         for param, obj_dict in self._objectives.items():
             new_val = -new_rx[param] if obj_dict['goal'] == 'gt' else new_rx[param]
-            opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]            
+            opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]           
             optimal += 1 if new_val <= opt_val else 0
             pareto_optimal += 1 if new_val < opt_val else 0
-            
         if optimal == len(self._objectives.keys()) and pareto_optimal > 0:
             return 'pareto'
         elif pareto_optimal > 0:
             return 'weak'
         else:
             return None
-    
-    def remove_entry(self, name, entry, level):
-        """Remove an entry that has been dominated."""
-        for core in level.keys():
-            if core == name:
-                self.log_info('Removing core {}, no longer optimal'.format(name))
-                self.write_to_bb(self.bb_lvl, name, entry, complete=False, remove=True)
-                return
-
-    def remove_dominated_entries(self):
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-        #Remove any dominated entires on level 1
-        for core_name, entry in self._dominated_designs.items():
-            self.remove_entry(core_name, entry, lvl)
 
                 
 class KaBr_lvl3(KaBr):
