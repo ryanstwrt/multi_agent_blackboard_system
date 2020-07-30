@@ -325,12 +325,12 @@ class KaLocalHC(KaLocal):
             
             #If we don't have a gradient vector or a next step to take, reduce the step size
             if gradient_vector == {} or next_step == None:
-                step = step * (1-self.step_rate)
+                step = step * (1 - self.step_rate)
             step_number += 1
             if step_number > self.step_limit:
                 break
         self.write_to_bb(self.bb_lvl_read, core, entry)
-        self.analyzed_design[core] = {'Analyzed': True, 'HV': 0}
+        self.analyzed_design[core] = {'Analyzed': True, 'HV': 0.0}
 
     def determine_step(self, base, base_design, design_dict):
         """
@@ -403,7 +403,7 @@ class KaLocalRW(KaLocal):
             self.log_debug('Design Variable: {} Step: {} {}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
             self.determine_model_applicability(dv)
-        self.analyzed_design[core] = {'Analyzed': True, 'HV': 0}
+        self.analyzed_design[core] = {'Analyzed': True, 'HV': 0.0}
         
 class KaGA(KaLocal):
     """
@@ -414,10 +414,14 @@ class KaGA(KaLocal):
         super().on_init()
         self._base_trigger_val = 10
         self.previous_populations = {}
+        self.crossover_rate = 0.8
+        self.total_num_offspring = 50
         self.mutation_rate = 0.1
         self.crossover_type = 'single point'
+        self.num_cross_over_points = 1
         self.mutation_type = 'random'
         self.pf_size = 10
+        
 
     def handler_trigger_publish(self, message):
         """
@@ -442,7 +446,7 @@ class KaGA(KaLocal):
         new = set([x for x in lvl.keys()])
         old = set([x for x in self.analyzed_design.keys()])
         intersection = old.intersection(new)
-        self._trigger_val = self._base_trigger_val if (len(lvl) % self.pf_size == 0 and intersection != new) else 0
+        self._trigger_val = self._base_trigger_val if (len(lvl) >= self.pf_size + len(old) and intersection != new) else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 
@@ -451,6 +455,8 @@ class KaGA(KaLocal):
         ## Figure out way to prevent doing the same population twice
         population = [x for x in self.lvl_read.keys()]
         children = []
+        
+        
         while len(population) > 1:
             design1 = population.pop(random.choice(range(len(population))))
             design2 = population.pop(random.choice(range(len(population))))
@@ -459,7 +465,7 @@ class KaGA(KaLocal):
             self.analyzed_design[design1] = {'Analyzed': True}
             self.analyzed_design[design2] = {'Analyzed': True}
             if self.crossover_type == 'single point':
-                children = self.single_point_crossover(parent1, parent2, 1)
+                children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
             for child in children:
                 if (1 - random.random()) > self.mutation_rate:
                     if self.mutation_type == 'random':

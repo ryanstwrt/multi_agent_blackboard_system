@@ -67,11 +67,5 @@ class BenchmarkBB(bb_sfr_opt.BbSfrOpt):
             fig1.show()
         except KeyError:
             pass
-        try:
-            # Plot HV Convergece
-            x = [x for x in self.hv_dict.keys()]
-            y = [y for y in self.hv_dict.values()]
-            fig3 = px.line(x=x, y=y, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
-            fig3.show()
-        except:
-            pass
+        fig2 = px.line(x=[x for x in range(len(self.hv_list))], y=self.hv_list, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
+        fig2.show()

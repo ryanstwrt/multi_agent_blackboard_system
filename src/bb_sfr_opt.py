@@ -83,7 +83,7 @@ class BbSfrOpt(blackboard.Blackboard):
             ka.set_attr(sm_type=self.sm_type)
             ka.set_attr(design_variables=self.design_variables)
         elif 'reader' in agent_class:
-            if 'lvl_1' in agent_class:
+            if 'lvl1' in agent_class:
                 ka.set_attr(_lower_objective_reference_point=[0 for x in self.objectives.keys()])
                 ka.set_attr(_upper_objective_reference_point=[1 for x in self.objectives.keys()])
         else:
@@ -116,8 +116,11 @@ class BbSfrOpt(blackboard.Blackboard):
         recent_hv = self.hv_list[-self.num_calls:]
         prev_hv = self.hv_list[-2*self.num_calls:-self.num_calls]
         hv_average = sum(recent_hv) / self.num_calls - sum(prev_hv) / self.num_calls
-        hv_max = min(recent_hv) - max(prev_hv)
-        hv_indicator = max([hv_average, hv_max])
+        try:
+            hv_max = min(recent_hv) - max(prev_hv)
+            hv_indicator = max([hv_average, hv_max])
+        except ValueError:
+            hv_indicator = 1
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
         if hv_indicator < self.hv_convergence:
             self.log_info('Problem complete, shutting agents down')

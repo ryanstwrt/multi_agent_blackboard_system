@@ -25,6 +25,7 @@ class KaBr(ka.KaBase):
         self.lvl_write = None
         self._update_hv = False
         self._class = 'reader'
+        self.level_clear_number = 20
     
     def clear_entry(self):
         """Clear the KA entry"""
@@ -37,24 +38,26 @@ class KaBr(ka.KaBase):
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
         self.clear_bb_lvl()
-        if self._entry:
-            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
-            entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-            self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
-        self.clear_entry()
+        while self._entry_name:
+            self.clear_entry()
+            self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
+            self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+            
+            if self.read_bb_lvl():
+                self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
+                entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+                self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)         
         self._trigger_val = 0
-                
+        self.action_complete()
+            
     def handler_trigger_publish(self, message):
         """Read the BB level and determine if an entry is available."""
         self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        lvl_data = self.bb.get_attr('abstract_lvls')['level 3']
-                
-        lvl_3 = {}
-        for panel in lvl_data.values():
-            lvl_3.update(panel)
 
-        self.lvl_data  = lvl_3
+        for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
+            self.lvl_data.update(panel)
+
         self._num_entries = len(self.lvl_read)
 
         new_entry = self.read_bb_lvl()
@@ -103,19 +106,20 @@ class KaBr_lvl1(KaBr):
         self.bb_lvl_read = 1
         self._update_hv = False
         self._trigger_val_base = 6
-        self._pf_size = 0
+        self._pf_size = 1
         self._lower_objective_reference_point = None
         self._upper_objective_reference_point = None
         self._hvi_dict = {}
         self._lvl_data = {}
         self._designs_to_remove = []
         self._class = 'reader_lvl1'
+        self.pf_increase = 1.25
         
     def handler_trigger_publish(self, message):
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
         new_pf_size = len(self.lvl_read)
         
-        self._trigger_val = self._trigger_val_base if new_pf_size > self._pf_size and new_pf_size > 1 else 0
+        self._trigger_val = self._trigger_val_base if new_pf_size > self._pf_size * self.pf_increase else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 
@@ -133,8 +137,8 @@ class KaBr_lvl1(KaBr):
         self.calculate_hvi_contribution()
         if len(self._designs_to_remove) > 0:
             self.remove_dominated_entries()
-        self.action_complete()
         self.clear_entry()
+        self.action_complete()
             
     def scale_pareto_front(self, pf):
         """
@@ -190,6 +194,7 @@ class KaBr_lvl2(KaBr):
         self._trigger_val_base = 4
         self._fitness = 0.0
         self._update_hv = True
+        self.lvl_data = {}
         
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
@@ -199,24 +204,18 @@ class KaBr_lvl2(KaBr):
         self.log_debug('Executing agent {}'.format(self.name)) 
 
         self.clear_bb_lvl()
-        # Can we write a for loop to add all entries in this level?
-        # while entry != None:
-        #     self.clear_entry()
-        #     self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-        #     new_entry = self.read_bb_lvl()
-        #     if new_entry:
-        #         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
-        #         entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-        #         self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
-        
 
-        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
+        while self._entry_name:
+            self.clear_entry()
+            self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
+            self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+            if self.read_bb_lvl():
+                self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
+                entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+                self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
         
-        entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-        self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
-        
-        self.clear_entry()
         self._trigger_val = 0
+        self.action_complete()
         
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
@@ -253,6 +252,7 @@ class KaBr_lvl2(KaBr):
             opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]           
             optimal += 1 if new_val <= opt_val else 0
             pareto_optimal += 1 if new_val < opt_val else 0
+            
         if optimal == len(self._objectives.keys()) and pareto_optimal > 0:
             return 'pareto'
         elif pareto_optimal > 0:
@@ -268,6 +268,8 @@ class KaBr_lvl3(KaBr):
         self.bb_lvl = 2
         self.bb_lvl_read = 3
         self._trigger_val_base = 3
+        self.lvl_data = {}
+
         
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""

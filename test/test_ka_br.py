@@ -107,7 +107,7 @@ def test_kabr_lvl1_init():
     assert ka_br1.get_attr('_shutdown_addr') == None
     assert ka_br1.get_attr('_shutdown_alias') == None
     assert ka_br1.get_attr('_trigger_val_base') == 6
-    assert ka_br1.get_attr('_pf_size') == 0
+    assert ka_br1.get_attr('_pf_size') == 1
     assert ka_br1.get_attr('_hvi_dict') == {}
     assert ka_br1.get_attr('_upper_objective_reference_point') == None
     assert ka_br1.get_attr('_lower_objective_reference_point') == None
@@ -510,9 +510,10 @@ def test_kabr_lvl2_handler_executor():
     ka_br2.connect_writer()
     ka_br2.connect_trigger()
     ka_br2.connect_executor()
+    ka_br2.connect_complete()
     ka_br2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                           'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                           'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
+                                 'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
+                                 'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_abstract_lvl(2, {'valid': bool})
@@ -543,41 +544,26 @@ def test_kabr_lvl2_handler_executor():
     bb.publish_trigger()
     time.sleep(0.5)
     bb.send_executor()
-    time.sleep(0.5)   
-
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.35}}
-    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_2' : {'valid' : True},
-                                                               'core_3' : {'valid' : True},
-                                                               'core_4' : {'valid' : True}}, 
-                                                       'old': {'core_1' : {'valid' : True}}}
-
-    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    bb.publish_trigger()
-    time.sleep(0.5)
-
-    bb.send_executor()
-    time.sleep(1.0)   
-
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.35},
-                                                       'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.43}}
-    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_4' : {'valid' : True}}, 
-                                                       'old': {'core_1' : {'valid' : True}, 
-                                                               'core_2' : {'valid' : True},
-                                                               'core_3' : {'valid' : True}}}
- 
-    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    bb.publish_trigger()
-    bb.send_executor()
-    time.sleep(1.0)   
+    time.sleep(0.5)    
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.35},
                                                        'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.43},
                                                        'core_4' : {'pareto type' : 'weak', 'fitness function' : 0.86667}}
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_3' : {'valid' : True}}, 
+                                                       'old': {'core_1' : {'valid' : True}, 
+                                                               'core_2' : {'valid' : True},
+                                                               'core_4' : {'valid' : True}}}
+    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.send_executor()
+    time.sleep(0.25) 
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 
                                                        'old': {'core_1' : {'valid' : True}, 
                                                                'core_2' : {'valid' : True},
                                                                'core_3' : {'valid' : True},
-                                                               'core_4' : {'valid' : True}}}       
+                                                               'core_4' : {'valid' : True}}} 
+   
     ns.shutdown()
     time.sleep(0.05) 
     
@@ -721,6 +707,7 @@ def test_kabr_lvl3_handler_executor():
     ka_br3.connect_writer()
     ka_br3.connect_executor()
     ka_br3.connect_trigger()
+    ka_br3.connect_complete()
 
     ka_br3.set_attr(_objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
@@ -740,26 +727,12 @@ def test_kabr_lvl3_handler_executor():
     bb.publish_trigger()
     time.sleep(0.1)
     bb.send_executor()
-    time.sleep(0.5)    
+    time.sleep(1.5)    
     
-    assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True}}, 'old': {}}
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True},
+                                                              'core_2': {'valid': True}}, 'old': {}}
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [] 
 
-    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    bb.publish_trigger()
-    time.sleep(0.1)
-    bb.send_executor()
-    time.sleep(0.5)    
-    
-    assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True},
-                                                              'core_2': {'valid': True}}, 'old': {}}
-    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
-    bb.publish_trigger()
-    time.sleep(0.1)
-    bb.send_executor()
-    time.sleep(0.5)    
-    
-    assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True},
-                                                              'core_2': {'valid': True}}, 'old': {}}
     ns.shutdown()
     time.sleep(0.05)
 

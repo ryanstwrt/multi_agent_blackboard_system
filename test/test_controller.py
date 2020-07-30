@@ -35,7 +35,8 @@ def test_run_single_agent_bb():
     kas = {'ka_rp_explore': ka_rp.KaGlobal, 
            'ka_rp_exploit': ka_rp.KaLocal,
            'ka_br_lvl3': ka_br.KaBr_lvl3,
-           'ka_br_lvl2': ka_br.KaBr_lvl2}
+           'ka_br_lvl2': ka_br.KaBr_lvl2,
+           'ka_br_lvl1': ka_br.KaBr_lvl1,}
     bb_controller = controller.Controller(bb_name='sfr_opt', bb_type=bb_sfr.BbSfrOpt, ka=kas, archive='sfr_opt', agent_wait_time=5)
 
     bb_controller.bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 

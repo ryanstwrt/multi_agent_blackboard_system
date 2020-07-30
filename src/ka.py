@@ -209,4 +209,4 @@ class KaBase(Agent):
             bb_data = (self.name, bb_lvl, entry_name, entry, panel, remove)
             self.send(self._writer_alias, (bb_data))
             write = self.recv(self._writer_alias)
-            time.sleep(0.1)
+#            time.sleep(0.1)

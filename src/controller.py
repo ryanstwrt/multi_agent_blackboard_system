@@ -50,7 +50,6 @@ class Controller(object):
             
     def run_single_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
-        i=0
         while not self.bb.get_attr('_complete'):
             self.bb.publish_trigger()
             trig_num = self.bb.get_attr('_trigger_event')
@@ -70,10 +69,9 @@ class Controller(object):
                 if self.agent_time > self.agent_wait_time:
                     break
             self.update_bb_trigger_values(trig_num)
-            ka_executed = self._proxy_server.proxy(self.bb.get_attr('_ka_to_execute')[0])
-            if ka_executed.get_attr('_update_hv') :
-                self.bb.hv_indicator()
-                i+=1
+            #ka_executed = self._proxy_server.proxy(self.bb.get_attr('_ka_to_execute')[0])
+            #if ka_executed.get_attr('_update_hv') :
+            self.bb.hv_indicator()
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
                 self.bb.write_to_h5()
                 if len(self.bb.get_attr('hv_list')) > 2*self.bb.get_attr('num_calls'):
