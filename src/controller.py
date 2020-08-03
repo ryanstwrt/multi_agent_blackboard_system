@@ -54,7 +54,7 @@ class Controller(object):
             self.bb.publish_trigger()
             trig_num = self.bb.get_attr('_trigger_event')
             responses = False
-            # Wait until all responses have been recieved
+            # Wait until all responses have been recieved or until a specified time
             while not responses:
                 time.sleep(0.05)
                 if len(self.bb.get_attr('_kaar')[trig_num]) == len(self.bb.get_attr('agent_addrs')):

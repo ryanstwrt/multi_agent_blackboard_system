@@ -415,7 +415,7 @@ class KaGA(KaLocal):
         self._base_trigger_val = 10
         self.previous_populations = {}
         self.crossover_rate = 0.8
-        self.total_num_offspring = 50
+        self.offspring_per_generation = 50
         self.mutation_rate = 0.1
         self.crossover_type = 'single point'
         self.num_cross_over_points = 1
@@ -452,30 +452,42 @@ class KaGA(KaLocal):
 
         
     def search_method(self):
-        ## Figure out way to prevent doing the same population twice
         population = [x for x in self.lvl_read.keys()]
+        original_pop_len = len(population)
         children = []
-        
-        
-        while len(population) > 1:
+        num_children = 0
+                
+        while num_children < self.offspring_per_generation:
+            if len(population) < 2:
+                break
             design1 = population.pop(random.choice(range(len(population))))
             design2 = population.pop(random.choice(range(len(population))))
             parent1 = self.lvl_data[design1]
             parent2 = self.lvl_data[design2]
             self.analyzed_design[design1] = {'Analyzed': True}
             self.analyzed_design[design2] = {'Analyzed': True}
+            # Crosover to determine new children
             if self.crossover_type == 'single point':
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
+            else:
+                self.log_warning('Warning: cross-over type {} is not implemented, reverting to `single-point` cross-over.')
+                children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
+
+            # Determine if we mutate a child
             for child in children:
-                if (1 - random.random()) > self.mutation_rate:
+                if random.random() < self.mutation_rate:
                     if self.mutation_type == 'random':
                         child = self.random_mutation(child)
                 self.current_design_variables = child
                 self.determine_model_applicability(next(iter(child)))
+                num_children += len(children)
 
             
     def single_point_crossover(self, genotype1, genotype2, num_crossover_points):
-        crossover = random.choice(range(len(self.design_variables)))
+        # Prevent a null crossover
+        crossover = 0
+        while crossover == 0:
+            crossover = random.choice(range(len(self.design_variables)))
         p1_dv = [genotype1['reactor parameters'][obj] for obj in self.design_variables.keys()]
         p2_dv = [genotype2['reactor parameters'][obj] for obj in self.design_variables.keys()]
 

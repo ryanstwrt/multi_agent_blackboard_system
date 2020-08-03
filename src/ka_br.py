@@ -137,6 +137,7 @@ class KaBr_lvl1(KaBr):
         self.calculate_hvi_contribution()
         if len(self._designs_to_remove) > 0:
             self.remove_dominated_entries()
+            self._designs_to_remove = []
         self.clear_entry()
         self.action_complete()
             

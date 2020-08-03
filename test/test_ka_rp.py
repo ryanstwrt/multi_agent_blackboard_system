@@ -735,23 +735,38 @@ def test_kalocalga():
     rp = ka.proxy('ka_rp_exploit')
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_trigger_number=2)
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 704.11,
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.1]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
+                                                          'pu_content': 0.1, 'reactivity swing' : 704.11,
+                                                          'burnup' : 61.}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.25]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
+                                                          'pu_content': 0.25, 'reactivity swing' :650.11,
                                                           'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.12}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.25]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
-    
     time.sleep(2)
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 2
-   
+    bb.update_abstract_lvl(3, 'core_[90.0, 80.0, 0.5]', {'reactor parameters': {'height': 90.0, 'smear': 80.0, 
+                                                          'pu_content': 0.50, 'reactivity swing' : 704.11,
+                                                          'burnup' : 65.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[90.0, 80.0, 0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
+    bb.update_abstract_lvl(3, 'core_[75.0, 65.0, 0.9]', {'reactor parameters': {'height': 75.0, 'smear': 65.0, 
+                                                          'pu_content': 0.90, 'reactivity swing' : 710.11,
+                                                          'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[75.0, 65.0, 0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    rp.set_attr(offspring_per_generation=2)
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.search_method()
+    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 4
+
     ns.shutdown()
     time.sleep(0.05)
 
