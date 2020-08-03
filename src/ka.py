@@ -1,6 +1,5 @@
 import osbrain
 from osbrain import Agent
-import run_sfr_opt_mabs
 import h5py
 import time
 import os
