@@ -114,6 +114,7 @@ class KaBr_lvl1(KaBr):
         self._designs_to_remove = []
         self._class = 'reader_lvl1'
         self.pf_increase = 1.25
+        self.total_pf_size = 100
         
     def handler_trigger_publish(self, message):
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
@@ -135,11 +136,24 @@ class KaBr_lvl1(KaBr):
         for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
             self._lvl_data.update(panel)
         self.calculate_hvi_contribution()
-        if len(self._designs_to_remove) > 0:
-            self.remove_dominated_entries()
-            self._designs_to_remove = []
+        if self._pf_size > self.total_pf_size:
+            self.prune_pareto_front()
+            self._hvi_dict = {}
         self.clear_entry()
         self.action_complete()
+        
+    def prune_pareto_front(self):
+        """
+        Remove locations of the Pareto front to reduce the overall size.
+        """
+        
+        removal = []
+        hvi_contributions = sorted([x for x in self._hvi_dict.values()])
+        hvi_contribution_limit = hvi_contributions[self._pf_size-self.total_pf_size]
+        for design, contribution in self._hvi_dict.items():
+            if contribution < hvi_contribution_limit:
+                removal.append(design)
+        self.remove_dominated_entries(removal)
             
     def scale_pareto_front(self, pf):
         """
@@ -161,12 +175,16 @@ class KaBr_lvl1(KaBr):
         pf = [x for x in self.lvl_read.keys()]
         scaled_pf = self.scale_pareto_front(pf)
         hvi = self.calculate_hvi(scaled_pf)
-        self._designs_to_remove = []
+        designs_to_remove = []
         for design_name, design in zip(pf, scaled_pf):
             design_hvi_contribution = hvi - self.calculate_hvi([x for x in scaled_pf if x != design])
-            self._hvi_dict[design_name] = design_hvi_contribution
             if design_hvi_contribution <= 0:
-                self._designs_to_remove.append(design_name)
+                designs_to_remove.append(design_name)
+            else:
+                self._hvi_dict[design_name] = design_hvi_contribution
+        if designs_to_remove != []:
+            self.remove_dominated_entries(designs_to_remove)
+
         
     def calculate_hvi(self, pf):
         """
@@ -175,11 +193,11 @@ class KaBr_lvl1(KaBr):
         hvi = pm.hypervolume_indicator(pf, self._lower_objective_reference_point, self._upper_objective_reference_point)
         return hvi
     
-    def remove_dominated_entries(self):
+    def remove_dominated_entries(self, entries):
         """
         Remove designs that do not contibute to the Pareto front (i.e. designs with HV values of 0)
         """
-        for design in self._designs_to_remove:
+        for design in entries:
             self.log_info('Removing core {}, no longer optimal'.format(design))
             self._pf_size -= 1
             self.write_to_bb(self.bb_lvl, design, self.lvl_read[design], remove=True)

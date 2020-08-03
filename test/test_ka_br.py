@@ -204,7 +204,7 @@ def test_kabr_lvl1_executor():
     assert br.get_attr('_pf_size') == 3
     
     assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
-                                       'core_[75.0, 55.0, 0.30]': 0.014500000000000013, 'core_[55.0, 55.0, 0.30]': 0.0}
+                                       'core_[75.0, 55.0, 0.30]': 0.014500000000000013}
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[75.0, 55.0, 0.30]':{'pareto type' : 'pareto', 'fitness function' : 1.0},
                                                       'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                                                       'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}}
@@ -265,7 +265,8 @@ def test_kabr_lvl1_calculate_hvi_contribution():
     ka_br1.set_attr(_objectives=objs)
     ka_br1.calculate_hvi_contribution()
 
-    assert ka_br1.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
+    assert ka_br1.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 
+                                            'core_[70.0, 60.0, 0.50]': 0.0625,
                                             'core_[75.0, 55.0, 0.30]': 0.0625}
     
     ns.shutdown()
@@ -284,16 +285,38 @@ def test_kabr_lvl1_remove_dominated_entries():
     bb.update_abstract_lvl(1, 'core_[75.0, 55.0, 0.30]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     ka_br1.set_attr(_hvi_dict ={'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625, 'core_[75.0, 55.0, 0.30]': 0.0})
-    ka_br1.set_attr(_designs_to_remove =['core_[75.0, 55.0, 0.30]'])
     ka_br1.set_attr(_pf_size = 3)
-    ka_br1.remove_dominated_entries()
+    ka_br1.remove_dominated_entries(['core_[75.0, 55.0, 0.30]'])
     time.sleep(0.1)
     
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                                                        'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}}
     assert ka_br1.get_attr('_pf_size') == 2
     ns.shutdown()
-    time.sleep(0.05)                    
+    time.sleep(0.05)    
+    
+def test_kabr_lvl1_prune_entries():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
+    bb.initialize_abstract_level_3()
+    entry1 = {}
+    entry2 = {}
+    for num in range(15):
+        bb.update_abstract_lvl(1, 'val_{}'.format(num), {'pareto type': 'pareto', 'fitness function': 1.0})
+
+    ka_br1 = ns.proxy('ka_br_lvl1')
+    ka_br1.set_attr(_pf_size = 15)
+    ka_br1.set_attr(total_pf_size = 5)
+    ka_br1.set_attr(lvl_read={'val_{}'.format(num): {'pareto type': 'pareto', 'fitness function': 1.0} for num in range(15)})
+    ka_br1.set_attr(_hvi_dict={'val_{}'.format(num):num for num in range(15)})
+    ka_br1.prune_pareto_front()
+    
+    assert [x for x in bb.get_attr('abstract_lvls')['level 1'].keys()] == ['val_10', 'val_11', 'val_12', 'val_13', 'val_14']
+    
+    ns.shutdown()
+    time.sleep(0.05)
+
                     
 #-----------------------------------------
 # Test of KaBr_lvl2
