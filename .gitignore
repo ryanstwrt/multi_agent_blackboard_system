@@ -6,3 +6,5 @@ doc/.ipynb_check*
 doc/__pycache__
 test/.ipynb_check*
 test/__pycache__
+test/*.h5
+src/scratch.ipynb

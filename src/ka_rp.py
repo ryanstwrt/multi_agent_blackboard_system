@@ -3,77 +3,504 @@ from osbrain import Agent
 import numpy as np
 import random
 import scipy.interpolate
-import db_reshape as dbr
-from collections import OrderedDict
 import ka
-import time
+import train_surrogate_models as tm
+import copy
+import database_generator as dg
+import math
 
 class KaRp(ka.KaBase):
     """
     Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
     
     Inherets from KaBase.
+    
+    Attributes
+    ----------
+    _trigger_val : int
+        Base trigger value to send to the blackboard to determine KA priority
+    bb_lvl : int
+        Abstract level that the Ka writes to
+
     """
     def on_init(self):
         super().on_init()
-        self._trigger_val = 1.0
+        self._trigger_val = 0
+        self._base_trigger_val = 0.25
+        self.bb_lvl = 3
+        self._sm = None
+        self.sm_type = 'interpolate'
+        self.design_variables = {}
+        self.current_design_variables = {}
+        self._design_accuracy = 5
+        self._objectives = {}
+        self.objective_functions = {}
+        self._objective_accuracy = 5
+        self._update_hv = False
+        self._class = 'search'
+        
+    def calc_objectives(self):
+        """
+        Calculate the objective functions based on the core design variables.
+        This process is performed via an interpolator or a surrogate model.
+        Sets the variables for the _entry and _entry_name
+        """
+        self.log_debug('Determining core parameters based on SM')
+        design = [x for x in self.current_design_variables.values()]
+        if 'benchmark' in self.sm_type:
+            obj_list = self._sm.predict(self.sm_type.split()[0], design, len(design), len(self._objectives.keys()))
+            for num, obj in enumerate(self._objectives.keys()):
+                self.objective_functions[obj] = round(float(obj_list[num]), self._objective_accuracy)
+        elif self.sm_type == 'interpolate':
+            for obj_name, interpolator in self._sm.items():
+                self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
+        else:
+            obj_list = self._sm.predict(self.sm_type, [design])
+            for num, obj in enumerate(self._objectives.keys()):
+                self.objective_functions[obj] = round(float(obj_list[0][num]), self._objective_accuracy)
+        a = self.current_design_variables.copy()
+        a.update(self.objective_functions)
+        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in a.items()]))
+        self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
+        self._entry = {'reactor parameters': a}
+        
+    def handler_executor(self, message):
+        """
+        Execution handler for KA-RP.
+        KA-RP determines a core design and runs a physics simulation using a surrogate model.
+        Upon completion, KA-RP sends the BB a writer message to write to the BB.
+        
+        Parameter
+        ---------
+        message : str
+            required message for sending communication
+        """
+        self.log_debug('Executing agent {}'.format(self.name))
+        self.mc_design_variables()
+        self.calc_objectives()
+        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
+        self._trigger_val = 0
+        self.action_complete()
+        
+    def handler_trigger_publish(self, message):
+        """
+        Send a message to the BB indiciating it's trigger value.
+        
+        Parameters
+        ----------
+        message : str
+            Containts unused message, but required for agent communication.
+        """
+        self._trigger_val += self._base_trigger_val
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+    
+    def scale_objective(self, val, ll, ul):
+        """Scale an objective based on the upper/lower value"""
+        return (val - ll) / (ul - ll)
 
-class KaRp_verify(KaRp):
+class KaGlobal(KaRp):
     """
-    Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
+    Knowledge agent to solve portions reactor physics problems using a SM.
     
     Inherets from KaBase.
     
     Attibutes:
-    
-      core_name        (str)             - Name of the core
-      rx_parameters    (dataframe)       - Pandas dataframe containing reactor core parameters from Mammoth
-      surrogate_models (SurrogateModels) - SurrogateModels class from surrogate_modeling, containes a set of trained surogate mdoels
-      objectives       (list)            - List of the desired objective functions to be examined
-      design_variables (list)            - List of the design variables to be used
+
+    design_variables : dict
+        Dictionary of the independent design variables for the current design (key - variable name, value - variable value)
+    objective_funcionts : dict
+        Dictionary of the objective functions for the current design (key - objective name, value - objective value)
+    objectives : list
+        List of the objective name for optimization
+    design_variables : dict
+        Dictionary of design variables for the problem and allowable rannge for the variables (key - variable name, value - tuple of min/max value)
+    _sm : dict/trained_sm class
+        Reference to the surrogate model that is used for determining objective functions.
+        This can either be a scipy interpolator or a sci-kit learn regression function.
+    sm_type : str
+        Name of the surrogate model to be used.
+        Valid options: (interpolator, lr, pr, gpr, mars, ann, rf)
+        See surrogate_modeling for more details
     """
 
     def on_init(self):
         super().on_init()
-        self.design_variables = {}
-        self.objective_functions = {}
-        self.interpolator_dict = {}
-        self.interp_path = None
-        self.bb_lvl = 2
-        self.objectives = ['keff', 'void_coeff', 'doppler_coeff']
-        self.independent_variable_ranges = OrderedDict({'height': (50, 80), 'smear': (50,70), 'pu_content': (0,1)})
+        
+    def mc_design_variables(self):
+        """
+        Determine the core design variables using a monte carlo method.
+        """
+        for dv, dv_dict in self.design_variables.items():
+            self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
+        self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
 
+
+
+class KaLocal(KaRp):
+    """
+    Knowledge agent to solve portions reactor physics problems using a SM.
+    
+    Inherets from KaBase.
+    
+    Attibutes
+    ---------
+    All inherited attributes from KaRp
+    
+    bb_lvl_read : int
+        Abstract level that the Ka reads from to gather information
+    perturbations : list of floats
+        List of values to perturb each independent variable by
+    """
+
+    def on_init(self):
+        super().on_init()
+        self._base_trigger_val = 5
+        self.bb_lvl_read = 1
+        self.perturbation_size = 0.05
+        self.lvl_data = None
+        self.lvl_read = None
+        self.analyzed_design = {}
+        self.generated_designs = {}
+        self.new_designs = []
+        self._class = 'search_local'
+
+
+    def determine_model_applicability(self, dv):
+        """
+        Determine if a design variable is valid, and if the design has already been examined.
+        If the design isn't valid or has already been examined, skip this.
+        If the design is new, calculate the objectives and wrtie this to the blackbaord.
+        """
+        dv_dict = self.design_variables[dv]
+        dv_cur_val = self.current_design_variables[dv]
+        if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
+            self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
+        elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in self.lvl_data.keys():
+            self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
+        else:
+            self.calc_objectives()
+            self.generated_designs = {'HV': 0}
+            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
+            self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
+        
     def handler_executor(self, message):
-        """Execution handler for KA-RP.
-        KA-RP determines a core design and runs a physics simulation using a surrogate model.
-        Upon completion, KA-RP sends the BB a writer message to write to the BB."""
+        """
+        Execution handler for KA-RP.
+        
+        KA will perturb the core via the perturbations method and write all results the BB
+        """
         self.log_debug('Executing agent {}'.format(self.name))
-        self.determine_design_variables()
-        self.calc_core_params()
-        self.write_to_bb()
-    
-    def determine_design_variables(self):
-        """Determine the core design variables using either a surrogate model, or random assignment."""
-        for param, ranges in self.independent_variable_ranges.items():
-            self.design_variables[param] = round(random.random() * (ranges[1] - ranges[0]) + ranges[0],2)
-        self._entry_name = 'core_{}'.format([x for x in self.design_variables.values()])
-        self.log_info('Core design variables determined: {}'.format(self.design_variables))
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        self.lvl_data = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
+        self.search_method()
+        self.action_complete()
+                      
+    def handler_trigger_publish(self, message):
+        """
+        Read the BB level and determine if an entry is available.
+        
+        Paremeters
+        ----------
+        message : str
+            Required message from BB
+        
+        Returns
+        -------
+        send : message
+            _trigger_response_alias : int
+                Alias for the trigger response 
+            name : str
+                Alias for the agent, such that the trigger value get assigned to the right agent on the BB
+            _trigger_val : int
+                Trigger value for knowledge agent
+        """
+        new_entry = self.read_bb_lvl()
+        self._trigger_val = self._base_trigger_val if new_entry else 0
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+        
+    def search_method(self):
+        """
+        Perturb a core design
+        
+        This first selects a core at random from abstract level 1 (from the 'new' panel).
+        It then perturbs each design variable independent by the values in perturbations, this produces n*m new cores (n = # of design variables, m = # of perturbations)
+        
+        These results are written to the BB level 3, so there are design_vars * pert added to level 3.
+        """
+        
+        core = random.choice(self.new_designs)
 
-    def calc_core_params(self):
-        """Calculate the objective functions based on the core design variables."""
-        self.log_debug('Determining core parameters based on SM')
-        for obj_name, interpolator in self.interpolator_dict.items():
-            self.objective_functions[obj_name] = float(interpolator(tuple([x for x in self.design_variables.values()])))
-        a = self.design_variables.copy()
-        a.update(self.objective_functions)
-        self._entry = {'reactor parameters': a}
+        design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        perts = [1.0 - self.perturbation_size, 1.0 + self.perturbation_size]
+        for dv, dv_value in design_.items():
+            for pert in perts:
+                design = copy.copy(design_)
+                design[dv] = round(dv_value * pert, self._design_accuracy)
+                self.current_design_variables = design
+                self.determine_model_applicability(dv)
+        self.analyzed_design[core] = {'Analyzed': True}
+        
+    def genetic_algorithm(self):
+        """
+        Basic genetic algorithm for expediting our search
+        """
+        pass
     
-    def create_interpolator(self):
-        """Build the linear interpolator for estimating between known datapoints.
-        This uses scipy's LinearNDInterpolator, where we create a unique interpolator for each objective function"""
-        design_var, objective_func = dbr.reshape_database(r'{}/sfr_db_new.h5'.format(self.interp_path), [x for x in self.independent_variable_ranges.keys()], self.objectives)
-        design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
-        for num, objective in enumerate(self.objectives):
-            self.interpolator_dict[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
+    def read_bb_lvl(self):
+        """
+        Determine if there are any 'new' entries on level 1.
+        
+        Returns
+        -------
+            True -  if level has entries
+            False -  if level is empty
+        """
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        cores = [x for x in self.analyzed_design.keys()]
+        self.new_designs = [key for key in lvl if not key in self.analyzed_design]
+        return True if self.new_designs else False
+
     
+class KaLocalHC(KaLocal):
+    
+    def on_init(self):
+        super().on_init()
+        self.avg_diff_limit = 5
+        self.step_size = 0.05
+        self.step_rate = 0.01
+        self.step_limit = 100
+        self.convergence_criteria = 0.001
+        self.hc_type = 'simple'
+        
+    def search_method(self):
+        """
+        Basic hill climbing algorithm for local search.
+        
+        Searches local area by taking some x number of steps to determine a more optimal solution.
+        
+        1. Cycle through each DV and increment/decrement by step_value
+        2. Determine which DV has the steepest descent
+        2a. If no increase descent, decrease step size
+        2b. If increase descent, increase step size; Replace design with current DV
+        3a. If step_size < some value exit
+        3b. Else, repeat 
+        """
+
+        core = random.choice(self.new_designs)
+        entry = self.lvl_read[core]
+        
+        step = self.step_size
+        step_design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        step_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self._objectives.keys()}
+        step_number = 0
+        
+        while step > self.convergence_criteria:
+            gradient_vector = {}
+            next_step = None
+            # Calculate our gradient vector
+            for dv in self.design_variables:
+                for direction in ['+', '-']:
+                    temp_design = copy.copy(step_design)
+                    temp_design[dv] += temp_design[dv] * step if direction == '+' else temp_design[dv] * -step
+                    temp_design[dv] = round(temp_design[dv], self._design_accuracy)
+                    
+                    if temp_design[dv] >= self.design_variables[dv]['ll'] and temp_design[dv] <= self.design_variables[dv]['ul']:
+                        if 'core_{}'.format([x for x in temp_design.values()]) in self.lvl_data.keys():
+                            pass
+                        else:
+                            self.current_design_variables = temp_design
+                            self.calc_objectives()
+                            gradient_vector['{} {}'.format(direction,dv)] = {'design variables': temp_design, 
+                                                                       'objective functions': {k:v for k,v in self.objective_functions.items()}}
+            # Determine which step is the steepest, update our design, and write this to the BB
+            if gradient_vector:
+                next_step, diff = self.determine_step(step_design, step_objs, gradient_vector)
+                if next_step:
+                    step_design = gradient_vector[next_step]['design variables']
+                    step_objs = gradient_vector[next_step]['objective functions']
+                    self.current_design_variables = {k:v for k,v in step_design.items()}
+                    self.determine_model_applicability(next_step.split(' ')[1])
             
+            #If we don't have a gradient vector or a next step to take, reduce the step size
+            if gradient_vector == {} or next_step == None:
+                step = step * (1 - self.step_rate)
+            step_number += 1
+            if step_number > self.step_limit:
+                break
+        self.write_to_bb(self.bb_lvl_read, core, entry)
+        self.analyzed_design[core] = {'Analyzed': True, 'HV': 0.0}
+
+    def determine_step(self, base, base_design, design_dict):
+        """
+        Determine which design we should use to take a step, based on a scaled derivative (objectives and dv are scaled)
+        """
+        design = {}
+        best_design = {}
+        best_design['total'] = 0
+
+        design_list = [x for x in design_dict.keys()]
+        if self.hc_type == 'simple':
+            random.shuffle(design_list)
+
+        for pert_dv in design_list:
+            dict_ = design_dict[pert_dv]
+            dv = pert_dv.split(' ')[1]
+            design[pert_dv] = {}
+            design[pert_dv]['total'] = 0
+            for name, obj in self._objectives.items():
+                base_obj = base_design[name]
+                new_obj = dict_['objective functions'][name]
+                if new_obj >= self._objectives[name]['ll'] and new_obj <= self._objectives[name]['ul']:
+                    obj_scaled_new = self.scale_objective(new_obj, self._objectives[name]['ll'], self._objectives[name]['ul'])
+                    obj_scaled_base = self.scale_objective(base_obj, self._objectives[name]['ll'], self._objectives[name]['ul'])
+                    dv_scaled_new = self.scale_objective(base[dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
+                    dv_scaled_base = self.scale_objective(design_dict[pert_dv]['design variables'][dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
+                    
+                    # We are ollowing the steepest ascent, so positive is better
+                    obj_diff = (obj_scaled_new - obj_scaled_base) if obj['goal'] == 'gt' else (obj_scaled_base - obj_scaled_new)
+                    dv_diff = abs(dv_scaled_new - dv_scaled_base)
+                    derivative = obj_diff / dv_diff if dv_diff != 0 else 0
+                    design[pert_dv][name] = derivative
+                    design[pert_dv]['total'] += derivative
+
+                    if derivative > 0 and self.hc_type == 'simple':
+                        return(pert_dv, derivative)
+            
+            if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total']:
+                best_design = design[pert_dv]
+                best_design['pert'] = pert_dv
+                
+        if best_design['total'] > 0:
+            return (best_design['pert'], best_design['total'])
+        else:
+            return (None, None)
+            
+        
+class KaLocalRW(KaLocal):
+    
+    def on_init(self):
+        super().on_init()
+        self.step_size = 0.01
+        self.walk_length = 10
+        
+    def search_method(self):
+        """
+        Basic random walk algorithm for searching around a viable design.
+        """
+        core = random.choice(self.new_designs)
+        entry = self.lvl_read[core]
+        
+        design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        
+        for x in enumerate(range(self.walk_length)):
+            dv = random.choice(list(self.design_variables))
+            step = round(random.random() * self.step_size, self._design_accuracy)
+            direction = random.choice(['+','-'])
+            design[dv] = design[dv] + step if direction == '+' else design[dv] - step
+            design[dv] = round(design[dv], self._design_accuracy)
+            self.log_debug('Design Variable: {} Step: {} {}\n New Design: {}'.format(dv, direction, step, design))
+            self.current_design_variables = design
+            self.determine_model_applicability(dv)
+        self.analyzed_design[core] = {'Analyzed': True, 'HV': 0.0}
+        
+class KaGA(KaLocal):
+    """
+    Pseudo-basic gentic algorithm for helping global and local searches
+    """
+    
+    def on_init(self):
+        super().on_init()
+        self._base_trigger_val = 10
+        self.previous_populations = {}
+        self.crossover_rate = 0.8
+        self.offspring_per_generation = 50
+        self.mutation_rate = 0.1
+        self.crossover_type = 'single point'
+        self.num_cross_over_points = 1
+        self.mutation_type = 'random'
+        self.pf_size = 10
+        
+
+    def handler_trigger_publish(self, message):
+        """
+        Read the BB level and determine if an entry is available.
+        
+        Paremeters
+        ----------
+        message : str
+            Required message from BB
+        
+        Returns
+        -------
+        send : message
+            _trigger_response_alias : int
+                Alias for the trigger response 
+            name : str
+                Alias for the agent, such that the trigger value get assigned to the right agent on the BB
+            _trigger_val : int
+                Trigger value for knowledge agent
+        """
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        new = set([x for x in lvl.keys()])
+        old = set([x for x in self.analyzed_design.keys()])
+        intersection = old.intersection(new)
+        self._trigger_val = self._base_trigger_val if (len(lvl) >= self.pf_size + len(old) and intersection != new) else 0
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+
+        
+    def search_method(self):
+        population = [x for x in self.lvl_read.keys()]
+        original_pop_len = len(population)
+        children = []
+        num_children = 0
+                
+        while num_children < self.offspring_per_generation:
+            if len(population) < 2:
+                break
+            design1 = population.pop(random.choice(range(len(population))))
+            design2 = population.pop(random.choice(range(len(population))))
+            parent1 = self.lvl_data[design1]
+            parent2 = self.lvl_data[design2]
+            self.analyzed_design[design1] = {'Analyzed': True}
+            self.analyzed_design[design2] = {'Analyzed': True}
+            # Crosover to determine new children
+            if self.crossover_type == 'single point':
+                children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
+            else:
+                self.log_warning('Warning: cross-over type {} is not implemented, reverting to `single-point` cross-over.')
+                children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
+
+            # Determine if we mutate a child
+            for child in children:
+                if random.random() < self.mutation_rate:
+                    if self.mutation_type == 'random':
+                        child = self.random_mutation(child)
+                self.current_design_variables = child
+                self.determine_model_applicability(next(iter(child)))
+                num_children += len(children)
+
+            
+    def single_point_crossover(self, genotype1, genotype2, num_crossover_points):
+        # Prevent a null crossover
+        crossover = 0
+        while crossover == 0:
+            crossover = random.choice(range(len(self.design_variables)))
+        p1_dv = [genotype1['reactor parameters'][obj] for obj in self.design_variables.keys()]
+        p2_dv = [genotype2['reactor parameters'][obj] for obj in self.design_variables.keys()]
+
+        c1_dv = p1_dv[:crossover] + p2_dv[crossover:]
+        c2_dv = p2_dv[:crossover] + p1_dv[crossover:]
+        c1 = {dv:c1_dv[num] for num, dv in enumerate(self.design_variables.keys())}
+        c2 = {dv:c2_dv[num] for num, dv in enumerate(self.design_variables.keys())}
+
+        return [c1, c2]
+    
+    def random_mutation(self, genotype):
+        dv_mutate = random.choice([x for x in self.design_variables.keys()])
+        for dv, dv_dict in self.design_variables.items():
+            genotype[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy) if dv == dv_mutate else genotype[dv]
+                
+        return genotype
