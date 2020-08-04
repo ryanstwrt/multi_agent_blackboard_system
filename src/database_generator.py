@@ -3,7 +3,7 @@ import fridge.utilities.reactorInterface as RI
 
 def get_data(design_variables, objective_variables):
     h5_interface = h5i.h5Interface()
-    h5_interface.read_h5('/Users/ryanstewart/projects/sfr_database/SFR_DB_2.h5')
+    h5_interface.read_h5('/Users/ryanstewart/projects/sfr_database/SFR_DB.h5')
     ind_var_array = []
     obj_var_array = []
     num_cycles = 4

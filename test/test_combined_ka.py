@@ -106,10 +106,9 @@ def test_combined_kabr_karp():
     
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
-    model = 'lr'
-    with open('test/sm_{}.pkl'.format(model), 'rb') as pickle_file:
+    with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
         sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
+    bb.set_attr(sm_type='lr')
     bb.set_attr(_sm=sm_ga)
     obj = {'reactivity swing': {'ll':0,   'ul':1000,  'goal':'lt', 'variable type': float},
            'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float}}

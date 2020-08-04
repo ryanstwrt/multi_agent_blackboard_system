@@ -8,9 +8,11 @@ import time
 import ka_rp
 import bb_sfr_opt as bb_sfr
 
-model = 'ann'
-with open('test/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-    sm_ga = pickle.load(pickle_file)
+with open('test/sm_lr_4obj.pkl', 'rb') as pickle_file:
+    sm_ga_4obj = pickle.load(pickle_file)
+with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
+    sm_ga_2obj = pickle.load(pickle_file)
+
 
 def test_karp_init():
     ns = run_nameserver()
@@ -86,8 +88,8 @@ def test_explore_handler_executor():
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
 
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga) 
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj) 
     bb.connect_agent(ka_rp.KaGlobal, 'ka_rp_explore')
     
     rp = ns.proxy('ka_rp_explore')
@@ -270,8 +272,8 @@ def test_determine_model_applicability():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj)
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
@@ -307,8 +309,8 @@ def test_exploit_handler_executor_pert():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj)
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
@@ -342,8 +344,8 @@ def test_exploit_handler_executor_rw():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga) 
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj) 
     bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
@@ -372,8 +374,8 @@ def test_exploit_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga) 
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj) 
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp')
     
     bb.publish_trigger()
@@ -397,8 +399,8 @@ def test_exploit_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj)
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
 
     rp = ns.proxy('ka_rp_exploit')
@@ -469,8 +471,8 @@ def test_kalocalrw():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj)
     bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
@@ -498,11 +500,8 @@ def test_determine_step_steepest_ascent():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -588,11 +587,8 @@ def test_determine_step_simple():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -641,11 +637,8 @@ def test_kalocalhc():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -685,11 +678,8 @@ def test_kalocalhc_simple():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -720,11 +710,8 @@ def test_kalocalga():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -765,6 +752,8 @@ def test_kalocalga():
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
+    time.sleep(2)
+    print(bb.get_attr('abstract_lvls')['level 3']['new'])
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 4
 
     ns.shutdown()
@@ -774,11 +763,8 @@ def test_kalocalga_full():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)

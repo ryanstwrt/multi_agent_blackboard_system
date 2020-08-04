@@ -14,6 +14,7 @@ import pickle
 
 # Can the controller keep track of the BB levels and update the trigger values of different agents as needed?
 
+# TODO add ability to pass in a surrogate model
 class Controller(object):
     """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
     
