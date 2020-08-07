@@ -1,10 +1,5 @@
 import osbrain
 from osbrain import Agent
-import h5py
-import time
-import os
-
-from collections import OrderedDict
 
 class KaBase(Agent):
     """

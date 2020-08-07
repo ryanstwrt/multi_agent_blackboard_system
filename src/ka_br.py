@@ -1,7 +1,4 @@
-import osbrain
-from osbrain import Agent
 import ka
-import random
 import performance_measure as pm
 
 class KaBr(ka.KaBase):

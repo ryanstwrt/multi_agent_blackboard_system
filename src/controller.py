@@ -7,10 +7,7 @@ import blackboard
 import time
 import bb_opt
 import moo_benchmarks as mb
-import benchmark_bb
-
-import os
-import pickle
+import bb_benchmark
 
 # Can the controller keep track of the BB levels and update the trigger values of different agents as needed?
 
@@ -38,7 +35,7 @@ class Controller(object):
             self.bb.set_attr(_sm='gpr')
             self.bb.generate_sm()
         
-        elif bb_type == benchmark_bb.BenchmarkBB:
+        elif bb_type == bb_benchmark.BenchmarkBB:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
             self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
             self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))

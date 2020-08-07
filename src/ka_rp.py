@@ -1,13 +1,6 @@
-import osbrain
-from osbrain import Agent
-import numpy as np
 import random
-import scipy.interpolate
 import ka
-import train_surrogate_models as tm
 import copy
-import database_generator as dg
-import math
 
 class KaRp(ka.KaBase):
     """
