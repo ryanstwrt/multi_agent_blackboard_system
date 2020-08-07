@@ -4,6 +4,7 @@ src/.ipynb_check*
 src/__pycache__
 doc/.ipynb_check*
 doc/__pycache__
+doc/*.h5
 test/.ipynb_check*
 test/__pycache__
 test/*.h5

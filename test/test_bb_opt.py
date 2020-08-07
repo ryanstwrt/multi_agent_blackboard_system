@@ -2,7 +2,7 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import blackboard
-import bb_sfr_opt as bb_sfr
+import bb_opt
 import time
 import os
 import ka_rp as karp
@@ -10,12 +10,12 @@ import ka_br as kabr
 
     
 #----------------------------------------------------------
-# Tests fopr BbSfrOpt
+# Tests fopr BbOpt
 #----------------------------------------------------------
 
-def test_BbSfrOpt_init():
+def test_BbOpt_init():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     assert bb.get_attr('agent_addrs') == {}
     assert bb.get_attr('_agent_writing') == False
     assert bb.get_attr('_new_entry') == False
@@ -39,9 +39,9 @@ def test_BbSfrOpt_init():
     ns.shutdown()
     time.sleep(0.05)
     
-def test_BbSfrOpt_initalize_abstract_level_3_basic():
+def test_BbOpt_initalize_abstract_level_3_basic():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
@@ -55,9 +55,9 @@ def test_BbSfrOpt_initalize_abstract_level_3_basic():
     ns.shutdown()
     time.sleep(0.05)
 
-def test_BbSfrOpt_initalize_abstract_level_3():
+def test_BbOpt_initalize_abstract_level_3():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     dv =   {'height':           {'ll': 50, 'ul': 80, 'variable type': float}}
@@ -76,7 +76,7 @@ def test_BbSfrOpt_initalize_abstract_level_3():
     
 def test_connect_agent():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(karp.KaGlobal, 'ka_rp')
     bb.connect_agent(kabr.KaBr_lvl3, 'ka_br')
     
@@ -102,7 +102,7 @@ def test_connect_agent():
     
 def test_add_ka_specific():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(karp.KaGlobal, 'ka_rp_explore')
     bb.connect_agent(karp.KaLocal, 'ka_rp_exploit')
     bb.connect_agent(kabr.KaBr_lvl1, 'ka_br_lvl1')
@@ -134,7 +134,7 @@ def test_determine_complete():
 
 def test_handler_writer():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     rp = run_agent(name='explore', base=karp.KaGlobal)
     rp1 = run_agent(name='exploit', base=karp.KaLocal)
     bb.initialize_abstract_level_3()

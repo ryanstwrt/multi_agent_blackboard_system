@@ -7,7 +7,7 @@ import ka
 import time
 import os
 import ka_br
-import bb_sfr_opt as bb_sfr
+import bb_opt
 import ka_rp
 from collections import OrderedDict
 
@@ -104,7 +104,7 @@ def test_combined_kabr_handler_executor():
 def test_combined_kabr_karp():
     ns = run_nameserver()
     
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
     with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
         sm_ga = pickle.load(pickle_file)

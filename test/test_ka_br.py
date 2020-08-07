@@ -6,7 +6,7 @@ import ka
 import time
 import os
 import ka_br
-import bb_sfr_opt as bb_sfr
+import bb_opt
 import pickle
 
 with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
@@ -120,7 +120,7 @@ def test_kabr_lvl1_init():
 
 def test_kabr_lvl1_publish():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='lr')
     bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
@@ -153,7 +153,7 @@ def test_kabr_lvl1_publish():
     
 def test_kabr_lvl1_executor():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='lr')
     bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
@@ -183,7 +183,7 @@ def test_kabr_lvl1_executor():
     time.sleep(0.5)
     bb.controller()
     bb.send_executor()
-    time.sleep(0.5) 
+    time.sleep(2.5) 
     assert br.get_attr('_pf_size') == 3
     assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
                                        'core_[75.0, 55.0, 0.30]': 0.0625}
@@ -271,7 +271,7 @@ def test_kabr_lvl1_calculate_hvi_contribution():
 
 def test_kabr_lvl1_remove_dominated_entries():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
     ka_br1 = ns.proxy('ka_br_lvl1')
     ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
@@ -294,7 +294,7 @@ def test_kabr_lvl1_remove_dominated_entries():
     
 def test_kabr_lvl1_prune_entries():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
     bb.initialize_abstract_level_3()
     entry1 = {}
@@ -497,7 +497,7 @@ def test_determine_fitness_function():
     
 def test_kabr_lvl2_handler_trigger_publish():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
     bb.connect_agent(ka_br.KaBr_lvl2, 'ka_br2')
     br = ns.proxy('ka_br2')
@@ -672,7 +672,7 @@ def test_kabr_lvl3_read_bb_lvl():
 
 def test_kabr_lvl3_handler_trigger_publish():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     br = run_agent(name='ka_br3', base=ka_br.KaBr_lvl3)
     bb.initialize_abstract_level_3()
     br.add_blackboard(bb)

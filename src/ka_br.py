@@ -131,6 +131,7 @@ class KaBr_lvl1(KaBr):
         self.log_debug('Executing agent {}'.format(self.name)) 
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
         self._pf_size = len(self.lvl_read)
+        self._hvi_dict = {}
 
         # Make sure this is okay for larger numbers of entries otherwise revert to old method
         for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
@@ -138,7 +139,6 @@ class KaBr_lvl1(KaBr):
         self.calculate_hvi_contribution()
         if self._pf_size > self.total_pf_size:
             self.prune_pareto_front()
-            self._hvi_dict = {}
         self.clear_entry()
         self.action_complete()
         
@@ -174,9 +174,14 @@ class KaBr_lvl1(KaBr):
     def calculate_hvi_contribution(self):
         pf = [x for x in self.lvl_read.keys()]
         scaled_pf = self.scale_pareto_front(pf)
+        # Get the HVI from the blackboard rather than calculating it
         hvi = self.calculate_hvi(scaled_pf)
         designs_to_remove = []
+        
+        # See if we can use the DCI to screen out solutions before we have to calculate the HVI of each
         for design_name, design in zip(pf, scaled_pf):
+            # Calcualte DCI for previous PF, and compare with current PF
+            # If two solutions are in the same hyperbox, calculate the HVI contribution for each and remove lower one.
             design_hvi_contribution = hvi - self.calculate_hvi([x for x in scaled_pf if x != design])
             if design_hvi_contribution <= 0:
                 designs_to_remove.append(design_name)

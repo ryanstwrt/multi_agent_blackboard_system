@@ -19,7 +19,7 @@ cur_dir = os.path.dirname(__file__)
 test_path = os.path.join(cur_dir, '../test/')
 
 
-class BbSfrOpt(blackboard.Blackboard):
+class BbOpt(blackboard.Blackboard):
     
     def on_init(self):
         super().on_init()
@@ -115,9 +115,9 @@ class BbSfrOpt(blackboard.Blackboard):
         
         recent_hv = self.hv_list[-self.num_calls:]
         prev_hv = self.hv_list[-2*self.num_calls:-self.num_calls]
-        hv_average = sum(recent_hv) / self.num_calls - sum(prev_hv) / self.num_calls
+        hv_average = abs(sum(recent_hv) / self.num_calls - sum(prev_hv) / self.num_calls)
         try:
-            hv_max = min(recent_hv) - max(prev_hv)
+            hv_max = abs(min(recent_hv) - max(prev_hv))
             hv_indicator = max([hv_average, hv_max])
         except ValueError:
             hv_indicator = 1

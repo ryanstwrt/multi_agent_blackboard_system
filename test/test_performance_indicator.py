@@ -4,7 +4,7 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import ka_rp
-import bb_sfr_opt as bb_sfr
+import bb_opt
 import pickle
 import time
 import copy
@@ -19,7 +19,7 @@ def test_hypervolume_indicator_base():
 
 def test_hypervolume_indicator_sfr():
     ns = run_nameserver()
-    bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
     with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
         sm_ga_2obj = pickle.load(pickle_file)
 

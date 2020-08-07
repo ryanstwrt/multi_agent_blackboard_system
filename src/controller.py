@@ -5,7 +5,7 @@ from osbrain import proxy
 from osbrain import run_nameserver
 import blackboard
 import time
-import bb_sfr_opt
+import bb_opt
 import moo_benchmarks as mb
 import benchmark_bb
 
@@ -33,7 +33,7 @@ class Controller(object):
         self.progress_rate = 100
 
 
-        if bb_type == bb_sfr_opt.BbSfrOpt:
+        if bb_type == bb_opt.BbOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
             self.bb.set_attr(_sm='gpr')
             self.bb.generate_sm()
