@@ -28,7 +28,7 @@ class BbOpt(blackboard.Blackboard):
         self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
-        
+
         self.objectives = {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
                            'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
@@ -59,6 +59,13 @@ class BbOpt(blackboard.Blackboard):
         self.objectives_ll = [x['ll'] for x in self.objectives.values()]
         self.objectives_ul = [x['ul'] for x in self.objectives.values()]
 
+#        fitness = {'total': float}
+ #       for obj in self.objectives.keys():
+  #          fitness.update({obj: float})
+        
+#        self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': fitness})
+ #       self.add_abstract_lvl(2, {'valid': bool})
+  #      self.add_panel(2, ['new', 'old'])
         
         rx_params = {iv: iv_dict['variable type'] for iv, iv_dict in self.design_variables.items()}
         rx_params.update({obj: obj_dict['variable type'] for obj, obj_dict in self.objectives.items()})

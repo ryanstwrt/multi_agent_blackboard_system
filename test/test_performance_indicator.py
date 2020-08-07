@@ -81,7 +81,7 @@ def test_dci_init():
           'c': {'f1':2.5, 'f2':2.5}, 
           'd': {'f1':4.25, 'f2':0.5}}    
 
-    dci = pm.diversity_comparison_indicator(lb, ub, div, [pf])
+    dci = pm.diversity_comparison_indicator(lb, ub, [pf], div=div)
     
     assert dci.ideal_point == lb
     assert dci.nadir_point == ub
@@ -100,7 +100,7 @@ def test_dci_hyperbox_distance():
           'c': {'f1':2.5, 'f2':2.5}, 
           'd': {'f1':4.25, 'f2':0.5}}    
 
-    dci = pm.diversity_comparison_indicator(lb, ub, div, [pf])
+    dci = pm.diversity_comparison_indicator(lb, ub, [pf], div=div)
     dist = dci._hyperbox_distance((0,3), (2,2))
     assert dist == math.sqrt(5)
     
@@ -113,7 +113,7 @@ def test_dci_pf_point_to_hyperbox():
           'c': {'f1':2.5, 'f2':2.5}, 
           'd': {'f1':4.25, 'f2':0.5}}    
 
-    dci = pm.diversity_comparison_indicator(lb, ub, div, [pf])  
+    dci = pm.diversity_comparison_indicator(lb, ub, [pf], div=div)  
     dist = dci._pf_point_to_hyperbox(pf, (1,3))
     assert dist == 1
 
@@ -139,7 +139,7 @@ def test_dci():
           'p':  {'f1':4.5, 'f2':2.5}}
     pfs = [pf1, pf2, pf3]
     
-    dci = pm.diversity_comparison_indicator(lb, ub, div, pfs)
+    dci = pm.diversity_comparison_indicator(lb, ub, pfs, div=div)
     
     dci._grid_generator()
     dci.compute_dci(pf1)
@@ -149,3 +149,34 @@ def test_dci():
     dci.compute_dci(pf3)
     assert round(dci.dci,3) == 0.515
     
+def test_dci_basic():
+    lb = {'f1':0, 'f2':0}
+    ub = {'f1':8, 'f2':8}
+    div = {'f1': 8, 'f2': 8}
+    pf1 = {'a': {'f1':0.5, 'f2':6.5}, 
+          'b':  {'f1':1.5, 'f2':4.5}, 
+          'c':  {'f1':2.5, 'f2':2.5}, 
+          'd':  {'f1':4.5, 'f2':2.5},
+          'e':  {'f1':5.5, 'f2':1.5},
+          'f':  {'f1':7.5, 'f2':0.5}}
+    pf2 = {'g': {'f1':0.5, 'f2':7.5}, 
+          'h':  {'f1':0.5, 'f2':6.5}, 
+          'i':  {'f1':4.5, 'f2':1.5}, 
+          'j':  {'f1':6.5, 'f2':0.5},
+          'k':  {'f1':7.5, 'f2':0.5}}
+    pf3 = {'l': {'f1':1.5, 'f2':4.5}, 
+          'm':  {'f1':1.5, 'f2':3.5}, 
+          'n':  {'f1':3.5, 'f2':2.5}, 
+          'o':  {'f1':3.5, 'f2':2.5},
+          'p':  {'f1':4.5, 'f2':2.5}}
+    pfs = [pf1, pf2, pf3]
+    
+    dci = pm.diversity_comparison_indicator(lb, ub, pfs)
+    
+    dci._grid_generator()
+    dci.compute_dci(pf1)
+    assert round(dci.dci,3) == 0.848
+    dci.compute_dci(pf2)
+    assert round(dci.dci,3) == 0.606
+    dci.compute_dci(pf3)
+    assert round(dci.dci,3) == 0.515

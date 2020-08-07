@@ -30,12 +30,18 @@ def diversity_indicatory(pf_names, pf, lower_ref, upper_ref):
 
 class diversity_comparison_indicator(object):
     
-    def __init__(self, lb, ub, div, pf):
+    def __init__(self, lb, ub, pf, div=None):
         self.ideal_point = lb
         self.nadir_point = ub
         self.num_objectives = len(self.nadir_point)
-        self.div = div
+        if div:
+            self.div = div
+        else:
+            self.div = {}
+            for obj in self.ideal_point.keys():
+                self.div[obj] = (self.ideal_point[obj] - self.nadir_point[obj])
         self.pf = {}
+        self.dc = {}
         self._hyperbox_grid = None
         self._pf_grid_coordinates = None
 

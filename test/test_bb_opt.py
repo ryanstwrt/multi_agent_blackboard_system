@@ -43,12 +43,19 @@ def test_BbOpt_initalize_abstract_level_3_basic():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
+#    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': {'total': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass' : float}},
+#                                                   'level 2': {'new': {'valid': bool}, 
+#                                                               'old': {'valid': bool}},
+#                                                   'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
+#                                                               'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
+
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
                                                    'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
                                                                'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
 
+    
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
                                             'level 2': {'new':{}, 'old':{}}, 
                                             'level 3': {'new': {}, 'old': {}}}

@@ -79,10 +79,7 @@ class KaBr(ka.KaBase):
             valid_core, opt_type = self.determine_validity(core_name)
             if not valid_core:
                 self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
-                
-    def move_dominated_entries(self):
-        pass
-    
+                    
     def remove_dominated_entries(self):
         pass
 
@@ -115,6 +112,7 @@ class KaBr_lvl1(KaBr):
         self._class = 'reader_lvl1'
         self.pf_increase = 1.25
         self.total_pf_size = 100
+        self._previous_pf = {}
         
     def handler_trigger_publish(self, message):
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
@@ -174,8 +172,9 @@ class KaBr_lvl1(KaBr):
     def calculate_hvi_contribution(self):
         pf = [x for x in self.lvl_read.keys()]
         scaled_pf = self.scale_pareto_front(pf)
+        self._previous_pf = (pf, scaled_pf)
         # Get the HVI from the blackboard rather than calculating it
-        hvi = self.calculate_hvi(scaled_pf)
+        hvi = self.calculate_hvi(scaled_pf) #self.bb.gt_attr('hv_list[-1]')
         designs_to_remove = []
         
         # See if we can use the DCI to screen out solutions before we have to calculate the HVI of each
