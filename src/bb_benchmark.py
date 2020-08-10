@@ -30,15 +30,13 @@ class BenchmarkBB(bb_opt.BbOpt):
             objectives = self.get_attr('objectives')
             lvl_3 = {}
             for panel in lvls['level 3'].values():
-                lvl_3.update(panel)
-    
+                lvl_3.update(panel)    
             lvl_1 = lvls['level 1']
-
 
             obj_dict = {}
             objs = [x for x in objectives.keys()]
             for entry_name, entry in lvl_1.items():
-                val = lvl_3[entry_name]['reactor parameters']
+                val = lvl_3[entry_name]['objective functions']
                 for obj in objectives.keys():
                     if obj in obj_dict.keys():
                         obj_dict[obj].append(val[obj])

@@ -19,48 +19,46 @@ from collections import OrderedDict
 def test_combined_kabr_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    obj = {'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+                                     'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
+                                     'doppler_coeff': {'ll':-1.0,  'ul':-0.6, 'goal':'lt', 'variable type': float}}
     ka_br_lvl3 = run_agent(name='ka_br_lvl3', base=ka_br.KaBr_lvl3)
     ka_br_lvl3.add_blackboard(bb)
     ka_br_lvl3.connect_writer()
     ka_br_lvl3.connect_executor()
     ka_br_lvl3.connect_trigger()
     ka_br_lvl3.connect_complete()
-    ka_br_lvl3.set_attr(_objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                     'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                     'pu_content':    {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float},
-                                     'doppler_coeff': {'ll':-1.0,  'ul':-0.6, 'goal':'lt', 'variable type': float}})
+    ka_br_lvl3.set_attr(_objectives=obj)
     ka_br_lvl2 = run_agent(name='ka_br_lvl2', base=ka_br.KaBr_lvl2)
     ka_br_lvl2.add_blackboard(bb)
     ka_br_lvl2.connect_writer()
     ka_br_lvl2.connect_executor()
     ka_br_lvl2.connect_trigger()
     ka_br_lvl2.connect_complete()
-    ka_br_lvl2.set_attr(_objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                     'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                     'pu_content':    {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float},
-                                     'doppler_coeff': {'ll':-1.0,  'ul':-0.6, 'goal':'lt', 'variable type': float}})
+    ka_br_lvl2.set_attr(_objectives=obj)
     ka_br_lvl1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
     ka_br_lvl1.add_blackboard(bb)
     ka_br_lvl1.connect_writer()
     ka_br_lvl1.connect_executor()
     ka_br_lvl1.connect_trigger()
     ka_br_lvl1.connect_complete()
-    ka_br_lvl1.set_attr(_objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                     'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                     'pu_content':    {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float},
-                                     'doppler_coeff': {'ll':-1.0,  'ul':-0.6, 'goal':'lt', 'variable type': float}})
-    ka_br_lvl1.set_attr(_lower_objective_reference_point=[0,0,0,0])
-    ka_br_lvl1.set_attr(_upper_objective_reference_point=[1,1,1,1])
+    ka_br_lvl1.set_attr(_objectives=obj)
+    ka_br_lvl1.set_attr(_lower_objective_reference_point=[0,0,0])
+    ka_br_lvl1.set_attr(_upper_objective_reference_point=[1,1,1])
 
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
-    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
+    bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 
+                            'objective functions': {'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
     bb.add_panel(3, ['new', 'old'])
     
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
-    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80}}, panel='new')
-    bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.15, 'void_coeff': -150.0, 'doppler_coeff': -0.70}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4},
+                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_3', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4},
+                                         'objective functions': {'keff': 1.15, 'void_coeff': -150.0, 'doppler_coeff': -0.70}}, panel='new')
 
     bb.publish_trigger()
     time.sleep(0.1)
@@ -79,9 +77,9 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(1)    
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.80833},
-                                                       'core_2' : {'pareto type' : 'pareto', 'fitness function': 1.93333},
-                                                       'core_3' : {'pareto type' : 'weak', 'fitness function': 1.93333}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.475},
+                                                       'core_2' : {'pareto type' : 'pareto', 'fitness function': 1.6},
+                                                       'core_3' : {'pareto type' : 'weak', 'fitness function': 1.6}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {},
                                                        'old': {'core_1' : {'valid' : True},
                                                                'core_2' : {'valid' : True},
@@ -91,8 +89,8 @@ def test_combined_kabr_handler_executor():
     bb.send_executor()
     time.sleep(1) 
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function': 1.93333},
-                                                       'core_3' : {'pareto type' : 'weak', 'fitness function': 1.93333}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function': 1.6},
+                                                       'core_3' : {'pareto type' : 'weak', 'fitness function': 1.6}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {},
                                                        'old': {'core_1' : {'valid' : True},
                                                                'core_2' : {'valid' : True},
@@ -105,7 +103,6 @@ def test_combined_kabr_karp():
     ns = run_nameserver()
     
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
     with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
         sm_ga = pickle.load(pickle_file)
     bb.set_attr(sm_type='lr')
@@ -113,6 +110,7 @@ def test_combined_kabr_karp():
     obj = {'reactivity swing': {'ll':0,   'ul':1000,  'goal':'lt', 'variable type': float},
            'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float}}
     bb.set_attr(objectives=obj)
+    bb.initialize_abstract_level_3()
     bb.connect_agent(ka_rp.KaGlobal, 'ka_rp_explore')
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br_lvl3')
@@ -137,7 +135,8 @@ def test_combined_kabr_karp():
     assert bb.get_attr('_ka_to_execute') == ('ka_rp_explore', 0.25)
 
     # Generate core and test second trigger publish (ka_br_lvl3)
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'reactivity swing': 800.0, 'burnup': 30.0}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'reactivity swing': 800.0, 'burnup': 30.0}}, panel='new')
     
     bb.publish_trigger()
     time.sleep(0.1)

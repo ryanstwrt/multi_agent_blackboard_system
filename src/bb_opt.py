@@ -59,17 +59,10 @@ class BbOpt(blackboard.Blackboard):
         self.objectives_ll = [x['ll'] for x in self.objectives.values()]
         self.objectives_ul = [x['ul'] for x in self.objectives.values()]
 
-#        fitness = {'total': float}
- #       for obj in self.objectives.keys():
-  #          fitness.update({obj: float})
-        
-#        self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': fitness})
- #       self.add_abstract_lvl(2, {'valid': bool})
-  #      self.add_panel(2, ['new', 'old'])
-        
-        rx_params = {iv: iv_dict['variable type'] for iv, iv_dict in self.design_variables.items()}
-        rx_params.update({obj: obj_dict['variable type'] for obj, obj_dict in self.objectives.items()})
-        self.add_abstract_lvl(3, {'reactor parameters': rx_params})        
+        dv = {iv: iv_dict['variable type'] for iv, iv_dict in self.design_variables.items()}
+        obj = {obj: obj_dict['variable type'] for obj, obj_dict in self.objectives.items()}
+        self.add_abstract_lvl(3, {'design variables': dv, 'objective functions': obj})        
+
         self.add_panel(3, ['new','old'])
         
     def connect_ka_specific(self, agent):
@@ -143,7 +136,7 @@ class BbOpt(blackboard.Blackboard):
         cores = [x for x in self.abstract_lvls['level 1']]
         bb_lvl3 = self.abstract_lvls['level 3']['old']
         for core in cores:
-            pf.append([bb_lvl3[core]['reactor parameters'][param] for param in self.objectives.keys()])
+            pf.append([x for x in bb_lvl3[core]['objective functions'].values()])
         self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
         
     def generate_sm(self):
@@ -180,7 +173,7 @@ class BbOpt(blackboard.Blackboard):
         obj_dict = {}
         for core, values in lvl_1.items():
             fitness.append(round(values['fitness function'],5))
-            core_params = lvl_3[core]['reactor parameters']
+            core_params = lvl_3[core]['objective functions']
         
             for obj in self.objectives.keys():
                 if obj in obj_dict.keys():

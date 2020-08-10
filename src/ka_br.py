@@ -161,7 +161,7 @@ class KaBr_lvl1(KaBr):
         for x in pf:
             design_objectives = []
             for obj in self._objectives.keys():
-                scaled_obj = self.scale_objective(self._lvl_data[x]['reactor parameters'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'])
+                scaled_obj = self.scale_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'])
                 design_objectives.append(scaled_obj if self._objectives[obj]['goal'] == 'lt' else (1.0-scaled_obj))
             scaled_pf.append(design_objectives)
         return scaled_pf
@@ -239,7 +239,7 @@ class KaBr_lvl2(KaBr):
         
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
-        self._fitness = self.determine_fitness_function(core_name, self.lvl_data[core_name]['reactor parameters'])
+        self._fitness = self.determine_fitness_function(core_name, self.lvl_data[core_name]['objective functions'])
         
         if self.lvl_write == {}:
             self.log_debug('Design {} is initial optimal design.'.format(core_name))
@@ -247,19 +247,19 @@ class KaBr_lvl2(KaBr):
         pareto_opt = None
         for opt_core in self.lvl_write.keys():
             if opt_core != core_name:
-                pareto_opt = self.determine_optimal_type(self.lvl_data[core_name]['reactor parameters'], 
-                                                         self.lvl_data[opt_core]['reactor parameters'])
+                pareto_opt = self.determine_optimal_type(self.lvl_data[core_name]['objective functions'], 
+                                                         self.lvl_data[opt_core]['objective functions'])
                 if pareto_opt == None:
                     return (False, pareto_opt)
         return (True, pareto_opt)
     
-    def determine_fitness_function(self, core_name, core_parmeters):
+    def determine_fitness_function(self, core_name, core_objectives):
         """
         Calculate the total fitness function based on upper and lower limits.
         """
         fitness = 0
         for param, obj_dict in self._objectives.items():
-            scaled_fit = self.scale_objective(core_parmeters[param], obj_dict['ll'], obj_dict['ul'])
+            scaled_fit = self.scale_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'])
             fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
         return round(fitness, 5)
     
@@ -294,7 +294,7 @@ class KaBr_lvl3(KaBr):
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""
         for param_name, obj_dict in self._objectives.items():     
-            param = self.lvl_data[core_name]['reactor parameters'][param_name]
+            param = self.lvl_data[core_name]['objective functions'][param_name]
             if param < obj_dict['ll'] or param > obj_dict['ul']:
                 return (False, None)
         return (True, None)

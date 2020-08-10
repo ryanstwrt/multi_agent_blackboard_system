@@ -55,7 +55,8 @@ class KaRp(ka.KaBase):
         a.update(self.objective_functions)
         self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in a.items()]))
         self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
-        self._entry = {'reactor parameters': a}
+#        self._entry = {'reactor parameters': a}
+        self._entry = {'design variables': self.current_design_variables, 'objective functions': self.objective_functions}
         
     def handler_executor(self, message):
         """
@@ -167,6 +168,7 @@ class KaLocal(KaRp):
         """
         dv_dict = self.design_variables[dv]
         dv_cur_val = self.current_design_variables[dv]
+        
         if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
             self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
         elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in self.lvl_data.keys():
@@ -224,8 +226,7 @@ class KaLocal(KaRp):
         """
         
         core = random.choice(self.new_designs)
-
-        design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        design_ = self.lvl_data[core]['design variables']
         perts = [1.0 - self.perturbation_size, 1.0 + self.perturbation_size]
         for dv, dv_value in design_.items():
             for pert in perts:
@@ -234,13 +235,7 @@ class KaLocal(KaRp):
                 self.current_design_variables = design
                 self.determine_model_applicability(dv)
         self.analyzed_design[core] = {'Analyzed': True}
-        
-    def genetic_algorithm(self):
-        """
-        Basic genetic algorithm for expediting our search
-        """
-        pass
-    
+            
     def read_bb_lvl(self):
         """
         Determine if there are any 'new' entries on level 1.
@@ -285,8 +280,10 @@ class KaLocalHC(KaLocal):
         entry = self.lvl_read[core]
         
         step = self.step_size
-        step_design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
-        step_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self._objectives.keys()}
+        step_design = self.lvl_data[core]['design variables']
+        step_objs = self.lvl_data[core]['objective functions']
+#        step_design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+ #       step_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self._objectives.keys()}
         step_number = 0
         
         while step > self.convergence_criteria:
@@ -385,7 +382,8 @@ class KaLocalRW(KaLocal):
         core = random.choice(self.new_designs)
         entry = self.lvl_read[core]
         
-        design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        #design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        design = self.lvl_data[core]['design variables']
         
         for x in enumerate(range(self.walk_length)):
             dv = random.choice(list(self.design_variables))
@@ -481,8 +479,8 @@ class KaGA(KaLocal):
         crossover = 0
         while crossover == 0:
             crossover = random.choice(range(len(self.design_variables)))
-        p1_dv = [genotype1['reactor parameters'][obj] for obj in self.design_variables.keys()]
-        p2_dv = [genotype2['reactor parameters'][obj] for obj in self.design_variables.keys()]
+        p1_dv = [x for x in genotype1['design variables'].values()]
+        p2_dv = [x for x in genotype2['design variables'].values()]
 
         c1_dv = p1_dv[:crossover] + p2_dv[crossover:]
         c2_dv = p2_dv[:crossover] + p1_dv[crossover:]
@@ -494,6 +492,5 @@ class KaGA(KaLocal):
     def random_mutation(self, genotype):
         dv_mutate = random.choice([x for x in self.design_variables.keys()])
         for dv, dv_dict in self.design_variables.items():
-            genotype[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy) if dv == dv_mutate else genotype[dv]
-                
+            genotype[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy) if dv == dv_mutate else genotype[dv]     
         return genotype

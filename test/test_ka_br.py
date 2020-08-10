@@ -131,14 +131,12 @@ def test_kabr_lvl1_publish():
     bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
     br = ns.proxy('ka_br_lvl1')
     br.set_attr(_num_allowed_entries=1)
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11,'burnup' : 61.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50},
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
@@ -166,17 +164,14 @@ def test_kabr_lvl1_executor():
     br.set_attr(_lower_objective_reference_point=[0,0])
     br.set_attr(_upper_objective_reference_point=[1,1])
 
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 750.0,
-                                                          'burnup' : 75.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0}}, panel='old')
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 500.0,
-                                                          'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50},
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0}}, panel='old')
     bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[75.0, 55.0, 0.30]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 250.0,
-                                                          'burnup' : 25.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[75.0, 55.0, 0.30]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                          'objective functions': {'reactivity swing' : 250.0, 'burnup' : 25.0}}, panel='old')
     bb.update_abstract_lvl(1, 'core_[75.0, 55.0, 0.30]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     bb.publish_trigger()
@@ -188,9 +183,8 @@ def test_kabr_lvl1_executor():
     assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
                                        'core_[75.0, 55.0, 0.30]': 0.0625}
     
-    bb.update_abstract_lvl(3, 'core_[55.0, 55.0, 0.30]', {'reactor parameters': {'height': 55.0, 'smear': 55.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 300.0,
-                                                          'burnup' : 24.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[55.0, 55.0, 0.30]', {'design variables': {'height': 55.0, 'smear': 55.0, 'pu_content': 0.50},
+                                                          'objective functions': {'reactivity swing' : 300.0, 'burnup' : 24.0}}, panel='old')
     bb.update_abstract_lvl(1, 'core_[55.0, 55.0, 0.30]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     bb.publish_trigger()
@@ -215,12 +209,12 @@ def test_kabr_lvl1_scale_pareto_front():
     ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                               'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                               'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
-    ka_br1.set_attr(_lvl_data={'core_[65.0, 65.0, 0.42]': {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 750.0, 'burnup' : 75.0}},
-                                              'core_[70.0, 60.0, 0.50]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 500.0, 'burnup' : 50.0}},
-                                              'core_[75.0, 55.0, 0.30]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 250.0, 'burnup' : 25.0}}})
+    ka_br1.set_attr(_lvl_data={'core_[65.0, 65.0, 0.42]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                           'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0}},
+                               'core_[70.0, 60.0, 0.50]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                           'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0}},
+                               'core_[75.0, 55.0, 0.30]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                           'objective functions': {'reactivity swing' : 250.0, 'burnup' : 25.0}}})
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
     ka_br1.set_attr(_objectives=objs)
@@ -251,12 +245,12 @@ def test_kabr_lvl1_calculate_hvi_contribution():
     ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                               'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                               'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
-    ka_br1.set_attr(_lvl_data={'core_[65.0, 65.0, 0.42]': {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 750.0, 'burnup' : 75.0}},
-                                              'core_[70.0, 60.0, 0.50]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 500.0, 'burnup' : 50.0}},
-                                              'core_[75.0, 55.0, 0.30]': {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 250.0, 'burnup' : 25.0}}})
+    ka_br1.set_attr(_lvl_data={'core_[65.0, 65.0, 0.42]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                           'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0}},
+                               'core_[70.0, 60.0, 0.50]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                           'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0}},
+                               'core_[75.0, 55.0, 0.30]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                           'objective functions': {'reactivity swing' : 250.0, 'burnup' : 25.0}}})
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
     ka_br1.set_attr(_objectives=objs)
@@ -369,18 +363,17 @@ def test_kabr_lvl2_determine_validity():
     ka_br2.connect_trigger()
     ka_br2.connect_executor()
     ka_br2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                           'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                           'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
+                                 'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
-    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float}})
+    bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 'objective functions': {'keff': float, 'void_coeff': float}})
     bb.add_panel(3, ['new','old'])
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.05, 'void_coeff': -150.0}}, panel='old')
-    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.05, 'void_coeff': -160.0}}, panel='old')
-    bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.06, 'void_coeff': -100.0}}, panel='old')
-    bb.update_abstract_lvl(3, 'core_4', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.00, 'void_coeff': -100.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 'objective functions': {'keff': 1.05, 'void_coeff': -150.0,}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 'objective functions': {'keff': 1.05, 'void_coeff': -160.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_3', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 'objective functions': {'keff': 1.06, 'void_coeff': -100.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_4', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 'objective functions': {'keff': 1.00, 'void_coeff': -100.0}}, panel='old')
 
     bb.update_abstract_lvl(2, 'core_1', {'valid': True}, panel='new')
     bb.update_abstract_lvl(2, 'core_2', {'valid': True}, panel='new')
@@ -502,10 +495,8 @@ def test_kabr_lvl2_handler_trigger_publish():
     bb.connect_agent(ka_br.KaBr_lvl2, 'ka_br2')
     br = ns.proxy('ka_br2')
     br.set_attr(_num_allowed_entries=1)
-    bb.update_abstract_lvl(3, 'core 1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.4, 'cycle length': 365.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='old')    
+    bb.update_abstract_lvl(3, 'core 1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')    
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
@@ -538,22 +529,19 @@ def test_kabr_lvl2_handler_executor():
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
-    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float}})
+    bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 
+                            'objective functions': {'keff': float, 'void_coeff': float, 'pu_content': float}})
     bb.add_panel(3, ['new','old'])
     
     
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.3, 'keff': 1.05, 
-                                                                'void_coeff': -150.0}}, panel='old')
-    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.3, 'keff': 1.05, 
-                                                                'void_coeff': -160.0}}, panel='old')
-    bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.5, 'keff': 1.00, 
-                                                                'void_coeff': -100.0}}, panel='old')
-    bb.update_abstract_lvl(3, 'core_4', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.2, 'keff': 1.00, 
-                                                                'void_coeff': -100.0}}, panel='old')  
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.3}, 
+                                         'objective functions': {'keff': 1.05, 'void_coeff': -150.0, 'pu_content': 0.3}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.3},
+                                         'objective functions': {'keff': 1.05, 'void_coeff': -160.0, 'pu_content': 0.3}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_3', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.5},
+                                         'objective functions': {'keff': 1.00, 'void_coeff': -100.0, 'pu_content': 0.5}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_4', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.2},
+                                         'objective functions': {'keff': 1.00, 'void_coeff': -100.0, 'pu_content': 0.2}}, panel='old')  
     
     bb.update_abstract_lvl(2, 'core_1', {'valid': True}, panel='new')
     bb.update_abstract_lvl(2, 'core_2', {'valid': True}, panel='new')
@@ -623,15 +611,17 @@ def test_kabr_lvl3_determine_validity():
     ka_br3.add_blackboard(bb)
     ka_br3.connect_trigger()
     ka_br3.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                           'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                           'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
+                                 'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}})
     
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['old', 'new'])
-    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float}})
+    bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 
+                            'objective functions': {'keff': float, 'void_coeff': float}})
     bb.add_panel(3, ['new','old'])
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.05, 'void_coeff': -150.0}}, panel='new')
-    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 0.9, 'void_coeff': -150.0}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'keff': 1.05, 'void_coeff': -150.0}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'keff': 0.9, 'void_coeff': -150.0}}, panel='new')
 
     bb.publish_trigger()
     bool_ = ka_br3.determine_validity('core_1')
@@ -650,15 +640,16 @@ def test_kabr_lvl3_read_bb_lvl():
     ka_br3.connect_writer()
     ka_br3.connect_trigger()
     ka_br3.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                           'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                           'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
+                                 'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}})
     
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
-    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
+    bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 
+                            'objective functions': {'keff': float, 'void_coeff': float}})
     bb.add_panel(3, ['new', 'old'])
     
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0}}, panel='new')
 
     bb.publish_trigger()
     time.sleep(0.5)
@@ -691,10 +682,8 @@ def test_kabr_lvl3_handler_trigger_publish():
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     
     
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.4, 'cycle length': 365.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='new')
     bb.publish_trigger()
     time.sleep(0.1)
     bb.controller()
@@ -702,14 +691,10 @@ def test_kabr_lvl3_handler_trigger_publish():
     assert bb.get_attr('_ka_to_execute') == ('ka_br3', 4)
 
     bb.remove_bb_entry(3, 'core_1', panel='new')
-    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.4, 'cycle length': 250.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='new')
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.4, 'cycle length': 365.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'cycle length': 250.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     bb.publish_trigger()
     time.sleep(0.1)
     bb.controller()
@@ -730,18 +715,21 @@ def test_kabr_lvl3_handler_executor():
     ka_br3.connect_complete()
 
     ka_br3.set_attr(_objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                           'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                           'pu_content':    {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float},
+                                           'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float},
                                            'doppler_coeff': {'ll':-1.0,  'ul':-0.6, 'goal':'lt', 'variable type': float}})
     
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
-    bb.add_abstract_lvl(3, {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
+    bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 
+                            'objective functions': {'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
     bb.add_panel(3, ['new', 'old'])
     
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
-    bb.update_abstract_lvl(3, 'core_2', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80}}, panel='new')
-    bb.update_abstract_lvl(3, 'core_3', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4, 'keff': 0.9, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4},
+                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_3', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4},
+                                         'objective functions': {'keff': 0.9, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
 
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
     bb.publish_trigger()

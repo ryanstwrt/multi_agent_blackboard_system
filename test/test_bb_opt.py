@@ -52,8 +52,10 @@ def test_BbOpt_initalize_abstract_level_3_basic():
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
-                                                   'level 3': {'new': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
-                                                               'old': {'reactor parameters': {'height': float, 'smear': float, 'pu_content': float, 'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
+                                                   'level 3': {'new': {'design variables': {'height': float, 'smear': float, 'pu_content': float},
+                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
+                                                               'old': {'design variables': {'height': float, 'smear': float, 'pu_content': float},
+                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
 
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
@@ -72,8 +74,10 @@ def test_BbOpt_initalize_abstract_level_3():
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
-                                                   'level 3': {'new': {'reactor parameters': {'height': float, 'reactivity swing': float, 'burnup': float}},
-                                                               'old': {'reactor parameters': {'height': float, 'reactivity swing': float, 'burnup': float}}}}
+                                                   'level 3': {'new': {'design variables': {'height': float},
+                                                                       'objective functions':  {'reactivity swing': float, 'burnup': float}},
+                                                               'old': {'design variables': {'height': float},
+                                                                       'objective functions':  {'reactivity swing': float, 'burnup': float}}}}
 
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
                                             'level 2': {'new':{}, 'old':{}}, 
@@ -150,23 +154,23 @@ def test_handler_writer():
     rp.connect_writer()
     rp1.connect_writer()
     
-    entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                  'cycle length': 100.0, 'reactivity swing': 110.0, 
-                                  'burnup': 32.0, 'pu mass': 1000.0}}
+    dv = {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2}
+    obj = {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}
+    
+    entry={'design variables': dv, 'objective functions': obj}
     rp.write_to_bb(rp.get_attr('bb_lvl'), 'core1', entry, panel='new')
-    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                                                                        'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
-
-    entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                  'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
+                                                                        'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
+    dv = {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2}
+    obj = {'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}
+    entry={'design variables': dv, 'objective functions': obj}
+                                  
     rp1.write_to_bb(rp1.get_attr('bb_lvl'), 'core2', entry, panel='new')
     
-    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                                                                        'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
-                                                       'core2': {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
-
-    entry={'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                  'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
+                                                                        'objective functions' :{'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
+                                                               'core2': {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
+                                                                         'objective functions': {'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
     
     ns.shutdown()
     time.sleep(0.05)

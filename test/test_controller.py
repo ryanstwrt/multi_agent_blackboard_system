@@ -39,10 +39,8 @@ def test_run_single_agent_bb():
            'ka_br_lvl1': ka_br.KaBr_lvl1,}
     bb_controller = controller.Controller(bb_name='sfr_opt', bb_type=bb_opt.BbOpt, ka=kas, archive='sfr_opt', agent_wait_time=5)
 
-    bb_controller.bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.4, 'cycle length': 365.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='old')
+    bb_controller.bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                                       'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     bb_controller.bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0})    
     bb_controller.bb.set_attr(hv_convergence=1)
     bb_controller.progress_rate=10

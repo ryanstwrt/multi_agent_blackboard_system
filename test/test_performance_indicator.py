@@ -37,30 +37,27 @@ def test_hypervolume_indicator_sfr():
     rp.set_attr(step_limit = 150)
     lower_ref = [0,    -200]
     upper_ref = [1500, 0]
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.42, 'reactivity swing' : 750.0,
-                                                                'burnup' : 200.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 200.0}}, panel='old')
     pf = []
     for core in bb.get_attr('abstract_lvls')['level 3']['old'].values():
-        rx_params = [core['reactor parameters']['reactivity swing'], -core['reactor parameters']['burnup']]
+        rx_params = [core['objective functions']['reactivity swing'], -core['objective functions']['burnup']]
         pf.append(rx_params)
     hv1 = pm.hypervolume_indicator(pf, lower_ref, upper_ref)
     assert round(hv1,3) == 0.5
-    bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.65]', {'reactor parameters': {'height': 70.0, 'smear': 65.0, 
-                                                                'pu_content': 0.65, 'reactivity swing' : 750.0,
-                                                                'burnup' : 100.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.65]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.65}, 
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 100.0}}, panel='old')
     pf = []
     for core in bb.get_attr('abstract_lvls')['level 3']['old'].values():
-        rx_params = [core['reactor parameters']['reactivity swing'], -core['reactor parameters']['burnup']]
+        rx_params = [core['objective functions']['reactivity swing'], -core['objective functions']['burnup']]
         pf.append(rx_params)
     hv2 = pm.hypervolume_indicator(pf, lower_ref, upper_ref)
     assert hv2 == hv1
-    bb.update_abstract_lvl(3, 'core_[71.0, 65.0, 0.65]', {'reactor parameters': {'height': 70.0, 'smear': 65.0, 
-                                                                'pu_content': 0.65, 'reactivity swing' : 740.0,
-                                                                'burnup' : 200.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[71.0, 65.0, 0.65]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.65}, 
+                                                          'objective functions': {'reactivity swing' : 740.0, 'burnup' : 200.0}}, panel='old')
     pf = []
     for core in bb.get_attr('abstract_lvls')['level 3']['old'].values():
-        rx_params = [core['reactor parameters']['reactivity swing'], -core['reactor parameters']['burnup']]
+        rx_params = [core['objective functions']['reactivity swing'], -core['objective functions']['burnup']]
         pf.append(rx_params)
     hv3 = pm.hypervolume_indicator(pf, lower_ref, upper_ref)
     
