@@ -31,52 +31,58 @@ def diversity_indicatory(pf_names, pf, lower_ref, upper_ref):
 class diversity_comparison_indicator(object):
     
     def __init__(self, lb, ub, pf, div=None):
-        self.ideal_point = lb
-        self.nadir_point = ub
-        self.num_objectives = len(self.nadir_point)
-        if div:
-            self.div = div
-        else:
-            self.div = {}
-            for obj in self.ideal_point.keys():
-                self.div[obj] = (self.ideal_point[obj] - self.nadir_point[obj])
-        self.pf = {}
+        self._ideal_point = lb
+        self._nadir_point = ub
+        self.num_objectives = len(self._nadir_point)
+        self.div = div if div else {obj: abs(self._ideal_point[obj] - self._nadir_point[obj]) for obj in self._ideal_point.keys()}
+
         self.dc = {}
+        self.dci = 0
         self._hyperbox_grid = None
-        self._pf_grid_coordinates = None
+        self._pf_grid_coordinates = {}
 
         self._grid_generator()
         for pf_set in pf:
-            if self._pf_grid_coordinates:
-                self._pf_grid_coordinates += self._pareto_grid_locations(pf_set)
-            else:
-                self._pf_grid_coordinates = self._pareto_grid_locations(pf_set)            
-            self.pf.update(pf_set)
+            self._pf_grid_coordinates.update(self._pareto_grid_locations(pf_set))       
             
     def compute_dci(self, test_pf):
         """
         Calculate the diversity comparison indicator (DCI)
         """
         self.dc = {}
+        self.dc_pf = {}
         m = self.num_objectives + 1
-        for pf_grid_pos in self._pf_grid_coordinates:
-            for obj_vector_name, obj_vector in test_pf.items():
-                dist = self._pf_point_to_hyperbox(test_pf, pf_grid_pos)
-                self.dc[pf_grid_pos] = (1 - dist**2 / m) if dist < math.sqrt(m) else 0
+        for name, pf_grid_pos in self._pf_grid_coordinates.items():
+            dist = self._pf_point_to_hyperbox(test_pf, pf_grid_pos)
+            # Currently we overwrite a grid position, we should figure out a way to hold this information and compare them.
+            # Fixed this, but now we have too many solutions present and this throws off our DCI 
+            dc = (1 - dist**2 / m) if dist < math.sqrt(m) else 0
+            self.dc[name] = {'grid position': pf_grid_pos, 'contribution degree': dc}
         
-        self.dci = sum(self.dc.values())/ len(self.dc)
+        _dci = {}
+        for x in self.dc.values():
+            pos = x['grid position']
+            dc = x['contribution degree']
+            if pos in _dci.keys():
+                pass
+            else:
+                _dci[pos] = dc
+        self.dci = sum([x for x in _dci.values()])/ len(_dci)
+    
+            
+        #self.dci = sum([x['contribution degree'] for x in self.dc.values()])/ len(self.dc)
     
     def _grid_generator(self):
         """
         Generate the hyperbox size for each objective.
         """
-        self._hyperbox_grid = {obj: (ul - self.ideal_point[obj])/self.div[obj] for obj,ul in self.nadir_point.items()}
+        self._hyperbox_grid = {obj: (self._nadir_point[obj] - self._ideal_point[obj])/self.div[obj] for obj in self._nadir_point.keys()}
     
     def _pareto_grid_locations(self, pf):
         """
-        Place the pareto front into the vgrid framework.
+        Place the pareto front into the grid framework.
         """
-        _pf_grid_coordinates = [self._get_grid_location(soln) for soln in pf.values()]
+        _pf_grid_coordinates = {design : self._get_grid_location(soln) for design, soln in pf.items()}
         return _pf_grid_coordinates
         
     def _get_grid_location(self, obj_vector):
@@ -85,7 +91,7 @@ class diversity_comparison_indicator(object):
         """
         grid_location = []
         for obj, val in obj_vector.items():
-            grid_location.append(int((val - self.ideal_point[obj]) / self._hyperbox_grid[obj]))
+            grid_location.append(int((val - self._ideal_point[obj]) / self._hyperbox_grid[obj]))
         return tuple(grid_location)
     
     def _hyperbox_distance(self, box_1, box_2):
@@ -104,5 +110,6 @@ class diversity_comparison_indicator(object):
         box : dict {obj_func1 :val, }
         """
         test_pf_grid = self._pareto_grid_locations(test_pf)
+        test_pf_grid = [x for x in test_pf_grid.values()]
         dist = [self._hyperbox_distance(obj_funcs, pf_grid_pos) for obj_funcs in test_pf_grid]
         return min(dist)

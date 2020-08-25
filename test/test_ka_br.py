@@ -308,7 +308,56 @@ def test_kabr_lvl1_prune_entries():
     ns.shutdown()
     time.sleep(0.05)
 
-                    
+    
+def test_kabr_lvl1_calcualte_dci():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+    
+    read = {'core_[71.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+            'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+            'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0},              
+            'core_[60.0, 70.0, 0.65]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+            'core_[55.0, 68.0, 0.75]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+            'core_[63.0, 63.0, 0.83]': {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    
+    data = {'core_[65.0, 65.0, 0.42]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                       'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0}},
+            'core_[70.0, 60.0, 0.50]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                       'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.3}},
+            'core_[71.0, 60.0, 0.50]': {'design variables': {'height': 71.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                       'objective functions': {'reactivity swing' : 500.1, 'burnup' : 50.5}},
+            'core_[55.0, 68.0, 0.75]': {'design variables': {'height': 71.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                       'objective functions': {'reactivity swing' : 500.3, 'burnup' : 50.7}},
+            'core_[63.0, 63.0, 0.83]': {'design variables': {'height': 71.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                       'objective functions': {'reactivity swing' : 500.4, 'burnup' : 50.9}},
+            'core_[60.0, 70.0, 0.65]': {'design variables': {'height': 71.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                       'objective functions': {'reactivity swing' : 525.0, 'burnup' : 45.0}}}
+    
+    for core, entry in read.items():
+        bb.update_abstract_lvl(1, core, entry)
+    for core, entry in data.items():
+        bb.update_abstract_lvl(3, core, entry, panel='old')
+        
+    bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
+    br = ns.proxy('ka_br_lvl1')
+    br.set_attr(_lower_objective_reference_point=[0,0])
+    br.set_attr(_upper_objective_reference_point=[1,1])
+    br.set_attr(lvl_read=read)
+    br.set_attr(_lvl_data=data)
+    
+    br.set_attr(_previous_pf=['core_[65.0, 65.0, 0.42]','core_[70.0, 60.0, 0.50]'])
+    br.calculate_dci()
+    assert [x for x in bb.get_attr('abstract_lvls')['level 1'].keys()] == ['core_[65.0, 65.0, 0.42]', 'core_[63.0, 63.0, 0.83]']
+
+    ns.shutdown()
+    time.sleep(0.05)
+    
 #-----------------------------------------
 # Test of KaBr_lvl2
 #-----------------------------------------

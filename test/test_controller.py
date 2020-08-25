@@ -44,7 +44,7 @@ def test_run_single_agent_bb():
     bb_controller.bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0})    
     bb_controller.bb.set_attr(hv_convergence=1)
     bb_controller.progress_rate=10
-    bb_controller.bb.set_attr(num_calls=1)
+    bb_controller.bb.set_attr(num_calls=2)
     bb_controller.run_single_agent_bb()
     assert bb_controller.bb.get_attr('_complete') == True
     bb_controller.shutdown()

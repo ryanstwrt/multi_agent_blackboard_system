@@ -436,13 +436,16 @@ def test_write_to_h5():
     bb_archive.close()
     os.remove('blackboard_archive.h5')
     ns.shutdown()    
-    time.sleep(0.05)  
+    time.sleep(0.05) 
 
 def test_load_h5():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    bb1 = run_agent(name='blackboard1', base=blackboard.Blackboard)
-    bb1.set_attr(archive_name='blackboard_archive.h5')
+    bb_h5 = run_agent(name='blackboard1', base=blackboard.Blackboard)
+    bb_h5_2 = run_agent(name='blackboard2', base=blackboard.Blackboard)
+    bb_h5.set_attr(archive_name='blackboard_archive.h5')
+    bb_h5_2.set_attr(archive_name='blackboard_archive.h5')
+
     
     raw_data = {'test_1': (1,1,1), 'test_2': 0.0, 'test_3': 1}
     bb.add_abstract_lvl(1, {'entry 1': tuple, 'entry 2': bool})
@@ -452,20 +455,38 @@ def test_load_h5():
     bb.add_abstract_lvl(4, {'entry 1': {'test 1': {'nested_test': int}}})
     
     bb.update_abstract_lvl(1, 'core_1', {'entry 1': (1,1,0), 'entry 2': True}, panel = 'new')
+    bb.update_abstract_lvl(1, 'core_2', {'entry 1': (1,1,0), 'entry 2': True}, panel = 'old')
+    bb.update_abstract_lvl(1, 'core_3', {'entry 1': (1,1,0), 'entry 2': True}, panel = 'old')
+
+    
     bb.update_abstract_lvl(2, 'core_2', {'entry 1': 1, 'entry 2': 1.2})
     bb.update_abstract_lvl(3, 'core_3', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1,2,3]})
     bb.update_abstract_lvl(4, 'core_4', {'entry 1': {'test 1': {'nested_test': 3}}})
     
     time.sleep(0.05)
     bb.write_to_h5()
-    time.sleep(1)
-    bb1.load_h5(panels={1: ['new','old']})
+    time.sleep(3)
+    bb_h5.load_h5(panels={1: ['new','old']})
     
-    bb1_bb = bb1.get_attr('abstract_lvls')
+    bb_h5_bb = bb_h5.get_attr('abstract_lvls')
     bb_bb = bb.get_attr('abstract_lvls')
-    assert bb1_bb == bb_bb
+
+    
+    assert bb_h5_bb == bb_bb
+
+    bb.update_abstract_lvl(2, 'core_3', {'entry 1': 1, 'entry 2': 1.2})
+    bb.remove_bb_entry(2, 'core_2')
+    bb.remove_bb_entry(1, 'core_1', panel='new')
+    bb.write_to_h5()
+    time.sleep(3)
+
+    
+    bb_h5_2.load_h5(panels={1: ['new','old']})
+    bb_h5_bb = bb_h5_2.get_attr('abstract_lvls')
+    bb_bb = bb.get_attr('abstract_lvls')
+    assert bb_h5_bb == bb_bb
     
     ns.shutdown()   
     os.remove('blackboard_archive.h5')
     
-    time.sleep(0.05)    
+    time.sleep(0.05)

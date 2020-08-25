@@ -65,6 +65,8 @@ class Blackboard(Agent):
         self._pub_trigger_alias = 'trigger'
         self._pub_trigger_addr = self.bind('PUB', alias=self._pub_trigger_alias)
         
+        self._panels = {}
+        
     def add_abstract_lvl(self, level, entry):
         """
         Add an abstract level to the blackboard.
@@ -92,6 +94,7 @@ class Blackboard(Agent):
             List of panel names
         """        
         lvl = {panel_name : {} for panel_name in panels}
+        self._panels['level {}'.format(level)] = [x for x in panels]
         lvl_format = self.abstract_lvls_format['level {}'.format(level)]
         self.abstract_lvls_format['level {}'.format(level)] = {panel_name: lvl_format for panel_name in panels}
         self.abstract_lvls['level {}'.format(level)].update(lvl)
@@ -449,31 +452,30 @@ class Blackboard(Agent):
         Loops through each H5 group and pulls all of the data into a dictionary for the BB
         Determines data type based on group attribute
         """
+        self._panels = {'level {}'.format(lvl): names for lvl, names in panels.items()}
         self.log_info("Loading H5 archive: {}".format(self.archive_name))
         h5 = h5py.File(self.archive_name, 'r')
         for level, level_entry in h5.items():
             lvl_num = int(level.split(' ')[1])
             for entry_name, entry in level_entry.items():
                 if lvl_num in panels.keys():
-                    if [x for x in entry.keys()] == [] and entry_name not in self.abstract_lvls[level]:
-                        self.add_panel(lvl_num, [entry_name])
-                    else:
-                        for panel_entry_name, panel_entry in entry.items():
-                            self.load_h5_add_abstract_lvl(lvl_num, panel_entry_name, panel_entry, panel=entry_name)
+                    for panel_entry_name, panel_entry in entry.items():
+                        self.load_h5_add_abstract_lvl(lvl_num, panel_entry_name, panel_entry, panel=entry_name)
                 else:
                     self.load_h5_add_abstract_lvl(lvl_num, entry_name, entry)
         h5.close()
 
     def load_h5_add_abstract_lvl(self, lvl_num, entry_name, entry, panel=None):
         data_dict = self.get_data_types(entry)
-        if lvl_num not in self.abstract_lvls.keys():
+        lvl_name = 'level {}'.format(lvl_num)
+        if lvl_name not in self.abstract_lvls.keys():
             data_type_dict = {}
             for data_name, data_type in data_dict.items():
                 data_type_dict[data_name] = self.get_data_types(entry[data_name]) if data_type == dict else data_dict[data_name]
             self.add_abstract_lvl(lvl_num, data_type_dict)
         temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}
-        if (panel and panel not in self.abstract_lvls['level {}'.format(lvl_num)].keys()):
-            self.add_panel(lvl_num, [panel])
+        if panel and (panel not in self.abstract_lvls[lvl_name].keys()):
+            self.add_panel(lvl_num, [x for x in self._panels[lvl_name]])
         self.update_abstract_lvl(lvl_num, entry_name, temp_dict, panel=panel)              
         
     def publish_trigger(self):
@@ -600,36 +602,69 @@ class Blackboard(Agent):
         
         Root directory will have a sub dicrectory for each abstract level.
         Each abstract level will then have a number of subdirectories, based on what results are written to them.
-        Below is an exampled.
-        - level 1
-          - entry 1
-            - [1, 2 ,3]
-            - True
-        - level 2
-          - entry 2
-            - this_is_a_str
-            - 3.1415
         """
         if not os.path.isfile(self.archive_name):
             self.log_info('Creating New Database: {}'.format(self.archive_name))
             h5 = h5py.File(self.archive_name, 'w')
-            for level in self.abstract_lvls.keys():
+            for level, entry in self.abstract_lvls.items():
                 h5.create_group(level)
+                if level in self._panels.keys():
+                    for panel_name in self._panels[level]:
+                        h5[level].create_group(panel_name)
             h5.close()
-            
+                
         self.log_info("Writing blackboard to archive")
+                    
         h5 = h5py.File(self.archive_name, 'r+')
+        self.h5_delete_entries(h5)
+        
         for level, entry in self.abstract_lvls.items():
             group_level = h5[level]
             for name, data in entry.items():
-                if name not in group_level.keys():
-                    group_level.create_group(name)
-                    for data_name, data_val in data.items():
-                        data_type = type(data_val)
-                        if data_type == dict:
-                            self.dict_writer(data_name, data_val, group_level[name])
-                        else:
-                            group_level[name][data_name] = self.convert_to_h5_type(data_type, data_val)
-                            group_level[name][data_name].attrs['type'] = repr(data_type)
+                if level in self._panels.keys():
+                    panel_group = group_level[name]
+                    # Loop over the entries in th epanel and add entries
+                    for panel_data_name, panel_data in data.items():
+                        if panel_data_name not in panel_group.keys():
+                            self.h5_group_writer(panel_group, panel_data, panel_data_name)               
+                elif name not in group_level.keys():
+                    self.h5_group_writer(group_level, data, name)
         self.log_info("Finished writing to archive")
         h5.close()
+    
+    def h5_delete_entries(self, h5):
+        """
+        Find entries in the h5 file that are no longer in the blackbaord.
+        """
+        bb = self.abstract_lvls
+        del_entries = []
+        for level, entry in h5.items():
+            for entry_name, entry_data in entry.items():
+                if level in self._panels.keys():
+                    panel_entries = [panel for panel in entry_data]
+                    for panel_entry in panel_entries:
+                        if panel_entry not in bb[level][entry_name]:
+                            del_entries.append((level, entry_name, panel_entry))   
+                if entry_name not in bb[level]:
+                    del_entries.append((level, entry_name))   
+
+        for entry in del_entries:
+            if len(entry) == 3:
+                del h5[entry[0]][entry[1]][entry[2]]
+                self.log_debug('Removing entry {} on level {} panel {}'.format(entry[2],entry[0],entry[1]))
+            else:
+                del h5[entry[0]][entry[1]]          
+                self.log_debug('Removing entry {} on level {}'.format(entry[1],entry[0]))
+    
+    def h5_group_writer(self, group_level, data, name):
+        """
+        Add a group entry to the h5 file 
+        """
+        group_level.create_group(name)
+        for data_name, data_val in data.items():
+            data_type = type(data_val)
+            if data_type == dict:
+                self.dict_writer(data_name, data_val, group_level[name])
+            else:
+                group_level[name][data_name] = self.convert_to_h5_type(data_type, data_val)
+                group_level[name][data_name].attrs['type'] = repr(data_type)        

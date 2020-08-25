@@ -8,6 +8,7 @@ import time
 import bb_opt
 import moo_benchmarks as mb
 import bb_benchmark
+import pickle
 
 # Can the controller keep track of the BB levels and update the trigger values of different agents as needed?
 
@@ -32,7 +33,10 @@ class Controller(object):
 
         if bb_type == bb_opt.BbOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
-            self.bb.set_attr(_sm='gpr')
+            self.bb.set_attr(sm_type='lr')
+#            with open('./sm_gpr.pkl', 'rb') as pickle_file:
+ #               sm = pickle.load(pickle_file)
+   #         self.bb.set_attr(_sm=sm)
             self.bb.generate_sm()
         
         elif bb_type == bb_benchmark.BenchmarkBB:
@@ -60,7 +64,6 @@ class Controller(object):
             self.bb.controller()
             self.bb.set_attr(_new_entry=False)
             self.bb.send_executor()
-            
             while self.bb.get_attr('_new_entry') == False:
                 time.sleep(0.1)
                 self.agent_time += 0.1

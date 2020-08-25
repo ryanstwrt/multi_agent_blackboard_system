@@ -80,13 +80,13 @@ def test_dci_init():
 
     dci = pm.diversity_comparison_indicator(lb, ub, [pf], div=div)
     
-    assert dci.ideal_point == lb
-    assert dci.nadir_point == ub
+    assert dci._ideal_point == lb
+    assert dci._nadir_point == ub
     assert dci.num_objectives == 2
-    assert dci.pf == pf
+#    assert dci.pf == pf
     assert dci.div == div
     assert dci._hyperbox_grid == {'f1': 1, 'f2': 1}
-    assert dci._pf_grid_coordinates == [(0,4), (0,3), (2,2), (4,0)]
+    assert dci._pf_grid_coordinates == {'a': (0,4), 'b': (0,3), 'c': (2,2), 'd': (4,0)}
 
 def test_dci_hyperbox_distance():
     lb = {'f1':0, 'f2':0}

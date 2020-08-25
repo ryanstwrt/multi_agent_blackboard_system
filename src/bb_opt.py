@@ -84,8 +84,20 @@ class BbOpt(blackboard.Blackboard):
             ka.set_attr(design_variables=self.design_variables)
         elif 'reader' in agent_class:
             if 'lvl1' in agent_class:
+                nadir_point = {}
+                ideal_point = {}
                 ka.set_attr(_lower_objective_reference_point=[0 for x in self.objectives.keys()])
                 ka.set_attr(_upper_objective_reference_point=[1 for x in self.objectives.keys()])
+                # Check this to ensure we are doing this right for ul and ll
+                for obj, obj_dict in self.objectives.items():
+                    if obj_dict['goal'] == 'lt':
+                        nadir_point.update({obj: obj_dict['ll']})
+                        ideal_point.update({obj: obj_dict['ul']})
+                    else:
+                        nadir_point.update({obj: -obj_dict['ul']})
+                        ideal_point.update({obj: -obj_dict['ll']})
+                ka.set_attr(_nadir_point=nadir_point)
+                ka.set_attr(_ideal_point=ideal_point)
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return
@@ -118,11 +130,11 @@ class BbOpt(blackboard.Blackboard):
         hv_average = abs(sum(recent_hv) / self.num_calls - sum(prev_hv) / self.num_calls)
         try:
             hv_max = abs(min(recent_hv) - max(prev_hv))
-            hv_indicator = max([hv_average, hv_max])
+            hv_indicator = hv_average#max([hv_average, hv_max])
         except ValueError:
             hv_indicator = 1
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
-        if hv_indicator < self.hv_convergence:
+        if hv_indicator < self.hv_convergence and len(self.abstract_lvls['level 1']) > self.total_solutions:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 self.send(connections['shutdown'][0], "shutdown")

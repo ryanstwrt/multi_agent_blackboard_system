@@ -109,7 +109,9 @@ class KaBr_lvl1(KaBr):
         self._class = 'reader_lvl1'
         self.pf_increase = 1.25
         self.total_pf_size = 100
-        self._previous_pf = {}
+        self._previous_pf = None
+        self._nadir_point = None
+        self._ideal_point = None
         
     def handler_trigger_publish(self, message):
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
@@ -131,9 +133,16 @@ class KaBr_lvl1(KaBr):
         # Make sure this is okay for larger numbers of entries otherwise revert to old method
         for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
             self._lvl_data.update(panel)
-        self.calculate_hvi_contribution()
-        if self._pf_size > self.total_pf_size:
-            self.prune_pareto_front()
+        dci = False
+        if dci:
+            if self._previous_pf:
+                self.calculate_dci()
+            else:
+                self._previous_pf = [x for x in self.lvl_read.keys()]
+        else:
+            self.calculate_hvi_contribution()
+            if self._pf_size > self.total_pf_size:
+                self.prune_pareto_front()
         self.clear_entry()
         self.action_complete()
         
@@ -144,7 +153,9 @@ class KaBr_lvl1(KaBr):
         
         removal = []
         hvi_contributions = sorted([x for x in self._hvi_dict.values()])
-        hvi_contribution_limit = hvi_contributions[self._pf_size-self.total_pf_size]
+        self.log_info('{}, {}'.format(self._pf_size,self.total_pf_size))
+        self.log_info(self.total_pf_size-self._pf_size)
+        hvi_contribution_limit = hvi_contributions[self._pf_size - self.total_pf_size]
         for design, contribution in self._hvi_dict.items():
             if contribution < hvi_contribution_limit:
                 removal.append(design)
@@ -169,7 +180,7 @@ class KaBr_lvl1(KaBr):
     def calculate_hvi_contribution(self):
         pf = [x for x in self.lvl_read.keys()]
         scaled_pf = self.scale_pareto_front(pf)
-        self._previous_pf = (pf, scaled_pf)
+        self._previous_pf = pf
         # Get the HVI from the blackboard rather than calculating it
         hvi = self.calculate_hvi(scaled_pf) #self.bb.gt_attr('hv_list[-1]')
         designs_to_remove = []
@@ -185,8 +196,63 @@ class KaBr_lvl1(KaBr):
                 self._hvi_dict[design_name] = design_hvi_contribution
         if designs_to_remove != []:
             self.remove_dominated_entries(designs_to_remove)
+    
+    def calculate_dci(self):
+        """
+        Calculate the DCI for the new pareto front
+        """
+        designs_to_remove = []
+                
+        pf = {name: self._lvl_data[name]['objective functions'] for name in self.lvl_read.keys()}
+        pf_old = {name: self._lvl_data[name]['objective functions'] for name in self._previous_pf}
 
+        scaled_pf = self.scale_pareto_front([x for x in self.lvl_read.keys()])
+        hvi = self.calculate_hvi(scaled_pf) #self.bb.gt_attr('hv_list[-1]')
         
+        # Calculate DCI for new/old pareto front
+        div = {'reactivity swing': 50, 'burnup': 25, 'pu mass': 50}
+        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, [pf,pf_old], div=div)
+        dci._grid_generator()
+        dci.compute_dci(pf)
+        dc_new = dci.dc
+
+        dci.compute_dci(pf_old)
+        dc_old = dci.dc
+        designs_to_compare = []
+
+        # Determine if old Pareto front is missing any grid positions
+        # Determine if any point on the new Pareto front is dominated and remove it
+        
+        for new_pf_design_name, new_dci in dc_new.items():
+            # Determine if we have two designs in the same hyperbox
+            for old_pf_design_name, old_dci in dc_old.items():
+                if ((new_pf_design_name != old_pf_design_name) and (new_dci == old_dci)) and ((old_pf_design_name, new_pf_design_name) not in designs_to_compare):
+                    designs_to_compare.append((new_pf_design_name, old_pf_design_name))
+            
+            # Determine if any solutions are dominated and add them to the designs_to_remove list
+            for new_pf_design_name_2 in dc_new.keys():
+                if (new_pf_design_name != new_pf_design_name_2):
+                    optimal =  self.determine_optimal_type(self._lvl_data[new_pf_design_name]['objective functions'], 
+                                                           self._lvl_data[new_pf_design_name_2]['objective functions'])
+                    designs_to_remove += [new_pf_design_name] if not optimal else []
+        
+        designs_to_compare = list(set(designs_to_compare))        
+        
+        scaled_pareto_fronts = {x: (self.scale_pareto_front([x[0]])[0], self.scale_pareto_front([x[1]])[0]) for x in designs_to_compare}
+        # Examine the two solutions in hyperbox and determine which one to remove
+
+        for design_name, design in scaled_pareto_fronts.items():
+            if (design_name[0] not in designs_to_remove) and (design_name[1] not in designs_to_remove):
+                hvi_1 = hvi - self.calculate_hvi([dv for dv in scaled_pf if dv != design[0]])
+                hvi_2 = hvi - self.calculate_hvi([dv for dv in scaled_pf if dv != design[1]])
+                designs_to_remove += [design_name[1]] if hvi_1 > hvi_2 else [design_name[0]]
+
+        designs_to_remove = list(set(designs_to_remove))
+        if designs_to_remove != []:
+             self.remove_dominated_entries(designs_to_remove)
+        # We need to calculate the hyperbox that each solution is in, and then determine if a hyperbox is better than another one.
+        self._previous_pf = [x for x in self.lvl_read.keys() if x not in designs_to_remove]
+
     def calculate_hvi(self, pf):
         """
         Calculate the hypervolume indicator for the given pareto front.
@@ -203,7 +269,24 @@ class KaBr_lvl1(KaBr):
             self._pf_size -= 1
             self.write_to_bb(self.bb_lvl, design, self.lvl_read[design], remove=True)
             
-        
+    def determine_optimal_type(self, new_rx, opt_rx):
+        """Determine if the solution is Pareto, weak, or not optimal"""
+        optimal = 0
+        pareto_optimal = 0
+        for param, obj_dict in self._objectives.items():
+            new_val = -new_rx[param] if obj_dict['goal'] == 'gt' else new_rx[param]
+            opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]           
+            optimal += 1 if new_val <= opt_val else 0
+            pareto_optimal += 1 if new_val < opt_val else 0
+            
+        if optimal == len(self._objectives.keys()) and pareto_optimal > 0:
+            return 'pareto'
+        elif pareto_optimal > 0:
+            return 'weak'
+        else:
+            return None
+            
+            
 class KaBr_lvl2(KaBr):
     """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
     def on_init(self):
