@@ -29,14 +29,16 @@ class Controller(object):
         self.plot_progress = plot_progress
         self.agent_time = 0
         self.progress_rate = 100
+        self.time = [time.time()]
 
 
         if bb_type == bb_opt.BbOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
             self.bb.set_attr(sm_type='lr')
-#            with open('./sm_gpr.pkl', 'rb') as pickle_file:
- #               sm = pickle.load(pickle_file)
-   #         self.bb.set_attr(_sm=sm)
+ #           self.bb.set_attr(sm_type='gpr')
+  #          with open('./sm_gpr.pkl', 'rb') as pickle_file:
+   #             sm = pickle.load(pickle_file)
+    #        self.bb.set_attr(_sm=sm)
             self.bb.generate_sm()
         
         elif bb_type == bb_benchmark.BenchmarkBB:
@@ -80,7 +82,11 @@ class Controller(object):
                 if self.plot_progress:
                     self.bb.plot_progress()
                 self.bb.diagnostics_replace_agent()
-                
+        self.time.append(time.time())
+        self.bb.update_abstract_lvl(100, 'meta-data', {'hvi indicator': self.bb.get_attr('hv_list')[-1], 'time': self.time[1]-self.time[0]})
+        self.bb.write_to_h5()
+        
+        
     def run_multi_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
         

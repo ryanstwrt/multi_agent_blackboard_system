@@ -16,6 +16,13 @@ def test_hypervolume_indicator_base():
     pf =[[1,1]]
     hv = pm.hypervolume_indicator(pf, lower_ref, upper_ref)
     assert hv == 0.25
+    lower_ref = [0,0]
+    upper_ref = [1,1]
+    pf =[[.5,.5]]
+    hv = pm.hypervolume_indicator(pf, lower_ref, upper_ref)
+    assert hv == 0.25
+
+    
 
 def test_hypervolume_indicator_sfr():
     ns = run_nameserver()

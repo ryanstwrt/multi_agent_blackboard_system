@@ -46,6 +46,9 @@ class BbOpt(blackboard.Blackboard):
         self.num_calls = 25
         self._sm = None
         self.sm_type = 'interpolate'
+        
+        # Initialize an abstract level which holds meta-data about the problem
+        self.add_abstract_lvl(100, {'hvi indicator': float, 'time': float})
 
     def initialize_abstract_level_3(self, objectives=None, design_variables=None):
         """
@@ -166,6 +169,9 @@ class BbOpt(blackboard.Blackboard):
             self._sm.optimize_model(self.sm_type)
             
     def plot_progress(self):
+        """
+        Generate a plot of the hypervolume and Pareto front during the problem.
+        """
         
         lvl_3 = {}
         for panel in self.abstract_lvls['level 3'].values():
@@ -204,8 +210,10 @@ class BbOpt(blackboard.Blackboard):
             fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]]})
         elif len(obj_dict.keys()) > 3:
             fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=obj_dict[objs[3]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]], 'color': obj_labels[objs[3]]})
-        fig1.show()
-
+        try:
+            fig1.show()
+        except UnboundLocalError:
+            pass
         # Plot HV Convergece
         fig2 = px.line(x=[x for x in range(len(self.hv_list))], y=self.hv_list, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
         fig2.show()

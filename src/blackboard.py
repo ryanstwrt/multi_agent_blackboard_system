@@ -46,6 +46,8 @@ class Blackboard(Agent):
             Address for the publish-subscribe channel to send to an agent when it connects.
         _shutdown_alias : str
             Alias for the shutdown request-reply channel.
+        _panels : dict
+            Dictionary with level numbers as keys and list of panel names as values.
     """
     def on_init(self):
         self.agent_addrs = {}
@@ -85,6 +87,7 @@ class Blackboard(Agent):
     def add_panel(self, level, panels):
         """
         Split a blackbaord abstract level into multiple panels.
+        Update _panels to keep track of them
         
         Parameters
         -----------
@@ -243,6 +246,7 @@ class Blackboard(Agent):
                 self._ka_to_execute = (k,v)                
     
     def controller_update_kaar(self, trig_num, time):
+        """Update the _kaar with the time required to run this KA"""
         self._kaar[trig_num].update({'time': (self._ka_to_execute[0], time)})
     
     def diagnostics_agent_present(self, agent):
@@ -460,12 +464,25 @@ class Blackboard(Agent):
             for entry_name, entry in level_entry.items():
                 if lvl_num in panels.keys():
                     for panel_entry_name, panel_entry in entry.items():
-                        self.load_h5_add_abstract_lvl(lvl_num, panel_entry_name, panel_entry, panel=entry_name)
+                        self.load_h5_add_group(lvl_num, panel_entry_name, panel_entry, panel=entry_name)
                 else:
-                    self.load_h5_add_abstract_lvl(lvl_num, entry_name, entry)
+                    self.load_h5_add_group(lvl_num, entry_name, entry)
         h5.close()
 
-    def load_h5_add_abstract_lvl(self, lvl_num, entry_name, entry, panel=None):
+    def load_h5_add_group(self, lvl_num, entry_name, entry, panel=None):
+        """
+        Read a group level from teh H5 file and add it to the appropriate abstract level.
+        
+        Parameters
+        ----------
+        lvl_num : int
+            Abstract level for this group
+        entry_name : str
+            Name of the entry to add to the group
+        entry : dict
+            Dictionary where keys are entry names, and values are entry values
+
+        """
         data_dict = self.get_data_types(entry)
         lvl_name = 'level {}'.format(lvl_num)
         if lvl_name not in self.abstract_lvls.keys():
@@ -626,15 +643,21 @@ class Blackboard(Agent):
                     # Loop over the entries in th epanel and add entries
                     for panel_data_name, panel_data in data.items():
                         if panel_data_name not in panel_group.keys():
-                            self.h5_group_writer(panel_group, panel_data, panel_data_name)               
+                            self.h5_group_writer(panel_group, panel_data_name, panel_data)               
                 elif name not in group_level.keys():
-                    self.h5_group_writer(group_level, data, name)
+                    self.h5_group_writer(group_level, name, data)
         self.log_info("Finished writing to archive")
         h5.close()
     
     def h5_delete_entries(self, h5):
         """
-        Find entries in the h5 file that are no longer in the blackbaord.
+        Examine the H5 file and current blackbaord dabstract levels and remove entries in the H5 file that are no longer in the BB bastract levels. (likely this is due to solution no longer being on the Pareto front)
+        
+        Parameters
+        ----------
+        h5 : h5-group object
+            H5 entry that is no longer in the absstract level
+        
         """
         bb = self.abstract_lvls
         del_entries = []
@@ -656,9 +679,16 @@ class Blackboard(Agent):
                 del h5[entry[0]][entry[1]]          
                 self.log_debug('Removing entry {} on level {}'.format(entry[1],entry[0]))
     
-    def h5_group_writer(self, group_level, data, name):
+    def h5_group_writer(self, group_level, name, data):
         """
-        Add a group entry to the h5 file 
+        Add an entry to the H5 file. 
+        Each entry will be a unique group in the H5 file on the specified level and panel (if necessary)
+        
+        Parameters
+        ----------
+        group level : h5 object for group level
+        data : dict 
+        name : str
         """
         group_level.create_group(name)
         for data_name, data_val in data.items():

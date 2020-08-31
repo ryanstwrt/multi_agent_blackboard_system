@@ -64,6 +64,14 @@ class KaBr(ka.KaBase):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
     def read_bb_lvl(self):
+        """
+        Read the BB level corresponding to the KA lvl_read and return if a valid core is present
+        
+        Returns
+        --------
+        Bool : 
+            True if a valid core is found, false if not valid core is found in the lvl_read
+        """
         for core_name, core_entry in self.lvl_read.items():
             valid_core, opt_type = self.determine_validity(core_name)
             if valid_core:
@@ -137,6 +145,11 @@ class KaBr_lvl1(KaBr):
         if dci:
             if self._previous_pf:
                 self.calculate_dci()
+                self.calculate_hvi_contribution()
+                if self._pf_size > self.total_pf_size:
+                    self.prune_pareto_front()
+                self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+                self._previous_pf = [x for x in self.lvl_read.keys()]
             else:
                 self._previous_pf = [x for x in self.lvl_read.keys()]
         else:
@@ -151,10 +164,9 @@ class KaBr_lvl1(KaBr):
         Remove locations of the Pareto front to reduce the overall size.
         """
         
+        # TODO Add a function to prevent removing the highest/lowest values
         removal = []
         hvi_contributions = sorted([x for x in self._hvi_dict.values()])
-        self.log_info('{}, {}'.format(self._pf_size,self.total_pf_size))
-        self.log_info(self.total_pf_size-self._pf_size)
         hvi_contribution_limit = hvi_contributions[self._pf_size - self.total_pf_size]
         for design, contribution in self._hvi_dict.items():
             if contribution < hvi_contribution_limit:
@@ -187,8 +199,6 @@ class KaBr_lvl1(KaBr):
         
         # See if we can use the DCI to screen out solutions before we have to calculate the HVI of each
         for design_name, design in zip(pf, scaled_pf):
-            # Calcualte DCI for previous PF, and compare with current PF
-            # If two solutions are in the same hyperbox, calculate the HVI contribution for each and remove lower one.
             design_hvi_contribution = hvi - self.calculate_hvi([x for x in scaled_pf if x != design])
             if design_hvi_contribution <= 0:
                 designs_to_remove.append(design_name)
@@ -210,7 +220,7 @@ class KaBr_lvl1(KaBr):
         hvi = self.calculate_hvi(scaled_pf) #self.bb.gt_attr('hv_list[-1]')
         
         # Calculate DCI for new/old pareto front
-        div = {'reactivity swing': 50, 'burnup': 25, 'pu mass': 50}
+        div = {'reactivity swing': 100, 'burnup': 50, 'pu mass': 100}
         dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, [pf,pf_old], div=div)
         dci._grid_generator()
         dci.compute_dci(pf)
@@ -240,7 +250,8 @@ class KaBr_lvl1(KaBr):
         
         scaled_pareto_fronts = {x: (self.scale_pareto_front([x[0]])[0], self.scale_pareto_front([x[1]])[0]) for x in designs_to_compare}
         # Examine the two solutions in hyperbox and determine which one to remove
-
+        # Calcualte DCI for previous PF, and compare with current PF
+        # If two solutions are in the same hyperbox, calculate the HVI contribution for each and remove lower one.
         for design_name, design in scaled_pareto_fronts.items():
             if (design_name[0] not in designs_to_remove) and (design_name[1] not in designs_to_remove):
                 hvi_1 = hvi - self.calculate_hvi([dv for dv in scaled_pf if dv != design[0]])
@@ -252,6 +263,7 @@ class KaBr_lvl1(KaBr):
              self.remove_dominated_entries(designs_to_remove)
         # We need to calculate the hyperbox that each solution is in, and then determine if a hyperbox is better than another one.
         self._previous_pf = [x for x in self.lvl_read.keys() if x not in designs_to_remove]
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
 
     def calculate_hvi(self, pf):
         """
@@ -373,7 +385,6 @@ class KaBr_lvl3(KaBr):
         self._trigger_val_base = 3
         self.lvl_data = {}
 
-        
     def determine_validity(self, core_name):
         """Determine if the core falls in the desired results range"""
         for param_name, obj_dict in self._objectives.items():     

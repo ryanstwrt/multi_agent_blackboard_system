@@ -55,12 +55,14 @@ def test_BbOpt_initalize_abstract_level_3_basic():
                                                    'level 3': {'new': {'design variables': {'height': float, 'smear': float, 'pu_content': float},
                                                                        'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
                                                                'old': {'design variables': {'height': float, 'smear': float, 'pu_content': float},
-                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}}}
+                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}},
+                                                   'level 100': {'hvi indicator': float, 'time': float}}
 
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
                                             'level 2': {'new':{}, 'old':{}}, 
-                                            'level 3': {'new': {}, 'old': {}}}
+                                            'level 3': {'new': {}, 'old': {}},
+                                            'level 100': {}}
     ns.shutdown()
     time.sleep(0.05)
 
@@ -77,11 +79,13 @@ def test_BbOpt_initalize_abstract_level_3():
                                                    'level 3': {'new': {'design variables': {'height': float},
                                                                        'objective functions':  {'reactivity swing': float, 'burnup': float}},
                                                                'old': {'design variables': {'height': float},
-                                                                       'objective functions':  {'reactivity swing': float, 'burnup': float}}}}
+                                                                       'objective functions':  {'reactivity swing': float, 'burnup': float}}},
+                                                   'level 100': {'hvi indicator': float, 'time': float}}
 
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
                                             'level 2': {'new':{}, 'old':{}}, 
-                                            'level 3': {'new': {}, 'old': {}}}
+                                            'level 3': {'new': {}, 'old': {}},
+                                            'level 100': {}}
     ns.shutdown()
     time.sleep(0.1)
     

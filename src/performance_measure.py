@@ -4,6 +4,10 @@ import math
 def hypervolume_indicator(pf, lower_ref, upper_ref):
     """
     Calculates the hypervolume for the Pareto Front.
+    
+    pf : list of lists
+    lower_ref : list
+    upper_ref : list
     """
     hyp = plat.indicators.Hypervolume(minimum=lower_ref, maximum=upper_ref)
     problem = plat.Problem(len(lower_ref),len(upper_ref))
@@ -19,7 +23,6 @@ def diversity_indicatory(pf_names, pf, lower_ref, upper_ref):
     Determines how each solution contriutes to the pareto front.
     Needs to be completed
     """
-    
     hv_base = hypervolume_indicator(pf, lower_ref, upper_ref)
     diversity_dict = {}
     for num, core in enumerate(pf_names):
@@ -54,8 +57,6 @@ class diversity_comparison_indicator(object):
         m = self.num_objectives + 1
         for name, pf_grid_pos in self._pf_grid_coordinates.items():
             dist = self._pf_point_to_hyperbox(test_pf, pf_grid_pos)
-            # Currently we overwrite a grid position, we should figure out a way to hold this information and compare them.
-            # Fixed this, but now we have too many solutions present and this throws off our DCI 
             dc = (1 - dist**2 / m) if dist < math.sqrt(m) else 0
             self.dc[name] = {'grid position': pf_grid_pos, 'contribution degree': dc}
         
@@ -68,10 +69,7 @@ class diversity_comparison_indicator(object):
             else:
                 _dci[pos] = dc
         self.dci = sum([x for x in _dci.values()])/ len(_dci)
-    
-            
-        #self.dci = sum([x['contribution degree'] for x in self.dc.values()])/ len(self.dc)
-    
+        
     def _grid_generator(self):
         """
         Generate the hyperbox size for each objective.
