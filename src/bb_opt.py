@@ -106,15 +106,15 @@ class BbOpt(blackboard.Blackboard):
                 ka.set_attr(_lower_objective_reference_point=[0 for x in self.objectives.keys()])
                 ka.set_attr(_upper_objective_reference_point=[1 for x in self.objectives.keys()])
                 # Check this to ensure we are doing this right for ul and ll
-                for obj, obj_dict in self.objectives.items():
-                    if obj_dict['goal'] == 'lt':
-                        nadir_point.update({obj: obj_dict['ll']})
-                        ideal_point.update({obj: obj_dict['ul']})
-                    else:
-                        nadir_point.update({obj: -obj_dict['ul']})
-                        ideal_point.update({obj: -obj_dict['ll']})
-                ka.set_attr(_nadir_point=nadir_point)
-                ka.set_attr(_ideal_point=ideal_point)
+ #               for obj, obj_dict in self.objectives.items():
+ #                   if obj_dict['goal'] == 'lt':
+ #                       nadir_point.update({obj: obj_dict['ll']})
+ #                       ideal_point.update({obj: obj_dict['ul']})
+ #                   else:
+ #                       nadir_point.update({obj: -obj_dict['ul']})
+ #                       ideal_point.update({obj: -obj_dict['ll']})
+                ka.set_attr(_nadir_point=self._nadir_point)
+                ka.set_attr(_ideal_point=self._ideal_point)
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return
