@@ -118,6 +118,7 @@ class KaBr_lvl1(KaBr):
         self.pf_increase = 1.25
         self.total_pf_size = 100
         self._previous_pf = None
+        self.dci = False
         self._nadir_point = None
         self._ideal_point = None
         
@@ -141,8 +142,7 @@ class KaBr_lvl1(KaBr):
         # Make sure this is okay for larger numbers of entries otherwise revert to old method
         for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
             self._lvl_data.update(panel)
-        dci = False
-        if dci:
+        if self.dci:
             if self._previous_pf:
                 self.calculate_dci()
                 self.calculate_hvi_contribution()

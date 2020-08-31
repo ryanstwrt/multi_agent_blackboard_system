@@ -35,6 +35,13 @@ def test_BbOpt_init():
                                                'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
     
     assert bb.get_attr('_complete') == False
+    assert bb.get_attr('_nadir_point') == {}
+    assert bb.get_attr('_ideal_point') == {}
+    assert bb.get_attr('objectives_ll') == []
+    assert bb.get_attr('objectives_ul') == []
+    assert bb.get_attr('abstract_lvls') == {'level 1': {},
+                                            'level 2': {'new': {}, 'old': {}},
+                                            'level 100': {}}
     
     ns.shutdown()
     time.sleep(0.05)
@@ -146,6 +153,26 @@ def test_add_ka_specific():
 
 def test_determine_complete():
     pass
+
+def test_hv_indicator():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 100.0}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    bb.hv_indicator()
+    assert bb.get_attr('hv_list') == [0, 0.5]
+    
+    
+    ns.shutdown()
+    time.sleep(0.05)  
+    
 
 def test_handler_writer():
     ns = run_nameserver()

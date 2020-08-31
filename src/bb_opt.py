@@ -46,6 +46,8 @@ class BbOpt(blackboard.Blackboard):
         self.num_calls = 25
         self._sm = None
         self.sm_type = 'interpolate'
+        self._nadir_point = {}
+        self._ideal_point = {}
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'hvi indicator': float, 'time': float})
@@ -61,6 +63,18 @@ class BbOpt(blackboard.Blackboard):
         
         self.objectives_ll = [x['ll'] for x in self.objectives.values()]
         self.objectives_ul = [x['ul'] for x in self.objectives.values()]
+        
+        for obj, obj_dict in self.objectives.items():
+            if obj_dict['goal'] == 'lt':
+                self._nadir_point.update({obj: obj_dict['ll']})
+                self._ideal_point.update({obj: obj_dict['ul']})
+            else:
+                self._nadir_point.update({obj: -obj_dict['ul']})
+                self._ideal_point.update({obj: -obj_dict['ll']})
+
+        self.objectives_ll = [self._nadir_point[x] for x in self.objectives.keys()]
+        self.objectives_ul = [self._ideal_point[x] for x in self.objectives.keys()]
+    
 
         dv = {iv: iv_dict['variable type'] for iv, iv_dict in self.design_variables.items()}
         obj = {obj: obj_dict['variable type'] for obj, obj_dict in self.objectives.items()}
@@ -151,7 +165,10 @@ class BbOpt(blackboard.Blackboard):
         cores = [x for x in self.abstract_lvls['level 1']]
         bb_lvl3 = self.abstract_lvls['level 3']['old']
         for core in cores:
-            pf.append([x for x in bb_lvl3[core]['objective functions'].values()])
+            pf_ = []
+            for obj,val in bb_lvl3[core]['objective functions'].items():
+                pf_.append(val if self.objectives[obj]['goal'] == 'lt' else -val)
+            pf.append(pf_)
         self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
         
     def generate_sm(self):
