@@ -197,7 +197,6 @@ class KaBr_lvl1(KaBr):
         hvi = self.calculate_hvi(scaled_pf) #self.bb.gt_attr('hv_list[-1]')
         designs_to_remove = []
         
-        # See if we can use the DCI to screen out solutions before we have to calculate the HVI of each
         for design_name, design in zip(pf, scaled_pf):
             design_hvi_contribution = hvi - self.calculate_hvi([x for x in scaled_pf if x != design])
             if design_hvi_contribution <= 0:
@@ -206,6 +205,13 @@ class KaBr_lvl1(KaBr):
                 self._hvi_dict[design_name] = design_hvi_contribution
         if designs_to_remove != []:
             self.remove_dominated_entries(designs_to_remove)
+            
+    def calculate_hvi(self, pf):
+        """
+        Calculate the hypervolume indicator for the given pareto front.
+        """
+        hvi = pm.hypervolume_indicator(pf, self._lower_objective_reference_point, self._upper_objective_reference_point)
+        return hvi    
     
     def calculate_dci(self):
         """
@@ -264,13 +270,6 @@ class KaBr_lvl1(KaBr):
         # We need to calculate the hyperbox that each solution is in, and then determine if a hyperbox is better than another one.
         self._previous_pf = [x for x in self.lvl_read.keys() if x not in designs_to_remove]
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-
-    def calculate_hvi(self, pf):
-        """
-        Calculate the hypervolume indicator for the given pareto front.
-        """
-        hvi = pm.hypervolume_indicator(pf, self._lower_objective_reference_point, self._upper_objective_reference_point)
-        return hvi
     
     def remove_dominated_entries(self, entries):
         """

@@ -61,8 +61,8 @@ class BbOpt(blackboard.Blackboard):
         if design_variables:
             self.design_variables = design_variables
         
-        self.objectives_ll = [x['ll'] for x in self.objectives.values()]
-        self.objectives_ul = [x['ul'] for x in self.objectives.values()]
+#        self.objectives_ll = [0 for x in self.objectives.values()]
+ #       self.objectives_ul = [1 for x in self.objectives.values()]
         
         for obj, obj_dict in self.objectives.items():
             if obj_dict['goal'] == 'lt':

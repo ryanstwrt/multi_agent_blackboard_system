@@ -18,7 +18,17 @@ class Controller(object):
     
     The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
     
-    def __init__(self, bb_name='bb', bb_type=blackboard.Blackboard, ka={}, objectives=None, design_variables=None, archive='bb_archive', agent_wait_time=30, benchmark=None, plot_progress=False):
+    def __init__(self, bb_name='bb', 
+                 bb_type=blackboard.Blackboard, 
+                 ka={}, 
+                 objectives=None, 
+                 design_variables=None, 
+                 archive='bb_archive', 
+                 agent_wait_time=30, 
+                 benchmark=None, 
+                 plot_progress=False,
+                 progress_rate=100,
+                 surrogate_model={'sm_type': 'lr', 'pickle file': None}):
         self.bb_name = bb_name
         self.bb_type = bb_type
         self.agent_wait_time = agent_wait_time
@@ -28,26 +38,28 @@ class Controller(object):
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
         self.plot_progress = plot_progress
         self.agent_time = 0
-        self.progress_rate = 100
+        self.progress_rate = progress_rate
         self.time = [time.time()]
 
 
         if bb_type == bb_opt.BbOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
-            self.bb.set_attr(sm_type='lr')
- #           self.bb.set_attr(sm_type='gpr')
-  #          with open('./sm_gpr.pkl', 'rb') as pickle_file:
-   #             sm = pickle.load(pickle_file)
-    #        self.bb.set_attr(_sm=sm)
-            self.bb.generate_sm()
+            self.bb.set_attr(sm_type=surrogate_model['sm_type'])
+            if surrogate_model['pickle file']:
+                with open(surrogate_model['pickle file'], 'rb') as pickle_file:
+                    sm = pickle.load(pickle_file)
+                self.bb.set_attr(_sm=sm)            
+            else:
+                self.bb.generate_sm()
         
         elif bb_type == bb_benchmark.BenchmarkBB:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
             self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
             self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))
         
+        ka_attributes = {}
         for ka_name, ka_type in ka.items():
-            self.bb.connect_agent(ka_type, ka_name)
+            self.bb.connect_agent(ka_type, ka_name, attr=ka_attributes)
             
     def initialize_blackboard(self):
         pass
@@ -77,7 +89,7 @@ class Controller(object):
             self.bb.hv_indicator()
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
                 self.bb.write_to_h5()
-                if len(self.bb.get_attr('hv_list')) > 2*self.bb.get_attr('num_calls'):
+                if len(self.bb.get_attr('hv_list')) > 2 * self.bb.get_attr('num_calls'):
                     self.bb.determine_complete_hv()
                 if self.plot_progress:
                     self.bb.plot_progress()

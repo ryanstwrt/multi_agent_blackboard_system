@@ -123,7 +123,7 @@ class Blackboard(Agent):
         self.agent_addrs[agent_name].update({'executor': (alias_name, executor_addr)})
         return (alias_name, executor_addr)
     
-    def connect_agent(self, agent_type, agent_alias):
+    def connect_agent(self, agent_type, agent_alias, attr={}):
         """
         Connect a KA to the blackboard.
         This connects the writer, trigger, executor, and shutdown handlers.

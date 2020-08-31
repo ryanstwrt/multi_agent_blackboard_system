@@ -18,6 +18,30 @@ def hypervolume_indicator(pf, lower_ref, upper_ref):
         solutions.append(solution)
     return hyp.calculate(solutions)
 
+def hypervolume_indicator_2(pf, ideal_point, nadir_point):
+    """
+    Calculates the hypervolume for the Pareto Front.
+    
+    pf : list of lists
+    lower_ref : dict
+        k : objective name
+        v : objective upper limit
+    upper_ref : dict
+        k : objective name
+        v : objective upper limit
+    """
+    lower_ref = [ul for ll in nadir_point.values()]
+    upper_ref = [ul for ll in ideal_point.values()]
+    
+    hyp = plat.indicators.Hypervolume(minimum=lower_ref, maximum=upper_ref)
+    problem = plat.Problem(len(lower_ref),len(upper_ref))
+    solutions = []
+    for objs in pf:
+        solution = plat.Solution(problem)
+        solution.objectives = objs
+        solutions.append(solution)
+    return hyp.calculate(solutions)
+
 def diversity_indicatory(pf_names, pf, lower_ref, upper_ref):
     """
     Determines how each solution contriutes to the pareto front.
