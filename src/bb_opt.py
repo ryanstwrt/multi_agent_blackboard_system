@@ -33,9 +33,9 @@ class BbOpt(blackboard.Blackboard):
                            'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
                            'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
-        self.design_variables = {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
-                                 'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-                                 'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
+        self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
 
         self.total_solutions = 50
         self.objectives_ll = []
@@ -81,6 +81,11 @@ class BbOpt(blackboard.Blackboard):
         self.add_abstract_lvl(3, {'design variables': dv, 'objective functions': obj})        
 
         self.add_panel(3, ['new','old'])
+        
+    def clear_data_levels(self):
+        """
+        Remove solutions that are in a data level to reduce the time required to sort through them.
+        """
         
     def connect_ka_specific(self, agent):
         """

@@ -460,6 +460,8 @@ class KaGA(KaLocal):
             # Crosover to determine new children
             if self.crossover_type == 'single point':
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
+            elif self.crossover_type == 'linear crossover':
+                children = self.linear_crossover(parent1, parent2)
             else:
                 self.log_warning('Warning: cross-over type {} is not implemented, reverting to `single-point` cross-over.')
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
@@ -475,6 +477,9 @@ class KaGA(KaLocal):
 
             
     def single_point_crossover(self, genotype1, genotype2, num_crossover_points):
+        """
+        Single point crossover where we simply select a design variables and cross the two parents at that variable
+        """
         # Prevent a null crossover
         crossover = 0
         while crossover == 0:
@@ -489,8 +494,58 @@ class KaGA(KaLocal):
 
         return [c1, c2]
     
+    def linear_crossover(self, genotype1, genotype2):
+        """
+        Linear crossover for GA
+        """
+        c1 = {}
+        c2 = {}
+        c3 = {}
+        for dv, value in genotype1['design variables'].items():
+            c1[dv] = round(0.5 * value + 0.5 * genotype2['design variables'][dv], self._objective_accuracy)
+            c2[dv] = round(1.5 * value - 0.5 * genotype2['design variables'][dv], self._objective_accuracy)
+            if c2[dv] > self.design_variables[dv]['ul']:
+                c2[dv] = self.design_variables[dv]['ul']
+            elif c2[dv] < self.design_variables[dv]['ll']:
+                c2[dv] = self.design_variables[dv]['ll']
+            c3[dv] = round(-0.5 * value + 1.5 * genotype2['design variables'][dv], self._objective_accuracy)
+            if c3[dv] > self.design_variables[dv]['ul']:
+                c3[dv] = self.design_variables[dv]['ul']
+            elif c3[dv] < self.design_variables[dv]['ll']:
+                c3[dv] = self.design_variables[dv]['ll']
+        print(c1, c2, c3)
+        return [c1, c2, c3]
+        
+    
     def random_mutation(self, genotype):
+        """
+        Perform a random mutation, take a DV and allow it to vary it within a small perturbation
+        """
         dv_mutate = random.choice([x for x in self.design_variables.keys()])
-        for dv, dv_dict in self.design_variables.items():
-            genotype[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy) if dv == dv_mutate else genotype[dv]     
+        ll = genotype[dv_mutate]*(1-self.perturbation_size)
+        ul = genotype[dv_mutate]*(1+self.perturbation_size)
+        genotype[dv_mutate] = round(random.random() * (ul - ll) + ll, self._design_accuracy)
+        # Check to make sure we don't violate upper/lower limits, if we do, set it to the limit.
+        genotype[dv_mutate] = min(self.design_variables[dv_mutate]['ul'], genotype[dv_mutate])
+        genotype[dv_mutate] = max(self.design_variables[dv_mutate]['ll'], genotype[dv_mutate])
+        return genotype
+    
+    def non_uniform_mutation(self, genotype):
+        """
+        Utilize Michalewicz's non-uniform mutation,
+        can we update the k/T parameter as a function of hypervolume convergence?
+        """
+        dv_mutate = random.choice([x for x in self.design_variables.keys()])
+        mutation_direction = random.choice(['up', 'down'])
+        
+        alpha = random.random()
+        exponent = pow((1 - k / T), b)
+        delta_k = genotype[dv_mutate] * (1 - pow(alpha, exponent))
+        
+        if mutation_direction == 'up':
+            new_gene = genotype[dv_mutate] + delta_k
+            genotype[dv_mutate] = min(new_gene, self.design_variables['ul'])
+        else:
+            new_gene = genotype[dv_mutate] - delta_k
+            genotype[dv_mutate] = max(new_gene, self.design_variables['ll'])  
         return genotype

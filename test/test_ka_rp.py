@@ -729,6 +729,60 @@ def test_kalocalga():
     ns.shutdown()
     time.sleep(0.05)
 
+def test_kalocalga_linear_crossover():
+    ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
+
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+
+    bb.connect_agent(ka_rp.KaGA, 'ka_rp_exploit')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(mutation_rate=0.0)
+    rp.set_attr(pf_trigger_number=2)
+    rp.set_attr(crossover_type='linear crossover')
+    bb.update_abstract_lvl(3, 'core_[50.0, 60.0, 0.1]', {'design variables': {'height': 50.0, 'smear': 60.0, 'pu_content': 0.1}, 
+                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[50.0, 60.0, 0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 70.0, 0.2]', {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2}, 
+                                                          'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[70.0, 70.0, 0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.search_method()
+    time.sleep(2)
+    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 3
+    solutions = ['core_[60.0, 65.0, 0.15]', 'core_[50.0, 55.0, 0.05]', 'core_[80.0, 70.0, 0.25]']
+    for solution in solutions:
+        assert solution in [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()]
+
+    
+    bb.update_abstract_lvl(3, 'core_[90.0, 80.0, 0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
+                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[90.0, 80.0, 0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
+    bb.update_abstract_lvl(3, 'core_[75.0, 65.0, 0.9]', {'design variables': {'height': 55.0, 'smear': 65.0, 'pu_content': 0.90}, 
+                                                         'objective functions': {'reactivity swing' : 710.11,'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[75.0, 65.0, 0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    rp.set_attr(offspring_per_generation=4)
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.search_method()
+    time.sleep(2)
+    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) >= 3
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
 def test_kalocalga_full():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
@@ -783,6 +837,25 @@ def test_kalocalga_full():
     assert rp.get_attr('analyzed_design') == {'core_[65.0, 65.0, 0.42]': {'Analyzed': True}, 'core_[70.0, 60.0, 0.50]': {'Analyzed': True}}
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 2
 
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
+def test_kaga_random_mutation():
+    ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
+
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+
+    bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_ga')
+    
+    genotype = {'height':70.0,'smear':65.0,'pu_content':0.5}
+    new_genot
     
     ns.shutdown()
     time.sleep(0.05)
