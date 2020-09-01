@@ -844,18 +844,29 @@ def test_kalocalga_full():
 def test_kaga_random_mutation():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-
-    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
     bb.initialize_abstract_level_3()
 
     bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
-    
     genotype = {'height':70.0,'smear':65.0,'pu_content':0.5}
-    new_genot
+    new_genotype = rp.random_mutation(genotype)
     
+    assert genotype != new_genotype    
+    ns.shutdown()
+    time.sleep(0.05)
+    
+def test_kaga_non_uniform_mutation():
+    ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3()
+
+    bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_ga')
+    genotype = {'height':50.0,'smear':65.0,'pu_content':0.5}
+    new_genotype = rp.non_uniform_mutation(genotype)
+    assert genotype != new_genotype
+
     ns.shutdown()
     time.sleep(0.05)

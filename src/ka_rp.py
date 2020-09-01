@@ -412,6 +412,9 @@ class KaGA(KaLocal):
         self.num_cross_over_points = 1
         self.mutation_type = 'random'
         self.pf_size = 10
+        self.b = 2
+        self.k = 5
+        self.T = 100
         
 
     def handler_trigger_publish(self, message):
@@ -463,13 +466,18 @@ class KaGA(KaLocal):
             elif self.crossover_type == 'linear crossover':
                 children = self.linear_crossover(parent1, parent2)
             else:
-                self.log_warning('Warning: cross-over type {} is not implemented, reverting to `single-point` cross-over.')
+                self.log_warning('Warning: cross-over type {} is not implemented, reverting to `single-point` cross-over.'.format(self.crossover_rate))
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
 
             # Determine if we mutate a child
             for child in children:
                 if random.random() < self.mutation_rate:
                     if self.mutation_type == 'random':
+                        child = self.random_mutation(child)
+                    elif self.mutation_type == 'non-uniform':
+                        child = self.non_uniform_mutation(child)
+                    else:
+                        self.log_warning('Warning: mutation type {} is not implemented, reverting to `random` mutation.'.format(self.mutation_type))
                         child = self.random_mutation(child)
                 self.current_design_variables = child
                 self.determine_model_applicability(next(iter(child)))
@@ -534,18 +542,24 @@ class KaGA(KaLocal):
         """
         Utilize Michalewicz's non-uniform mutation,
         can we update the k/T parameter as a function of hypervolume convergence?
+        
+        For the following, assume a constant alpha as well
+        Notes: For a constant k/T, smaller values of b lead to a larger distribution
+               For a constant b, a smaller k/T ratio leads to a larger distribution
         """
+        
+
         dv_mutate = random.choice([x for x in self.design_variables.keys()])
         mutation_direction = random.choice(['up', 'down'])
         
         alpha = random.random()
-        exponent = pow((1 - k / T), b)
-        delta_k = genotype[dv_mutate] * (1 - pow(alpha, exponent))
+        exponent = (1 - self.k / self.T)**self.b
+        delta_k = genotype[dv_mutate] * (1 - alpha**exponent)
         
         if mutation_direction == 'up':
             new_gene = genotype[dv_mutate] + delta_k
-            genotype[dv_mutate] = min(new_gene, self.design_variables['ul'])
+            genotype[dv_mutate] = min(new_gene, self.design_variables[dv_mutate]['ul'])
         else:
             new_gene = genotype[dv_mutate] - delta_k
-            genotype[dv_mutate] = max(new_gene, self.design_variables['ll'])  
+            genotype[dv_mutate] = max(new_gene, self.design_variables[dv_mutate]['ll'])  
         return genotype
