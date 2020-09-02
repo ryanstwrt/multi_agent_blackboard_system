@@ -51,11 +51,10 @@ class KaRp(ka.KaBase):
             obj_list = self._sm.predict(self.sm_type, [design])
             for num, obj in enumerate(self._objectives.keys()):
                 self.objective_functions[obj] = round(float(obj_list[0][num]), self._objective_accuracy)
-        a = self.current_design_variables.copy()
-        a.update(self.objective_functions)
-        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in a.items()]))
+        new_design = self.current_design_variables.copy()
+        new_design.update(self.objective_functions)
+        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in new_design.items()]))
         self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
-#        self._entry = {'reactor parameters': a}
         self._entry = {'design variables': self.current_design_variables, 'objective functions': self.objective_functions}
         
     def handler_executor(self, message):
@@ -282,8 +281,6 @@ class KaLocalHC(KaLocal):
         step = self.step_size
         step_design = self.lvl_data[core]['design variables']
         step_objs = self.lvl_data[core]['objective functions']
-#        step_design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
- #       step_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self._objectives.keys()}
         step_number = 0
         
         while step > self.convergence_criteria:
@@ -381,8 +378,6 @@ class KaLocalRW(KaLocal):
         """
         core = random.choice(self.new_designs)
         entry = self.lvl_read[core]
-        
-        #design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
         design = self.lvl_data[core]['design variables']
         
         for x in enumerate(range(self.walk_length)):
@@ -406,7 +401,7 @@ class KaGA(KaLocal):
         self._base_trigger_val = 10
         self.previous_populations = {}
         self.crossover_rate = 0.8
-        self.offspring_per_generation = 50
+        self.offspring_per_generation = 20
         self.mutation_rate = 0.1
         self.crossover_type = 'single point'
         self.num_cross_over_points = 1
@@ -446,6 +441,12 @@ class KaGA(KaLocal):
 
         
     def search_method(self):
+        """
+        Search method for the GA is to perform crossover and mutation to generate new designs.
+        
+        Currently two crossover types are allowed: single-point and linear.
+        Currently two mutation types are allowed: random and non-uniform.
+        """
         population = [x for x in self.lvl_read.keys()]
         original_pop_len = len(population)
         children = []
@@ -487,6 +488,18 @@ class KaGA(KaLocal):
     def single_point_crossover(self, genotype1, genotype2, num_crossover_points):
         """
         Single point crossover where we simply select a design variables and cross the two parents at that variable
+        Paremeters:
+        -----------
+        genotype1 : dict
+            dictionary of design to be mated, keys are design variable names, values are design variable values
+        genotype2 : dict
+            dictionary of design to be mated, keys are design variable names, values are design variable values
+        Returns:
+        --------
+        c1 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
+        c2 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
         """
         # Prevent a null crossover
         crossover = 0
@@ -504,7 +517,22 @@ class KaGA(KaLocal):
     
     def linear_crossover(self, genotype1, genotype2):
         """
-        Linear crossover for GA
+        Linear crossover for GA, where we take fractions of each design variable and sum them up to generate a new design variable
+        
+        Paremeters:
+        -----------
+        genotype1 : dict
+            dictionary of design to be mated, keys are design variable names, values are design variable values
+        genotype2 : dict
+            dictionary of design to be mated, keys are design variable names, values are design variable values
+        Returns:
+        --------
+        c1 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
+        c2 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
+        c3 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
         """
         c1 = {}
         c2 = {}
@@ -521,13 +549,20 @@ class KaGA(KaLocal):
                 c3[dv] = self.design_variables[dv]['ul']
             elif c3[dv] < self.design_variables[dv]['ll']:
                 c3[dv] = self.design_variables[dv]['ll']
-        print(c1, c2, c3)
         return [c1, c2, c3]
         
     
     def random_mutation(self, genotype):
         """
         Perform a random mutation, take a DV and allow it to vary it within a small perturbation
+        Paremeters:
+        -----------
+        genotype : dict
+            dictionary of design to be mutated, keys are design variable names, values are design variable values
+        Returns:
+        --------
+        genotype : dict
+            dictionary of mutated design with one of the dezign variables changed within the perturbation size
         """
         dv_mutate = random.choice([x for x in self.design_variables.keys()])
         ll = genotype[dv_mutate]*(1-self.perturbation_size)
@@ -541,14 +576,22 @@ class KaGA(KaLocal):
     def non_uniform_mutation(self, genotype):
         """
         Utilize Michalewicz's non-uniform mutation,
-        can we update the k/T parameter as a function of hypervolume convergence?
         
         For the following, assume a constant alpha as well
         Notes: For a constant k/T, smaller values of b lead to a larger distribution
                For a constant b, a smaller k/T ratio leads to a larger distribution
+               
+        Paremeters:
+        -----------
+        genotype : dict
+            dictionary of design to be mutated, keys are design variable names, values are design variable values
+        Returns:
+        --------
+        genotype : dict
+            dictionary of mutated design with one of the dezign variables changed according to a non-uniform mutation
         """
         
-
+        # can we update the k/T parameter as a function of hypervolume convergence?
         dv_mutate = random.choice([x for x in self.design_variables.keys()])
         mutation_direction = random.choice(['up', 'down'])
         

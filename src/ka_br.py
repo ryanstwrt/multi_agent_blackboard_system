@@ -1,5 +1,6 @@
 import ka
 import performance_measure as pm
+import time
 
 class KaBr(ka.KaBase):
     """
@@ -33,19 +34,34 @@ class KaBr(ka.KaBase):
         pass
     
     def handler_executor(self, message):
-        self.log_debug('Executing agent {}'.format(self.name)) 
+        self.log_debug('Executing agent {}'.format(self.name))
+     #   write_read = []
+      #  write_move = []
+#        t1 = time.time()
         self.clear_bb_lvl()
+ #       clear_bb_lvl = round(time.time() - t1,5)
         while self._entry_name:
             self.clear_entry()
+  #          t2 = time.time()
             self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
             self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+   #         write_read.append(round(time.time() - t2,5))
             
             if self.read_bb_lvl():
+    #            t3 = time.time()
                 self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
                 entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-                self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)         
+                self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)      
+       #         write_move.append(round(time.time() - t3,5))
         self._trigger_val = 0
         self.action_complete()
+        #total = round(time.time() - t1,5)
+       # print('Time to clear BB: {}'.format(clear_bb_lvl))
+       # print('Time to make read/write: {} \n  total: {}'.format(write_read,sum(write_read)))
+       # print('Time to read/move: {}'.format(sum(write_read)))
+        #print('Time to make read/write: {} \n  total: {}'.format(write_read,sum(write_read)))
+       # print('Time to write/move: {}'.format(sum(write_move)))
+       # print('Time for total: {}'.format(total))
             
     def handler_trigger_publish(self, message):
         """Read the BB level and determine if an entry is available."""
@@ -72,7 +88,7 @@ class KaBr(ka.KaBase):
         Bool : 
             True if a valid core is found, false if not valid core is found in the lvl_read
         """
-        for core_name, core_entry in self.lvl_read.items():
+        for core_name in self.lvl_read.keys():
             valid_core, opt_type = self.determine_validity(core_name)
             if valid_core:
                 self.add_entry((core_name,opt_type))
@@ -119,6 +135,7 @@ class KaBr_lvl1(KaBr):
         self.total_pf_size = 100
         self._previous_pf = None
         self.dci = False
+        self.dci_div = None
         self._nadir_point = None
         self._ideal_point = None
         
@@ -132,7 +149,12 @@ class KaBr_lvl1(KaBr):
 
     def handler_executor(self, message):
         """
-        BR_lvl1 calculates the hypervolume contribution for each entry and removed dominated entries
+        The executor handler for KA-BR-lvl1 maintains the Pareto front.
+        There are currently two methods for maintaining the blackboard; hyper volume indicator (HVI) and diversity comarison indicator (DCI) accelerate HVI
+        
+        HVI calculates the HVI contribution for each solution on the Pareto front and removes solutions which contribute little to the total hypervolume of the size of the Pareto fron ti greater than self.total_pf_size
+        
+        DCI accelerated HVI uses the DCI to remove solutions which are closeby to help increase the diversity of the Pareto front.
         """
         self.log_debug('Executing agent {}'.format(self.name)) 
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
@@ -145,8 +167,9 @@ class KaBr_lvl1(KaBr):
         if self.dci:
             if self._previous_pf:
                 self.calculate_dci()
-                self.calculate_hvi_contribution()
+                #self.calculate_hvi_contribution()
                 if self._pf_size > self.total_pf_size:
+                    self.calculate_hvi_contribution()
                     self.prune_pareto_front()
                 self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
                 self._previous_pf = [x for x in self.lvl_read.keys()]
@@ -163,8 +186,7 @@ class KaBr_lvl1(KaBr):
         """
         Remove locations of the Pareto front to reduce the overall size.
         """
-        
-        # TODO Add a function to prevent removing the highest/lowest values
+        # TODO Add a function to prevent removing the highest/lowest values?
         removal = []
         hvi_contributions = sorted([x for x in self._hvi_dict.values()])
         hvi_contribution_limit = hvi_contributions[self._pf_size - self.total_pf_size]
@@ -226,8 +248,7 @@ class KaBr_lvl1(KaBr):
         hvi = self.calculate_hvi(scaled_pf) #self.bb.gt_attr('hv_list[-1]')
         
         # Calculate DCI for new/old pareto front
-        div = {'reactivity swing': 100, 'burnup': 50, 'pu mass': 100}
-        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, [pf,pf_old], div=div)
+        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, [pf,pf_old], div=self.dci_div)
         dci._grid_generator()
         dci.compute_dci(pf)
         dc_new = dci.dc

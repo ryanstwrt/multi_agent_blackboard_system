@@ -60,10 +60,7 @@ class BbOpt(blackboard.Blackboard):
             self.objectives = objectives
         if design_variables:
             self.design_variables = design_variables
-        
-#        self.objectives_ll = [0 for x in self.objectives.values()]
- #       self.objectives_ul = [1 for x in self.objectives.values()]
-        
+                
         for obj, obj_dict in self.objectives.items():
             if obj_dict['goal'] == 'lt':
                 self._nadir_point.update({obj: obj_dict['ll']})
@@ -79,7 +76,6 @@ class BbOpt(blackboard.Blackboard):
         dv = {iv: iv_dict['variable type'] for iv, iv_dict in self.design_variables.items()}
         obj = {obj: obj_dict['variable type'] for obj, obj_dict in self.objectives.items()}
         self.add_abstract_lvl(3, {'design variables': dv, 'objective functions': obj})        
-
         self.add_panel(3, ['new','old'])
         
     def clear_data_levels(self):
@@ -110,14 +106,6 @@ class BbOpt(blackboard.Blackboard):
                 ideal_point = {}
                 ka.set_attr(_lower_objective_reference_point=[0 for x in self.objectives.keys()])
                 ka.set_attr(_upper_objective_reference_point=[1 for x in self.objectives.keys()])
-                # Check this to ensure we are doing this right for ul and ll
- #               for obj, obj_dict in self.objectives.items():
- #                   if obj_dict['goal'] == 'lt':
- #                       nadir_point.update({obj: obj_dict['ll']})
- #                       ideal_point.update({obj: obj_dict['ul']})
- #                   else:
- #                       nadir_point.update({obj: -obj_dict['ul']})
- #                       ideal_point.update({obj: -obj_dict['ll']})
                 ka.set_attr(_nadir_point=self._nadir_point)
                 ka.set_attr(_ideal_point=self._ideal_point)
         else:
