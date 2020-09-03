@@ -1,13 +1,6 @@
-import osbrain
-from osbrain import Agent
-import numpy as np
 import random
-import scipy.interpolate
 import ka
-import train_surrogate_models as tm
 import copy
-import database_generator as dg
-import math
 
 class KaRp(ka.KaBase):
     """
@@ -58,11 +51,11 @@ class KaRp(ka.KaBase):
             obj_list = self._sm.predict(self.sm_type, [design])
             for num, obj in enumerate(self._objectives.keys()):
                 self.objective_functions[obj] = round(float(obj_list[0][num]), self._objective_accuracy)
-        a = self.current_design_variables.copy()
-        a.update(self.objective_functions)
-        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in a.items()]))
+        new_design = self.current_design_variables.copy()
+        new_design.update(self.objective_functions)
+        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in new_design.items()]))
         self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
-        self._entry = {'reactor parameters': a}
+        self._entry = {'design variables': self.current_design_variables, 'objective functions': self.objective_functions}
         
     def handler_executor(self, message):
         """
@@ -174,6 +167,7 @@ class KaLocal(KaRp):
         """
         dv_dict = self.design_variables[dv]
         dv_cur_val = self.current_design_variables[dv]
+        
         if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
             self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
         elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in self.lvl_data.keys():
@@ -231,8 +225,7 @@ class KaLocal(KaRp):
         """
         
         core = random.choice(self.new_designs)
-
-        design_ = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        design_ = self.lvl_data[core]['design variables']
         perts = [1.0 - self.perturbation_size, 1.0 + self.perturbation_size]
         for dv, dv_value in design_.items():
             for pert in perts:
@@ -241,13 +234,7 @@ class KaLocal(KaRp):
                 self.current_design_variables = design
                 self.determine_model_applicability(dv)
         self.analyzed_design[core] = {'Analyzed': True}
-        
-    def genetic_algorithm(self):
-        """
-        Basic genetic algorithm for expediting our search
-        """
-        pass
-    
+            
     def read_bb_lvl(self):
         """
         Determine if there are any 'new' entries on level 1.
@@ -292,8 +279,8 @@ class KaLocalHC(KaLocal):
         entry = self.lvl_read[core]
         
         step = self.step_size
-        step_design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
-        step_objs = {k: self.lvl_data[core]['reactor parameters'][k] for k in self._objectives.keys()}
+        step_design = self.lvl_data[core]['design variables']
+        step_objs = self.lvl_data[core]['objective functions']
         step_number = 0
         
         while step > self.convergence_criteria:
@@ -391,8 +378,7 @@ class KaLocalRW(KaLocal):
         """
         core = random.choice(self.new_designs)
         entry = self.lvl_read[core]
-        
-        design = {k: self.lvl_data[core]['reactor parameters'][k] for k in self.design_variables.keys()}
+        design = self.lvl_data[core]['design variables']
         
         for x in enumerate(range(self.walk_length)):
             dv = random.choice(list(self.design_variables))
@@ -415,12 +401,15 @@ class KaGA(KaLocal):
         self._base_trigger_val = 10
         self.previous_populations = {}
         self.crossover_rate = 0.8
-        self.offspring_per_generation = 50
+        self.offspring_per_generation = 20
         self.mutation_rate = 0.1
         self.crossover_type = 'single point'
         self.num_cross_over_points = 1
         self.mutation_type = 'random'
         self.pf_size = 10
+        self.b = 2
+        self.k = 5
+        self.T = 100
         
 
     def handler_trigger_publish(self, message):
@@ -452,6 +441,12 @@ class KaGA(KaLocal):
 
         
     def search_method(self):
+        """
+        Search method for the GA is to perform crossover and mutation to generate new designs.
+        
+        Currently two crossover types are allowed: single-point and linear.
+        Currently two mutation types are allowed: random and non-uniform.
+        """
         population = [x for x in self.lvl_read.keys()]
         original_pop_len = len(population)
         children = []
@@ -469,8 +464,10 @@ class KaGA(KaLocal):
             # Crosover to determine new children
             if self.crossover_type == 'single point':
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
+            elif self.crossover_type == 'linear crossover':
+                children = self.linear_crossover(parent1, parent2)
             else:
-                self.log_warning('Warning: cross-over type {} is not implemented, reverting to `single-point` cross-over.')
+                self.log_warning('Warning: cross-over type {} is not implemented, reverting to `single-point` cross-over.'.format(self.crossover_rate))
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
 
             # Determine if we mutate a child
@@ -478,18 +475,38 @@ class KaGA(KaLocal):
                 if random.random() < self.mutation_rate:
                     if self.mutation_type == 'random':
                         child = self.random_mutation(child)
+                    elif self.mutation_type == 'non-uniform':
+                        child = self.non_uniform_mutation(child)
+                    else:
+                        self.log_warning('Warning: mutation type {} is not implemented, reverting to `random` mutation.'.format(self.mutation_type))
+                        child = self.random_mutation(child)
                 self.current_design_variables = child
                 self.determine_model_applicability(next(iter(child)))
                 num_children += len(children)
 
             
     def single_point_crossover(self, genotype1, genotype2, num_crossover_points):
+        """
+        Single point crossover where we simply select a design variables and cross the two parents at that variable
+        Paremeters:
+        -----------
+        genotype1 : dict
+            dictionary of design to be mated, keys are design variable names, values are design variable values
+        genotype2 : dict
+            dictionary of design to be mated, keys are design variable names, values are design variable values
+        Returns:
+        --------
+        c1 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
+        c2 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
+        """
         # Prevent a null crossover
         crossover = 0
         while crossover == 0:
             crossover = random.choice(range(len(self.design_variables)))
-        p1_dv = [genotype1['reactor parameters'][obj] for obj in self.design_variables.keys()]
-        p2_dv = [genotype2['reactor parameters'][obj] for obj in self.design_variables.keys()]
+        p1_dv = [x for x in genotype1['design variables'].values()]
+        p2_dv = [x for x in genotype2['design variables'].values()]
 
         c1_dv = p1_dv[:crossover] + p2_dv[crossover:]
         c2_dv = p2_dv[:crossover] + p1_dv[crossover:]
@@ -498,9 +515,94 @@ class KaGA(KaLocal):
 
         return [c1, c2]
     
+    def linear_crossover(self, genotype1, genotype2):
+        """
+        Linear crossover for GA, where we take fractions of each design variable and sum them up to generate a new design variable
+        
+        Paremeters:
+        -----------
+        genotype1 : dict
+            dictionary of design to be mated, keys are design variable names, values are design variable values
+        genotype2 : dict
+            dictionary of design to be mated, keys are design variable names, values are design variable values
+        Returns:
+        --------
+        c1 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
+        c2 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
+        c3 : dict
+            dictionary of new design , keys are design variable names, values are design variable values
+        """
+        c1 = {}
+        c2 = {}
+        c3 = {}
+        for dv, value in genotype1['design variables'].items():
+            c1[dv] = round(0.5 * value + 0.5 * genotype2['design variables'][dv], self._objective_accuracy)
+            c2[dv] = round(1.5 * value - 0.5 * genotype2['design variables'][dv], self._objective_accuracy)
+            if c2[dv] > self.design_variables[dv]['ul']:
+                c2[dv] = self.design_variables[dv]['ul']
+            elif c2[dv] < self.design_variables[dv]['ll']:
+                c2[dv] = self.design_variables[dv]['ll']
+            c3[dv] = round(-0.5 * value + 1.5 * genotype2['design variables'][dv], self._objective_accuracy)
+            if c3[dv] > self.design_variables[dv]['ul']:
+                c3[dv] = self.design_variables[dv]['ul']
+            elif c3[dv] < self.design_variables[dv]['ll']:
+                c3[dv] = self.design_variables[dv]['ll']
+        return [c1, c2, c3]
+        
+    
     def random_mutation(self, genotype):
+        """
+        Perform a random mutation, take a DV and allow it to vary it within a small perturbation
+        Paremeters:
+        -----------
+        genotype : dict
+            dictionary of design to be mutated, keys are design variable names, values are design variable values
+        Returns:
+        --------
+        genotype : dict
+            dictionary of mutated design with one of the dezign variables changed within the perturbation size
+        """
         dv_mutate = random.choice([x for x in self.design_variables.keys()])
-        for dv, dv_dict in self.design_variables.items():
-            genotype[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy) if dv == dv_mutate else genotype[dv]
-                
+        ll = genotype[dv_mutate]*(1-self.perturbation_size)
+        ul = genotype[dv_mutate]*(1+self.perturbation_size)
+        genotype[dv_mutate] = round(random.random() * (ul - ll) + ll, self._design_accuracy)
+        # Check to make sure we don't violate upper/lower limits, if we do, set it to the limit.
+        genotype[dv_mutate] = min(self.design_variables[dv_mutate]['ul'], genotype[dv_mutate])
+        genotype[dv_mutate] = max(self.design_variables[dv_mutate]['ll'], genotype[dv_mutate])
+        return genotype
+    
+    def non_uniform_mutation(self, genotype):
+        """
+        Utilize Michalewicz's non-uniform mutation,
+        
+        For the following, assume a constant alpha as well
+        Notes: For a constant k/T, smaller values of b lead to a larger distribution
+               For a constant b, a smaller k/T ratio leads to a larger distribution
+               
+        Paremeters:
+        -----------
+        genotype : dict
+            dictionary of design to be mutated, keys are design variable names, values are design variable values
+        Returns:
+        --------
+        genotype : dict
+            dictionary of mutated design with one of the dezign variables changed according to a non-uniform mutation
+        """
+        
+        # can we update the k/T parameter as a function of hypervolume convergence?
+        dv_mutate = random.choice([x for x in self.design_variables.keys()])
+        mutation_direction = random.choice(['up', 'down'])
+        
+        alpha = random.random()
+        exponent = (1 - self.k / self.T)**self.b
+        delta_k = genotype[dv_mutate] * (1 - alpha**exponent)
+        
+        if mutation_direction == 'up':
+            new_gene = genotype[dv_mutate] + delta_k
+            genotype[dv_mutate] = min(new_gene, self.design_variables[dv_mutate]['ul'])
+        else:
+            new_gene = genotype[dv_mutate] - delta_k
+            genotype[dv_mutate] = max(new_gene, self.design_variables[dv_mutate]['ll'])  
         return genotype

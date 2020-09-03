@@ -1,6 +1,5 @@
 import pymop.problems as mop
 
-
 class optimization_test_functions(object):
     
     def __init__(self, test):

@@ -6,11 +6,13 @@ import pickle
 import ka
 import time
 import ka_rp
-import bb_sfr_opt as bb_sfr
+import bb_opt
 
-model = 'ann'
-with open('test/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-    sm_ga = pickle.load(pickle_file)
+with open('test/sm_lr_4obj.pkl', 'rb') as pickle_file:
+    sm_ga_4obj = pickle.load(pickle_file)
+with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
+    sm_ga_2obj = pickle.load(pickle_file)
+
 
 def test_karp_init():
     ns = run_nameserver()
@@ -83,11 +85,11 @@ def test_karp_explore_init():
     
 def test_explore_handler_executor():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
 
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga) 
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj) 
     bb.connect_agent(ka_rp.KaGlobal, 'ka_rp_explore')
     
     rp = ns.proxy('ka_rp_explore')
@@ -108,7 +110,7 @@ def test_explore_handler_executor():
 
 def test_explore_handler_trigger_publish():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
     bb.connect_agent(ka_rp.KaGlobal, 'ka_rp')
     
@@ -144,7 +146,7 @@ def test_explore_mc_design_variables():
     
 def test_create_sm_interpolate():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     objs={'keff': {'ll':0.95, 'ul': 1.25, 'goal':'gt', 'variable type': float}, 
                             'void': {'ll':-200, 'ul': 0, 'goal':'lt',  'variable type': float}, 
                             'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}}
@@ -160,7 +162,7 @@ def test_create_sm_interpolate():
 
 def test_create_sm_regression():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     objs={'keff': {'ll':0.95, 'ul':1.25, 'goal':'gt', 'variable type': float}, 
           'void': {'ll':-200, 'ul':0, 'goal':'lt',  'variable type': float}, 
           'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}}
@@ -268,18 +270,16 @@ def test_karp_exploit_init():
     
 def test_determine_model_applicability():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj)
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
 
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.42, 'cycle length': 365.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -305,10 +305,10 @@ def test_determine_model_applicability():
     
 def test_exploit_handler_executor_pert():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj)
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
@@ -316,10 +316,8 @@ def test_exploit_handler_executor_pert():
     
     assert bb.get_attr('abstract_lvls')['level 3'] == {'new':{},'old':{}}
     
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.4, 'cycle length': 365.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0})
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
     rp.set_attr(new_designs=['core_1'])
@@ -340,19 +338,17 @@ def test_exploit_handler_executor_pert():
 
 def test_exploit_handler_executor_rw():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga) 
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj) 
     bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
         
-    bb.update_abstract_lvl(3, 'core_1', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.4, 'cycle length': 365.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0})
 
     rp.set_attr(local_search='random walk')
@@ -370,10 +366,10 @@ def test_exploit_handler_executor_rw():
     
 def test_exploit_handler_trigger_publish():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga) 
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj) 
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp')
     
     bb.publish_trigger()
@@ -395,17 +391,15 @@ def test_exploit_handler_trigger_publish():
     
 def test_exploit_perturb_design():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj)
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
 
     rp = ns.proxy('ka_rp_exploit')
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.4, 'cycle length': 365.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
  
@@ -428,38 +422,27 @@ def test_exploit_perturb_design():
     
 def test_exploit_write_to_bb():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     ka = run_agent(name='ka_rp_exploit', base=ka_rp.KaLocal)
     bb.initialize_abstract_level_3()
     ka.add_blackboard(bb)
     ka.connect_writer()
     
-    core_attrs = {'reactor parameters': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                         'cycle length': 100.0, 'reactivity swing': 110.0, 
-                                         'burnup': 32.0, 'pu mass': 1000.0}}
+    core_attrs = {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
+                  'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}
     ka.write_to_bb(ka.get_attr('bb_lvl'), 'core1', core_attrs, panel='new')
     time.sleep(1)
-    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': 
-                                                                 {'height': 60.0, 'smear': 70.0, 
-                                                                  'pu_content': 0.2, 'cycle length': 100.0, 
-                                                                  'reactivity swing': 110.0, 'burnup': 32.0, 
-                                                                  'pu mass': 1000.0}}}
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
+                  'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
     assert bb.get_attr('_agent_writing') == False
     
-    core_attrs = {'reactor parameters': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2, 
-                                         'cycle length': 100.0, 'reactivity swing': 110.0, 
-                                         'burnup': 32.0, 'pu mass': 1000.0}}
+    core_attrs = {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2},
+                  'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}
     ka.write_to_bb(ka.get_attr('bb_lvl'), 'core2', core_attrs, panel='new')
-    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'reactor parameters': 
-                                                                 {'height': 60.0, 'smear': 70.0, 
-                                                                  'pu_content': 0.2, 'cycle length': 100.0, 
-                                                                  'reactivity swing': 110.0, 'burnup': 32.0, 
-                                                                  'pu mass': 1000.0}},
-                                                               'core2': {'reactor parameters': 
-                                                                 {'height': 70.0, 'smear': 70.0, 
-                                                                  'pu_content': 0.2, 'cycle length': 100.0, 
-                                                                  'reactivity swing': 110.0, 'burnup': 32.0, 
-                                                                  'pu mass': 1000.0}}}
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
+                  'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
+                                                              'core2': {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2},
+                  'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
     assert bb.get_attr('_agent_writing') == False
     
     ns.shutdown()
@@ -467,18 +450,16 @@ def test_exploit_write_to_bb():
     
 def test_kalocalrw():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_4obj)
     bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
 
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                                'pu_content': 0.42, 'cycle length': 365.0, 
-                                                                'pu mass': 500.0, 'reactivity swing' : 600.0,
-                                                                'burnup' : 50.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0,'burnup' : 50.0}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -496,13 +477,10 @@ def test_kalocalrw():
     
 def test_determine_step_steepest_ascent():
     ns = run_nameserver()
-    bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -512,9 +490,8 @@ def test_determine_step_steepest_ascent():
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
     rp.set_attr(hc_type='steepest ascent')
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -586,13 +563,10 @@ def test_determine_step_steepest_ascent():
     
 def test_determine_step_simple():
     ns = run_nameserver()
-    bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -601,9 +575,8 @@ def test_determine_step_simple():
     bb.connect_agent(ka_rp.KaLocalHC, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -639,13 +612,10 @@ def test_determine_step_simple():
     
 def test_kalocalhc():
     ns = run_nameserver()
-    bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -659,12 +629,10 @@ def test_kalocalhc():
     rp.set_attr(step_limit=5000)
     rp.set_attr(convergence_criteria=0.005)
     rp.set_attr(hc_type='steepest ascent')
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.12}}, panel='old')
-    bb.update_abstract_lvl(3, 'core_[78.65, 65.0, 0.42]', {'reactor parameters': {'height': 78.65, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 447.30449,
-                                                          'burnup' : 490.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[78.65, 65.0, 0.42]', {'design variables': {'height': 78.65, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                           'objective functions': {'reactivity swing' : 447.30449, 'burnup' : 490.0}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -674,22 +642,20 @@ def test_kalocalhc():
     time.sleep(3)
 
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) ==  15
-    assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.63313, 69.95625, 0.99652]'] ==  {'reactor parameters': {'height': 79.63313, 'smear': 69.95625, 'pu_content': 0.99652, 'reactivity swing' : 242.85502, 'burnup' : 39.01473}}
-    assert bb.get_attr('abstract_lvls')['level 3']['old']['core_[78.65, 65.0, 0.42]'] == {'reactor parameters': {'height': 78.65, 'smear': 65.0, 
-                                                                                                                 'pu_content': 0.42, 'reactivity swing' : 447.30449, 'burnup' : 490.0}}
+    assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.63313, 69.95625, 0.99652]'] ==  {'design variables': {'height': 79.63313, 'smear': 69.95625, 'pu_content': 0.99652}, 
+                                                                                                     'objective functions': {'reactivity swing' : 242.85502, 'burnup' : 39.01473}}
+    assert bb.get_attr('abstract_lvls')['level 3']['old']['core_[78.65, 65.0, 0.42]'] == {'design variables': {'height': 78.65, 'smear': 65.0, 'pu_content': 0.42},
+                                                                                          'objective functions': {'reactivity swing' : 447.30449, 'burnup' : 490.0}}
    
     ns.shutdown()
     time.sleep(0.05)
             
 def test_kalocalhc_simple():
     ns = run_nameserver()
-    bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -700,9 +666,8 @@ def test_kalocalhc_simple():
     rp = ka.proxy('ka_rp_exploit')
     rp.set_attr(step_rate=0.5)
     rp.set_attr(convergence_criteria=0.005)
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -718,13 +683,10 @@ def test_kalocalhc_simple():
     
 def test_kalocalga():
     ns = run_nameserver()
-    bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -735,14 +697,12 @@ def test_kalocalga():
     rp = ka.proxy('ka_rp_exploit')
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_trigger_number=2)
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.1]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.1, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.1]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.1}, 
+                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.25]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.25, 'reactivity swing' :650.11,
-                                                          'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.25]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.25}, 
+                                                          'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.25]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -750,14 +710,12 @@ def test_kalocalga():
     rp.search_method()
     time.sleep(2)
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 2
-    bb.update_abstract_lvl(3, 'core_[90.0, 80.0, 0.5]', {'reactor parameters': {'height': 90.0, 'smear': 80.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 704.11,
-                                                          'burnup' : 65.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[90.0, 80.0, 0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
+                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[90.0, 80.0, 0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
-    bb.update_abstract_lvl(3, 'core_[75.0, 65.0, 0.9]', {'reactor parameters': {'height': 75.0, 'smear': 65.0, 
-                                                          'pu_content': 0.90, 'reactivity swing' : 710.11,
-                                                          'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[75.0, 65.0, 0.9]', {'design variables': {'height': 75.0, 'smear': 65.0, 'pu_content': 0.90}, 
+                                                         'objective functions': {'reactivity swing' : 710.11,'burnup' : 61.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[75.0, 65.0, 0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
@@ -765,20 +723,72 @@ def test_kalocalga():
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 4
-
+    time.sleep(2)
+    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) > 0
+    
     ns.shutdown()
     time.sleep(0.05)
 
+def test_kalocalga_linear_crossover():
+    ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
+
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+
+    bb.connect_agent(ka_rp.KaGA, 'ka_rp_exploit')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(mutation_rate=0.0)
+    rp.set_attr(pf_trigger_number=2)
+    rp.set_attr(crossover_type='linear crossover')
+    bb.update_abstract_lvl(3, 'core_[50.0, 60.0, 0.1]', {'design variables': {'height': 50.0, 'smear': 60.0, 'pu_content': 0.1}, 
+                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[50.0, 60.0, 0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 70.0, 0.2]', {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2}, 
+                                                          'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[70.0, 70.0, 0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.search_method()
+    time.sleep(2)
+    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 3
+    solutions = ['core_[60.0, 65.0, 0.15]', 'core_[50.0, 55.0, 0.05]', 'core_[80.0, 70.0, 0.25]']
+    for solution in solutions:
+        assert solution in [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()]
+
+    
+    bb.update_abstract_lvl(3, 'core_[90.0, 80.0, 0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
+                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[90.0, 80.0, 0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
+    bb.update_abstract_lvl(3, 'core_[75.0, 65.0, 0.9]', {'design variables': {'height': 55.0, 'smear': 65.0, 'pu_content': 0.90}, 
+                                                         'objective functions': {'reactivity swing' : 710.11,'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[75.0, 65.0, 0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    rp.set_attr(offspring_per_generation=4)
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.search_method()
+    time.sleep(2)
+    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) >= 3
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
 def test_kalocalga_full():
     ns = run_nameserver()
-    bb = run_agent(name='bb', base=bb_sfr.BbSfrOpt)
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    model = 'lr'
-    with open('/Users/ryanstewart/projects/Dakota_Interface/GA_BB/sm_{}.pkl'.format(model), 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type=model)
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(sm_type='lr')
+    bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -789,14 +799,12 @@ def test_kalocalga_full():
     rp = ka.proxy('ka_rp_ga')
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_size=2)
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'reactor parameters': {'height': 65.0, 'smear': 65.0, 
-                                                          'pu_content': 0.42, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0,  'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'reactor parameters': {'height': 70.0, 'smear': 60.0, 
-                                                          'pu_content': 0.50, 'reactivity swing' : 704.11,
-                                                          'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -830,5 +838,35 @@ def test_kalocalga_full():
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 2
 
     
+    ns.shutdown()
+    time.sleep(0.05)
+    
+def test_kaga_random_mutation():
+    ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3()
+
+    bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_ga')
+    genotype = {'height':70.0,'smear':65.0,'pu_content':0.5}
+    new_genotype = rp.random_mutation(genotype)
+    
+    assert genotype != new_genotype    
+    ns.shutdown()
+    time.sleep(0.05)
+    
+def test_kaga_non_uniform_mutation():
+    ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3()
+
+    bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_ga')
+    genotype = {'height':50.0,'smear':65.0,'pu_content':0.5}
+    new_genotype = rp.non_uniform_mutation(genotype)
+    assert genotype != new_genotype
+
     ns.shutdown()
     time.sleep(0.05)
