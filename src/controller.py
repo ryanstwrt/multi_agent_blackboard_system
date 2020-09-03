@@ -87,8 +87,19 @@ class Controller(object):
             #ka_executed = self._proxy_server.proxy(self.bb.get_attr('_ka_to_execute')[0])
             #if ka_executed.get_attr('_update_hv') :
             self.bb.hv_indicator()
+#            if ('lvl1' in self.bb.get_attr('_kaar')[trig_num]['time'][0]):
+#                self.bb.write_to_h5()
+#                self.bb.delete_data_entries()
+#                print(self.bb.get_attr('_kaar')[trig_num]['time'][0])
+#                print('Length lvl 1: {}'.format(len(self.bb.get_attr('abstract_lvls')['level 1'])))                
+#                print('Length lvl 2: {}'.format(len(self.bb.get_attr('abstract_lvls')['level 2']['old'])))                
+#                print('Length lvl 3: {}'.format(len(self.bb.get_attr('abstract_lvls')['level 3']['old'])))
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
                 self.bb.write_to_h5()
+#                if ('lvl2' not in self.bb.get_attr('_kaar')[trig_num]['time'][0]) and ('lvl3' not in self.bb.get_attr('_kaar')[trig_num]['time'][0]):
+#                    self.bb.delete_data_entries()
+#                    print(self.bb.get_attr('_kaar')[trig_num]['time'][0])
+#                    print('Length lvl 3: {}'.format(len(self.bb.get_attr('abstract_lvls')['level 3']['old'])))
                 if len(self.bb.get_attr('hv_list')) > 2 * self.bb.get_attr('num_calls'):
                     self.bb.determine_complete_hv()
                 if self.plot_progress:

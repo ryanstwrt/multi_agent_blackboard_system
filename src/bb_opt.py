@@ -48,6 +48,7 @@ class BbOpt(blackboard.Blackboard):
         self.sm_type = 'interpolate'
         self._nadir_point = {}
         self._ideal_point = {}
+        self._pareto_level = ['level 1']
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'hvi indicator': float, 'time': float})
@@ -236,3 +237,55 @@ class BbOpt(blackboard.Blackboard):
             self.send('executor_{}'.format(self._ka_to_execute[0]), self._ka_to_execute)
         else:
             self.log_info('No KA to execute, waiting to sends trigger again.')
+            
+#    def h5_delete_entries(self, h5):
+#        """
+#        Examine the H5 file and current blackbaord dabstract levels and remove entries in the H5 file that are no longer in the BB bastract levels. (likely this is due to solution no longer being on the Pareto front)
+#        
+#        Parameters
+#        ----------
+#        h5 : h5-group object
+#            H5 entry that is no longer in the abstract level
+#        
+#        """
+#        bb = self.abstract_lvls
+#        del_entries = []
+#        for level, entry in h5.items():
+#            if level in self._pareto_level:
+#                for entry_name, entry_data in entry.items():
+#                    if level in self._panels.keys():
+#                        panel_entries = [panel for panel in entry_data]
+#                        for panel_entry in panel_entries:
+#                            if panel_entry not in bb[level][entry_name]:
+#                                del_entries.append((level, entry_name, panel_entry))   
+#                    if entry_name not in bb[level]:
+#                        del_entries.append((level, entry_name))
+
+
+#        for entry in del_entries:
+#            if len(entry) == 3:
+#                del h5[entry[0]][entry[1]][entry[2]]
+#                self.log_debug('Removing entry {} on level {} panel {}'.format(entry[2],entry[0],entry[1]))
+#            else:
+#                del h5[entry[0]][entry[1]]          
+#                self.log_debug('Removing entry {} on level {}'.format(entry[1],entry[0]))
+                
+    def delete_data_entries(self):
+        pf = [x for x in self.abstract_lvls['level 1'].keys()]
+        lvl2 = self.abstract_lvls['level 2']['old']
+        lvl3 = self.abstract_lvls['level 3']['old']
+        
+        lvl2_list = []
+        lvl3_list = []
+        for core, entry in lvl2.items():
+            if core not in pf:
+                lvl2_list.append(core)
+        for core in lvl2_list:
+            self.remove_bb_entry(2, core, 'old')
+
+        for core, entry in lvl3.items():
+            if core not in pf:
+                lvl3_list.append(core)
+        for core in lvl3_list:
+            self.remove_bb_entry(3, core, 'old')
+        

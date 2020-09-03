@@ -656,7 +656,7 @@ class Blackboard(Agent):
         Parameters
         ----------
         h5 : h5-group object
-            H5 entry that is no longer in the absstract level
+            H5 entry that is no longer in the abstract level
         
         """
         bb = self.abstract_lvls
@@ -669,7 +669,7 @@ class Blackboard(Agent):
                         if panel_entry not in bb[level][entry_name]:
                             del_entries.append((level, entry_name, panel_entry))   
                 if entry_name not in bb[level]:
-                    del_entries.append((level, entry_name))   
+                    del_entries.append((level, entry_name))
 
         for entry in del_entries:
             if len(entry) == 3:

@@ -180,8 +180,25 @@ class KaBr_lvl1(KaBr):
             if self._pf_size > self.total_pf_size:
                 self.prune_pareto_front()
         self.clear_entry()
+       # self.clear_data_levels()
         self.action_complete()
         
+    def clear_data_levels(self):
+        pf = [x for x in self.lvl_read.keys()]
+        lvl2 = self.bb.get_attr('abstract_lvls')['level 2']['old']
+        lvl3 = self.bb.get_attr('abstract_lvls')['level 3']['old']
+        for core_name, entry in lvl2.items():
+            if core_name in pf:
+                pass
+            else:
+                self.write_to_bb(2, core_name, entry, remove=True)
+        for core_name, entry in lvl3.items():
+            if core_name in pf:
+                pass
+            else:
+                self.write_to_bb(3, core_name, entry, remove=True)   
+                
+
     def prune_pareto_front(self):
         """
         Remove locations of the Pareto front to reduce the overall size.
