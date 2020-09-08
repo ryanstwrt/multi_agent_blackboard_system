@@ -29,14 +29,16 @@ class BbOpt(blackboard.Blackboard):
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
 
-        self.objectives = {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
-                           'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
-                           'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
-                           'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
+        self.objectives = {'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float},
+                           'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
+                           'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
+                           'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}
         self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
                                  'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
                                  'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
 
+        self.constraints = {'eol keff':    {'ll': 1.0, 'ul': 2.5, 'variable type': float}}
+        
         self.total_solutions = 50
         self.objectives_ll = []
         self.objectives_ul = []
@@ -53,7 +55,7 @@ class BbOpt(blackboard.Blackboard):
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'hvi indicator': float, 'time': float})
 
-    def initialize_abstract_level_3(self, objectives=None, design_variables=None):
+    def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
         """
         Initialze BB abstract level three with problem specific objectives and design variables
         """
@@ -61,6 +63,8 @@ class BbOpt(blackboard.Blackboard):
             self.objectives = objectives
         if design_variables:
             self.design_variables = design_variables
+        if constraints:
+            self.constraints = constraints
                 
         for obj, obj_dict in self.objectives.items():
             if obj_dict['goal'] == 'lt':
@@ -72,17 +76,18 @@ class BbOpt(blackboard.Blackboard):
 
         self.objectives_ll = [self._nadir_point[x] for x in self.objectives.keys()]
         self.objectives_ul = [self._ideal_point[x] for x in self.objectives.keys()]
-    
 
-        dv = {iv: iv_dict['variable type'] for iv, iv_dict in self.design_variables.items()}
-        obj = {obj: obj_dict['variable type'] for obj, obj_dict in self.objectives.items()}
-        self.add_abstract_lvl(3, {'design variables': dv, 'objective functions': obj})        
+        dv  = {dv:   dv_dict['variable type']   for dv,   dv_dict   in self.design_variables.items()}
+        obj = {obj:  obj_dict['variable type']  for obj,  obj_dict  in self.objectives.items()}
+        cnst  = {cnst: cnst_dict['variable type'] for cnst, cnst_dict in self.constraints.items()}
+        self.add_abstract_lvl(3, {'design variables': dv, 'objective functions': obj, 'constraints' : cnst})
         self.add_panel(3, ['new','old'])
         
     def clear_data_levels(self):
         """
         Remove solutions that are in a data level to reduce the time required to sort through them.
         """
+        pass
         
     def connect_ka_specific(self, agent):
         """
@@ -97,6 +102,7 @@ class BbOpt(blackboard.Blackboard):
         ka = ns.proxy(agent)
         agent_class = ka.get_attr('_class')
         ka.set_attr(_objectives=self.objectives)
+        ka.set_attr(_constraints=self.constraints)
         if 'search' in agent_class:
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
@@ -166,7 +172,12 @@ class BbOpt(blackboard.Blackboard):
         self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
         
     def generate_sm(self):
+        """
+        Generate a surrogate model for the search agents to use.
+        """
         objectives = [x for x in self.objectives.keys()]
+        objectives = objectives if not self.constraints else objectives + [x for x in self.constraints.keys()]
+        print(objectives)
         design_var, objective_func = dg.get_data([x for x in self.design_variables.keys()], objectives)
         if self.sm_type == 'interpolate':
             self._sm = {}
@@ -289,3 +300,11 @@ class BbOpt(blackboard.Blackboard):
         for core in lvl3_list:
             self.remove_bb_entry(3, core, 'old')
         
+    def meta_data_entry(self, time):
+        """
+        Add an entry to abstract level 100 for meta-data
+        """
+        entry_name = self._trigger_event
+        entry = {'agent': self._ka_to_execute, 'time': time, 'HVI': self.hv_list[entry_name]}
+        
+        self.update_abstract_lvl(100, entry_name, entry)

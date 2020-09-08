@@ -12,7 +12,6 @@ import pickle
 
 # Can the controller keep track of the BB levels and update the trigger values of different agents as needed?
 
-# TODO add ability to pass in a surrogate model
 class Controller(object):
     """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
     
@@ -78,15 +77,18 @@ class Controller(object):
             self.bb.controller()
             self.bb.set_attr(_new_entry=False)
             self.bb.send_executor()
+#            self.agent_time = time.time()
             while self.bb.get_attr('_new_entry') == False:
                 time.sleep(0.1)
                 self.agent_time += 0.1
                 if self.agent_time > self.agent_wait_time:
                     break
+ #           self.agent_time -= time.time()
             self.update_bb_trigger_values(trig_num)
             #ka_executed = self._proxy_server.proxy(self.bb.get_attr('_ka_to_execute')[0])
             #if ka_executed.get_attr('_update_hv') :
             self.bb.hv_indicator()
+            #self.bb.meta_date_entry()
 #            if ('lvl1' in self.bb.get_attr('_kaar')[trig_num]['time'][0]):
 #                self.bb.write_to_h5()
 #                self.bb.delete_data_entries()

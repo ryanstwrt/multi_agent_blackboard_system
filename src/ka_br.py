@@ -19,6 +19,7 @@ class KaBr(ka.KaBase):
         self._num_allowed_entries = 25
         self._trigger_val_base = 0
         self._objectives = None
+        self._constraints = None
         self.lvl_read = None
         self.lvl_write = None
         self._update_hv = False
@@ -168,9 +169,9 @@ class KaBr_lvl1(KaBr):
             if self._previous_pf:
                 self.calculate_dci()
                 #self.calculate_hvi_contribution()
-                if self._pf_size > self.total_pf_size:
-                    self.calculate_hvi_contribution()
-                    self.prune_pareto_front()
+#                if self._pf_size > self.total_pf_size:
+#                    self.calculate_hvi_contribution()
+#                    self.prune_pareto_front()
                 self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
                 self._previous_pf = [x for x in self.lvl_read.keys()]
             else:
@@ -423,10 +424,15 @@ class KaBr_lvl3(KaBr):
         self.lvl_data = {}
 
     def determine_validity(self, core_name):
-        """Determine if the core falls in the desired results range"""
-        for param_name, obj_dict in self._objectives.items():     
-            param = self.lvl_data[core_name]['objective functions'][param_name]
-            if param < obj_dict['ll'] or param > obj_dict['ul']:
+        """Determine if the core falls within objective ranges and constrain ranges"""
+        if self._constraints:
+            for constraint, constraint_dict in self._constraints.items():
+                constraint_value = self.lvl_data[core_name]['constraints'][constraint]
+                if constraint_value < constraint_dict['ll'] or constraint_value > constraint_dict['ul']:
+                    return (False, None)
+        for obj_name, obj_dict in self._objectives.items():     
+            obj_value = self.lvl_data[core_name]['objective functions'][obj_name]
+            if obj_value < obj_dict['ll'] or obj_value > obj_dict['ul']:
                 return (False, None)
         return (True, None)
     

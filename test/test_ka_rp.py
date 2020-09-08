@@ -8,9 +8,9 @@ import time
 import ka_rp
 import bb_opt
 
-with open('test/sm_lr_4obj.pkl', 'rb') as pickle_file:
+with open('test/sm_lr_4var_1const.pkl', 'rb') as pickle_file:
     sm_ga_4obj = pickle.load(pickle_file)
-with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
+with open('test/sm_lr_2var_1const.pkl', 'rb') as pickle_file:
     sm_ga_2obj = pickle.load(pickle_file)
 
 
@@ -103,7 +103,7 @@ def test_explore_handler_executor():
     bb_entry = {core_name: entry}
     
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == bb_entry
-    assert rp.get_attr('_trigger_val') == 0
+    assert rp.get_attr('_trigger_val') == 0    
 
     ns.shutdown()
     time.sleep(0.05)
@@ -147,14 +147,14 @@ def test_explore_mc_design_variables():
 def test_create_sm_interpolate():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    objs={'keff': {'ll':0.95, 'ul': 1.25, 'goal':'gt', 'variable type': float}, 
+    objs={'bol keff': {'ll':0.95, 'ul': 1.25, 'goal':'gt', 'variable type': float}, 
                             'void': {'ll':-200, 'ul': 0, 'goal':'lt',  'variable type': float}, 
                             'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
     bb.generate_sm()
     
     sm = bb.get_attr('_sm')
-    keff = sm['keff']((61.37,51.58,0.7340))
+    keff = sm['bol keff']((61.37,51.58,0.7340))
     assert keff == 0.9992587833657331
     
     ns.shutdown()
@@ -163,7 +163,7 @@ def test_create_sm_interpolate():
 def test_create_sm_regression():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    objs={'keff': {'ll':0.95, 'ul':1.25, 'goal':'gt', 'variable type': float}, 
+    objs={'bol keff': {'ll':0.95, 'ul':1.25, 'goal':'gt', 'variable type': float}, 
           'void': {'ll':-200, 'ul':0, 'goal':'lt',  'variable type': float}, 
           'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -173,8 +173,8 @@ def test_create_sm_regression():
     sm = bb.get_attr('_sm')
     objs = sm.predict('lr', [[61.37,51.58,0.7340]])
     assert round(objs[0][0], 8) == 1.00290541
-    assert sm.models['lr']['score'] == 0.8690755311077457
-    assert sm.models['lr']['mse_score'] == 0.13092446889225426
+    assert sm.models['lr']['score'] == 0.880597124857631
+    assert sm.models['lr']['mse_score'] == 0.11940287514236902
     
     ns.shutdown()
     time.sleep(0.05)
@@ -643,7 +643,8 @@ def test_kalocalhc():
 
     assert len(bb.get_attr('abstract_lvls')['level 3']['new']) ==  15
     assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.63313, 69.95625, 0.99652]'] ==  {'design variables': {'height': 79.63313, 'smear': 69.95625, 'pu_content': 0.99652}, 
-                                                                                                     'objective functions': {'reactivity swing' : 242.85502, 'burnup' : 39.01473}}
+                                                                                                     'objective functions': {'reactivity swing' : 439.55794, 'burnup' : 46.45756},
+                                                                                                     'constraints': {'eol keff': 1.25666}}
     assert bb.get_attr('abstract_lvls')['level 3']['old']['core_[78.65, 65.0, 0.42]'] == {'design variables': {'height': 78.65, 'smear': 65.0, 'pu_content': 0.42},
                                                                                           'objective functions': {'reactivity swing' : 447.30449, 'burnup' : 490.0}}
    

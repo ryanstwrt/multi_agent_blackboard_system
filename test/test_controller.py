@@ -60,7 +60,7 @@ def test_run_single_agent_bb():
                                           agent_wait_time=5,
                                           progress_rate=1,
                                           surrogate_model={'sm_type'     : 'lr', 
-                                                           'pickle file' : 'test/sm_lr_4obj.pkl'})
+                                                           'pickle file' : 'test/sm_lr_4var_1const.pkl'})
 
     bb_controller.bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
                                                        'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')

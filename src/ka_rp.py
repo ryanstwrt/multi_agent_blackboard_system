@@ -29,6 +29,9 @@ class KaRp(ka.KaBase):
         self._objectives = {}
         self.objective_functions = {}
         self._objective_accuracy = 5
+        self._constraints = {}
+        self.current_constraints = {}
+        self._constraint_accuracy = 5
         self._update_hv = False
         self._class = 'search'
         
@@ -46,16 +49,22 @@ class KaRp(ka.KaBase):
                 self.objective_functions[obj] = round(float(obj_list[num]), self._objective_accuracy)
         elif self.sm_type == 'interpolate':
             for obj_name, interpolator in self._sm.items():
-                self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
+                if obj_name in self._objectives:
+                    self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
+                elif obj_name in self._constraints:
+                    self.current_constraints[obj_name] = round(float(interpolator(tuple(design))), self._constraint_accuracy)
         else:
             obj_list = self._sm.predict(self.sm_type, [design])
             for num, obj in enumerate(self._objectives.keys()):
                 self.objective_functions[obj] = round(float(obj_list[0][num]), self._objective_accuracy)
-        new_design = self.current_design_variables.copy()
-        new_design.update(self.objective_functions)
-        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in new_design.items()]))
+            for num, cnst in enumerate(self._constraints.keys()):
+                cnst_num = num + len(self.objective_functions)
+                self.current_constraints[cnst] = round(float(obj_list[0][cnst_num]), self._constraint_accuracy)
+                
         self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
-        self._entry = {'design variables': self.current_design_variables, 'objective functions': self.objective_functions}
+        self._entry = {'design variables': self.current_design_variables, 
+                       'objective functions': self.objective_functions,
+                       'constraints': self.current_constraints}
         
     def handler_executor(self, message):
         """

@@ -33,7 +33,7 @@ def test_BbOpt_init():
     assert bb.get_attr('design_variables') == {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                                'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                                'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
-    
+    assert bb.get_attr('constraints') == {'eol keff': {'ll': 1.0, 'ul': 2.5, 'variable type': float}}
     assert bb.get_attr('_complete') == False
     assert bb.get_attr('_nadir_point') == {}
     assert bb.get_attr('_ideal_point') == {}
@@ -55,9 +55,11 @@ def test_BbOpt_initalize_abstract_level_3_basic():
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
                                                    'level 3': {'new': {'design variables': {'height': float, 'smear': float, 'pu_content': float},
-                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}},
+                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float},
+                                                                       'constraints': {'eol keff': float}},
                                                                'old': {'design variables': {'height': float, 'smear': float, 'pu_content': float},
-                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float}}},
+                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float},
+                                                                       'constraints': {'eol keff': float}}},
                                                    'level 100': {'hvi indicator': float, 'time': float}}
 
     
@@ -79,9 +81,11 @@ def test_BbOpt_initalize_abstract_level_3():
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
                                                    'level 3': {'new': {'design variables': {'height': float},
-                                                                       'objective functions':  {'reactivity swing': float, 'burnup': float}},
+                                                                       'objective functions':  {'reactivity swing': float, 'burnup': float},
+                                                                       'constraints': {'eol keff': float}},
                                                                'old': {'design variables': {'height': float},
-                                                                       'objective functions':  {'reactivity swing': float, 'burnup': float}}},
+                                                                       'objective functions':  {'reactivity swing': float, 'burnup': float},
+                                                                       'constraints': {'eol keff': float}}},
                                                    'level 100': {'hvi indicator': float, 'time': float}}
 
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
