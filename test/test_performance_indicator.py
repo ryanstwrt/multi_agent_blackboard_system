@@ -27,10 +27,10 @@ def test_hypervolume_indicator_base():
 def test_hypervolume_indicator_sfr():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-    with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
+    with open('./sm_gpr.pkl', 'rb') as pickle_file:
         sm_ga_2obj = pickle.load(pickle_file)
 
-    bb.set_attr(sm_type='lr')
+    bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga_2obj)
     objs = {'reactivity swing': {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float}}

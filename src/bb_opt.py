@@ -177,8 +177,7 @@ class BbOpt(blackboard.Blackboard):
         """
         objectives = [x for x in self.objectives.keys()]
         objectives = objectives if not self.constraints else objectives + [x for x in self.constraints.keys()]
-        print(objectives)
-        design_var, objective_func = dg.get_data([x for x in self.design_variables.keys()], objectives)
+        design_var, objective_func, data_dict = dg.get_data([x for x in self.design_variables.keys()], objectives)
         if self.sm_type == 'interpolate':
             self._sm = {}
             design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)

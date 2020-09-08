@@ -8,10 +8,8 @@ import time
 import ka_rp
 import bb_opt
 
-with open('test/sm_lr_4var_1const.pkl', 'rb') as pickle_file:
-    sm_ga_4obj = pickle.load(pickle_file)
-with open('test/sm_lr_2var_1const.pkl', 'rb') as pickle_file:
-    sm_ga_2obj = pickle.load(pickle_file)
+with open('./sm_gpr.pkl', 'rb') as pickle_file:
+    sm_ga = pickle.load(pickle_file)
 
 
 def test_karp_init():
@@ -88,8 +86,8 @@ def test_explore_handler_executor():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
 
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_4obj) 
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga) 
     bb.connect_agent(ka_rp.KaGlobal, 'ka_rp_explore')
     
     rp = ns.proxy('ka_rp_explore')
@@ -272,8 +270,8 @@ def test_determine_model_applicability():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_4obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
@@ -307,8 +305,8 @@ def test_exploit_handler_executor_pert():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_4obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
@@ -340,8 +338,8 @@ def test_exploit_handler_executor_rw():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_4obj) 
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga) 
     bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
@@ -368,8 +366,8 @@ def test_exploit_handler_trigger_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_4obj) 
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga) 
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp')
     
     bb.publish_trigger()
@@ -393,8 +391,8 @@ def test_exploit_perturb_design():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_4obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
 
     rp = ns.proxy('ka_rp_exploit')
@@ -452,8 +450,8 @@ def test_kalocalrw():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_4obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
@@ -479,8 +477,8 @@ def test_determine_step_steepest_ascent():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -565,8 +563,8 @@ def test_determine_step_simple():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -614,12 +612,11 @@ def test_kalocalhc():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
 
     bb.connect_agent(ka_rp.KaLocalHC, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
@@ -640,11 +637,12 @@ def test_kalocalhc():
     rp.set_attr(new_designs=['core_[65.0, 65.0, 0.42]'])
     rp.search_method()
     time.sleep(3)
-
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) ==  15
-    assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.63313, 69.95625, 0.99652]'] ==  {'design variables': {'height': 79.63313, 'smear': 69.95625, 'pu_content': 0.99652}, 
-                                                                                                     'objective functions': {'reactivity swing' : 439.55794, 'burnup' : 46.45756},
-                                                                                                     'constraints': {'eol keff': 1.25666}}
+    
+    print(bb.get_attr('abstract_lvls')['level 3']['new'])
+    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) ==  14
+    assert bb.get_attr('abstract_lvls')['level 3']['new']['core_[79.63313, 69.95625, 0.20466]'] ==  {'design variables': {'height': 79.63313, 'smear': 69.95625, 'pu_content': 0.20466}, 
+                                                                                                     'objective functions': {'reactivity swing' : 433.43563, 'burnup' : 45.17042},
+                                                                                                     'constraints': {'eol keff': 1.09188}}
     assert bb.get_attr('abstract_lvls')['level 3']['old']['core_[78.65, 65.0, 0.42]'] == {'design variables': {'height': 78.65, 'smear': 65.0, 'pu_content': 0.42},
                                                                                           'objective functions': {'reactivity swing' : 447.30449, 'burnup' : 490.0}}
    
@@ -655,8 +653,8 @@ def test_kalocalhc_simple():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -686,8 +684,8 @@ def test_kalocalga():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -734,8 +732,8 @@ def test_kalocalga_linear_crossover():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -788,8 +786,8 @@ def test_kalocalga_full():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -865,7 +863,7 @@ def test_kaga_non_uniform_mutation():
     bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
-    genotype = {'height':50.0,'smear':65.0,'pu_content':0.5}
+    genotype = {'height':55.0,'smear':65.0,'pu_content':0.5}
     new_genotype = rp.non_uniform_mutation(genotype)
     assert genotype != new_genotype
 

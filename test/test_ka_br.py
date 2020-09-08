@@ -9,8 +9,8 @@ import ka_br
 import bb_opt
 import pickle
 
-with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
-    sm_ga_2obj = pickle.load(pickle_file)
+with open('./sm_gpr.pkl', 'rb') as pickle_file:
+    sm_ga = pickle.load(pickle_file)
 
 def test_kabr_init():
     ns = run_nameserver()
@@ -121,8 +121,8 @@ def test_kabr_lvl1_init():
 def test_kabr_lvl1_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -152,8 +152,8 @@ def test_kabr_lvl1_publish():
 def test_kabr_lvl1_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
@@ -312,8 +312,8 @@ def test_kabr_lvl1_prune_entries():
 def test_kabr_lvl1_calcualte_dci():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.set_attr(sm_type='lr')
-    bb.set_attr(_sm=sm_ga_2obj)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)

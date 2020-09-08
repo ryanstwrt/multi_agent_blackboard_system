@@ -54,12 +54,11 @@ class KaRp(ka.KaBase):
                 elif obj_name in self._constraints:
                     self.current_constraints[obj_name] = round(float(interpolator(tuple(design))), self._constraint_accuracy)
         else:
-            obj_list = self._sm.predict(self.sm_type, [design])
-            for num, obj in enumerate(self._objectives.keys()):
-                self.objective_functions[obj] = round(float(obj_list[0][num]), self._objective_accuracy)
-            for num, cnst in enumerate(self._constraints.keys()):
-                cnst_num = num + len(self.objective_functions)
-                self.current_constraints[cnst] = round(float(obj_list[0][cnst_num]), self._constraint_accuracy)
+            obj_dict = self._sm.predict(self.sm_type, self.current_design_variables, output='dict')
+            for obj in self._objectives.keys():
+                self.objective_functions[obj] = round(float(obj_dict[obj]), self._objective_accuracy)
+            for cnst in self._constraints.keys():
+                self.current_constraints[cnst] = round(float(obj_dict[cnst]), self._constraint_accuracy)
                 
         self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
         self._entry = {'design variables': self.current_design_variables, 
@@ -613,5 +612,5 @@ class KaGA(KaLocal):
             genotype[dv_mutate] = min(new_gene, self.design_variables[dv_mutate]['ul'])
         else:
             new_gene = genotype[dv_mutate] - delta_k
-            genotype[dv_mutate] = max(new_gene, self.design_variables[dv_mutate]['ll'])  
+            genotype[dv_mutate] = max(new_gene, self.design_variables[dv_mutate]['ll'])
         return genotype
