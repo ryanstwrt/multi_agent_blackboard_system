@@ -54,7 +54,9 @@ class BbOpt(blackboard.Blackboard):
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'hvi indicator': float, 'time': float})
+#        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
 
+        
     def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
         """
         Initialze BB abstract level three with problem specific objectives and design variables
@@ -118,24 +120,6 @@ class BbOpt(blackboard.Blackboard):
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return
-
-    def determine_complete(self):
-        """
-        Determine when the problem has finished to send the shutdown communication.
-        Complete for the traditional system is determined  when a set number of solutions has been placed on abstract level 1 on the blackboard.
-        """
-        pareto_solutions = 0
-        for panel in self.abstract_lvls['level 1'].values():
-            for core in panel.values():
-                pareto_solutions += 1
-        
-        if pareto_solutions > self.total_solutions:
-            self.log_info('Problem complete, shutting agents down')
-            for agent_name, connections in self.agent_addrs.items():
-                self.send(connections['shutdown'][0], "shutdown")
-            self._complete = True
-        else:
-            pass
         
     def determine_complete_hv(self):
         """
@@ -304,6 +288,6 @@ class BbOpt(blackboard.Blackboard):
         Add an entry to abstract level 100 for meta-data
         """
         entry_name = self._trigger_event
-        entry = {'agent': self._ka_to_execute, 'time': time, 'HVI': self.hv_list[entry_name]}
+        entry = {'agent': self._ka_to_execute, 'time': time, 'hvi': self.hv_list[entry_name]}
         
         self.update_abstract_lvl(100, entry_name, entry)

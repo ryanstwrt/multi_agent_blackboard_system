@@ -163,6 +163,7 @@ def test_kabr_lvl1_executor():
     br = ns.proxy('ka_br_lvl1')
     br.set_attr(_lower_objective_reference_point=[0,0])
     br.set_attr(_upper_objective_reference_point=[1,1])
+    br.set_attr(pareto_sorter='hvi')
 
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
                                                           'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0}}, panel='old')
@@ -840,10 +841,14 @@ def test_timing():
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br3')
     
-    for k in range(0,10):
+    for k in range(0,200):
         bb.update_abstract_lvl(3, 'core {}'.format(k), {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
                                          'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0},
                                                        'constraints': {'eol keff':1.1}}, panel='new')
+#    for k in range(1000,1500):
+ #       bb.update_abstract_lvl(3, 'core {}'.format(k), {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+  #                                       'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0},
+   #                                                    'constraints': {'eol keff':1.1}}, panel='old')
         
     br.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 3']['new'])
     br.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['new'])

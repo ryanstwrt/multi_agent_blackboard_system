@@ -406,7 +406,7 @@ class KaGA(KaLocal):
     
     def on_init(self):
         super().on_init()
-        self._base_trigger_val = 10
+        self._base_trigger_val = 5
         self.previous_populations = {}
         self.crossover_rate = 0.8
         self.offspring_per_generation = 20
@@ -414,7 +414,7 @@ class KaGA(KaLocal):
         self.crossover_type = 'single point'
         self.num_cross_over_points = 1
         self.mutation_type = 'random'
-        self.pf_size = 10
+        self.pf_size = 40
         self.b = 2
         self.k = 5
         self.T = 100
@@ -423,6 +423,7 @@ class KaGA(KaLocal):
     def handler_trigger_publish(self, message):
         """
         Read the BB level and determine if an entry is available.
+        GA is currently triggered if we find that the PF level has solutions that it has not analyzed greater than some aribratry amount pf_size.
         
         Paremeters
         ----------
@@ -443,7 +444,7 @@ class KaGA(KaLocal):
         new = set([x for x in lvl.keys()])
         old = set([x for x in self.analyzed_design.keys()])
         intersection = old.intersection(new)
-        self._trigger_val = self._base_trigger_val if (len(lvl) >= self.pf_size + len(old) and intersection != new) else 0
+        self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 

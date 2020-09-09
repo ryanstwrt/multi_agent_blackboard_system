@@ -36,33 +36,17 @@ class KaBr(ka.KaBase):
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name))
-     #   write_read = []
-      #  write_move = []
-#        t1 = time.time()
         self.clear_bb_lvl()
- #       clear_bb_lvl = round(time.time() - t1,5)
-        while self._entry_name:
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        for entry_name in self.lvl_read.keys():
             self.clear_entry()
-  #          t2 = time.time()
-            self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-            self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-   #         write_read.append(round(time.time() - t2,5))
-            
-            if self.read_bb_lvl():
-    #            t3 = time.time()
-                self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
-                entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
-                self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)      
-       #         write_move.append(round(time.time() - t3,5))
+            self.add_entry((entry_name, True))
+            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
+            entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+            self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)  
+    
         self._trigger_val = 0
         self.action_complete()
-        #total = round(time.time() - t1,5)
-       # print('Time to clear BB: {}'.format(clear_bb_lvl))
-       # print('Time to make read/write: {} \n  total: {}'.format(write_read,sum(write_read)))
-       # print('Time to read/move: {}'.format(sum(write_read)))
-        #print('Time to make read/write: {} \n  total: {}'.format(write_read,sum(write_read)))
-       # print('Time to write/move: {}'.format(sum(write_move)))
-       # print('Time for total: {}'.format(total))
             
     def handler_trigger_publish(self, message):
         """Read the BB level and determine if an entry is available."""
@@ -139,6 +123,7 @@ class KaBr_lvl1(KaBr):
         self.dci_div = None
         self._nadir_point = None
         self._ideal_point = None
+        self.pareto_sorter = 'non-dominated'
         
     def handler_trigger_publish(self, message):
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
@@ -165,21 +150,41 @@ class KaBr_lvl1(KaBr):
         # Make sure this is okay for larger numbers of entries otherwise revert to old method
         for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
             self._lvl_data.update(panel)
-        if self.dci:
+        if self.pareto_sorter == 'dci':
             if self._previous_pf:
                 self.calculate_dci()
-                #self.calculate_hvi_contribution()
-#                if self._pf_size > self.total_pf_size:
-#                    self.calculate_hvi_contribution()
-#                    self.prune_pareto_front()
                 self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
                 self._previous_pf = [x for x in self.lvl_read.keys()]
             else:
                 self._previous_pf = [x for x in self.lvl_read.keys()]
-        else:
+        elif self.pareto_sorter == 'hvi':
             self.calculate_hvi_contribution()
             if self._pf_size > self.total_pf_size:
+                self.prune_pareto_front()            
+        elif self.pareto_sorter == 'dci hvi':
+            self.calculate_dci()
+            self.calculate_hvi_contribution()
+            if self._pf_size > self.total_pf_size:
+                self.calculate_hvi_contribution()
                 self.prune_pareto_front()
+                self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+                self._previous_pf = [x for x in self.lvl_read.keys()]
+            else:
+                self._previous_pf = [x for x in self.lvl_read.keys()]   
+        else:
+#            self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
+            self.clear_bb_lvl()
+#        if self.dci:
+ #           if self._previous_pf:
+  #              self.calculate_dci()
+   #             self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+    #            self._previous_pf = [x for x in self.lvl_read.keys()]
+     #       else:
+      #          self._previous_pf = [x for x in self.lvl_read.keys()]
+       # else:
+        #    self.calculate_hvi_contribution()
+         #   if self._pf_size > self.total_pf_size:
+          #      self.prune_pareto_front()
         self.clear_entry()
        # self.clear_data_levels()
         self.action_complete()
@@ -274,10 +279,20 @@ class KaBr_lvl1(KaBr):
         dci.compute_dci(pf_old)
         dc_old = dci.dc
         designs_to_compare = []
-
-        # Determine if old Pareto front is missing any grid positions
-        # Determine if any point on the new Pareto front is dominated and remove it
         
+        
+#        designs_to_compare = {}
+ #       for new_pf_design_name, dc_dict_new in dc_new.items():
+  #          for old_pf_design_name, dc_dict_old in dc_old.items():
+   #             if dc_dict_new['grid position'] == dc_dict_old['grid position']:
+    #                try:
+     #                   designs_to_compare[dc_dict_new['grid position']].append([new_pf_design_name, old_pf_design_name])
+      #              except:
+       #                 designs_to_compare[dc_dict_new['grid position']] = [new_pf_design_name, old_pf_design_name]
+            
+            
+        # Determine if old Pareto front is missing any grid positions
+        # Determine if any point on the new Pareto front is dominated and remove it            
         for new_pf_design_name, new_dci in dc_new.items():
             # Determine if we have two designs in the same hyperbox
             for old_pf_design_name, old_dci in dc_old.items():
@@ -292,7 +307,6 @@ class KaBr_lvl1(KaBr):
                     designs_to_remove += [new_pf_design_name] if not optimal else []
         
         designs_to_compare = list(set(designs_to_compare))        
-        
         scaled_pareto_fronts = {x: (self.scale_pareto_front([x[0]])[0], self.scale_pareto_front([x[1]])[0]) for x in designs_to_compare}
         # Examine the two solutions in hyperbox and determine which one to remove
         # Calcualte DCI for previous PF, and compare with current PF
@@ -315,7 +329,7 @@ class KaBr_lvl1(KaBr):
         Remove designs that do not contibute to the Pareto front (i.e. designs with HV values of 0)
         """
         for design in entries:
-            self.log_info('Removing core {}, no longer optimal'.format(design))
+            self.log_debug('Removing core {}, no longer optimal'.format(design))
             self._pf_size -= 1
             self.write_to_bb(self.bb_lvl, design, self.lvl_read[design], remove=True)
             
@@ -335,7 +349,30 @@ class KaBr_lvl1(KaBr):
             return 'weak'
         else:
             return None
-            
+        
+    def determine_validity(self, core_name):
+        """Determine if the core is pareto optimal"""
+        
+        if self.lvl_read == {}:
+            self.log_debug('Design {} is initial optimal design.'.format(core_name))
+            return (True, 'pareto')
+        pareto_opt = None
+        for opt_core in self.lvl_read.keys():
+            if opt_core != core_name:
+                pareto_opt = self.determine_optimal_type(self._lvl_data[core_name]['objective functions'], 
+                                                         self._lvl_data[opt_core]['objective functions'])
+                if pareto_opt == None:
+                    return (False, pareto_opt)
+        return (True, pareto_opt)
+
+    def clear_bb_lvl(self):
+        remove = []
+        for core_name, core_entry in self.lvl_read.items():
+            valid_core, opt_type = self.determine_validity(core_name)
+            if not valid_core:
+                remove.append(core_name)
+        self.remove_dominated_entries(remove)
+    
             
 class KaBr_lvl2(KaBr):
     """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
