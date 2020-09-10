@@ -60,7 +60,7 @@ def test_BbOpt_initalize_abstract_level_3_basic():
                                                                'old': {'design variables': {'height': float, 'smear': float, 'pu_content': float},
                                                                        'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float},
                                                                        'constraints': {'eol keff': float}}},
-                                                   'level 100': {'hvi indicator': float, 'time': float}}
+                                                   'level 100': {'agent': str, 'hvi': float, 'time': float}}
 
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
@@ -86,7 +86,7 @@ def test_BbOpt_initalize_abstract_level_3():
                                                                'old': {'design variables': {'height': float},
                                                                        'objective functions':  {'reactivity swing': float, 'burnup': float},
                                                                        'constraints': {'eol keff': float}}},
-                                                   'level 100': {'hvi indicator': float, 'time': float}}
+                                                   'level 100': {'agent': str, 'hvi': float, 'time': float}}
 
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
                                             'level 2': {'new':{}, 'old':{}}, 
@@ -224,3 +224,16 @@ def test_determine_complete():
 
     ns.shutdown()
     time.sleep(0.05)
+
+def test_meta_data_etry():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(_trigger_event=3)
+    bb.set_attr(_ka_to_execute=('agent_x', 2.4))
+    bb.set_attr(hv_list=[0.1,0.2,0.3,0.4,0.5])
+    bb.meta_data_entry(1.5)
+    assert bb.get_attr('abstract_lvls')['level 100'] == {'3': {'agent': 'agent_x', 'time': 1.5, 'hvi': 0.4}}
+    
+
+    ns.shutdown()
+    time.sleep(0.05)    

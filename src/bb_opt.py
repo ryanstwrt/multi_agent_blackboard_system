@@ -53,8 +53,8 @@ class BbOpt(blackboard.Blackboard):
         self._pareto_level = ['level 1']
         
         # Initialize an abstract level which holds meta-data about the problem
-        self.add_abstract_lvl(100, {'hvi indicator': float, 'time': float})
-#        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+#        self.add_abstract_lvl(100, {'hvi indicator': float, 'time': float})
+        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
 
         
     def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
@@ -287,7 +287,7 @@ class BbOpt(blackboard.Blackboard):
         """
         Add an entry to abstract level 100 for meta-data
         """
-        entry_name = self._trigger_event
-        entry = {'agent': self._ka_to_execute, 'time': time, 'hvi': self.hv_list[entry_name]}
+        entry_name = str(self._trigger_event)
+        entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[self._trigger_event]}
         
         self.update_abstract_lvl(100, entry_name, entry)

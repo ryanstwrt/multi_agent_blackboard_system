@@ -71,23 +71,24 @@ class Controller(object):
             responses = False
             # Wait until all responses have been recieved or until a specified time
             while not responses:
-                time.sleep(0.05)
                 if len(self.bb.get_attr('_kaar')[trig_num]) == len(self.bb.get_attr('agent_addrs')):
                     responses = True
             self.bb.controller()
             self.bb.set_attr(_new_entry=False)
             self.bb.send_executor()
-#            self.agent_time = time.time()
+            agent_time = time.time()
             while self.bb.get_attr('_new_entry') == False:
-                time.sleep(0.1)
-                self.agent_time += 0.1
-                if self.agent_time > self.agent_wait_time:
+#                time.sleep(0.1)
+ #               self.agent_time += 0.1
+                if time.time() - agent_time > self.agent_wait_time:
                     break
- #           self.agent_time -= time.time()
+            agent_time = time.time() - agent_time
+            print(agent_time)
             self.update_bb_trigger_values(trig_num)
             self.bb.hv_indicator()
-            #self.bb.meta_date_entry()
+            self.bb.meta_data_entry(agent_time)
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
+#                print(self.bb.get_attr('abstract_lvls')['level 100'])
                 self.bb.write_to_h5()
                 if len(self.bb.get_attr('hv_list')) > 2 * self.bb.get_attr('num_calls'):
                     self.bb.determine_complete_hv()
@@ -95,7 +96,7 @@ class Controller(object):
                     self.bb.plot_progress()
                 self.bb.diagnostics_replace_agent()
         self.time.append(time.time())
-        self.bb.update_abstract_lvl(100, 'meta-data', {'hvi indicator': self.bb.get_attr('hv_list')[-1], 'time': self.time[1]-self.time[0]})
+        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_attr('hv_list')[-1]})
 #        self.bb.update_abstract_lvl(100, 'final', {'agent': 'none', 'hvi': self.bb.get_attr('hv_list')[-1], 'time': self.time[1]-self.time[0]})
         self.bb.write_to_h5()
         
