@@ -79,7 +79,7 @@ def test_combined_kabr_handler_executor():
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.475},
                                                        'core_2' : {'pareto type' : 'pareto', 'fitness function': 1.6},
-                                                       'core_3' : {'pareto type' : 'weak', 'fitness function': 1.6}}
+                                                       'core_3' : {'pareto type' : 'pareto', 'fitness function': 1.6}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {},
                                                        'old': {'core_1' : {'valid' : True},
                                                                'core_2' : {'valid' : True},
@@ -90,7 +90,7 @@ def test_combined_kabr_handler_executor():
     time.sleep(1) 
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function': 1.6},
-                                                       'core_3' : {'pareto type' : 'weak', 'fitness function': 1.6}}
+                                                       'core_3' : {'pareto type' : 'pareto', 'fitness function': 1.6}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {},
                                                        'old': {'core_1' : {'valid' : True},
                                                                'core_2' : {'valid' : True},
@@ -233,9 +233,9 @@ def test_combined_kabr_karp():
 
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl1', 6)
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[61.75, 65.0, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.61069},
-                                                       'core_[68.25, 65.0, 0.4]': {'pareto type' : 'weak', 'fitness function' : 0.67707},
-                                                       'core_[65.0, 68.25, 0.4]': {'pareto type' : 'weak', 'fitness function' : 0.6793},
-                                                       'core_[65.0, 65.0, 0.38]': {'pareto type' : 'weak', 'fitness function' : 0.64698}}
+                                                       'core_[68.25, 65.0, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.67707},
+                                                       'core_[65.0, 68.25, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.6793},
+                                                       'core_[65.0, 65.0, 0.38]': {'pareto type' : 'pareto', 'fitness function' : 0.64698}}
 
     ns.shutdown()
     time.sleep(0.1)   

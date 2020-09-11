@@ -31,8 +31,22 @@ class KaBr(ka.KaBase):
         self._entry = None
         self._entry_name = None
         
-    def determine_validity(self):
-        pass
+    def determine_validity(self, core_name):
+        """Determine if the core is pareto optimal"""
+        if 'lvl2' in self._class:
+            self._fitness = self.determine_fitness_function(core_name, self._lvl_data[core_name]['objective functions'])
+        
+        if self.lvl_write == {}:
+            self.log_debug('Design {} is initial optimal design.'.format(core_name))
+            return (True, 'pareto')
+        pareto_opt = None
+        for opt_core in self.lvl_write.keys():
+            if opt_core != core_name:
+                pareto_opt = self.determine_optimal_type(self._lvl_data[core_name]['objective functions'], 
+                                                         self._lvl_data[opt_core]['objective functions'])
+                if pareto_opt == None:
+                    return (False, pareto_opt)
+        return (True, pareto_opt)
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name))
@@ -44,7 +58,6 @@ class KaBr(ka.KaBase):
             self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
             entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
             self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)  
-    
         self._trigger_val = 0
         self.action_complete()
             
@@ -54,7 +67,7 @@ class KaBr(ka.KaBase):
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
 
         for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
-            self.lvl_data.update(panel)
+            self._lvl_data.update(panel)
 
         self._num_entries = len(self.lvl_read)
 
@@ -81,6 +94,7 @@ class KaBr(ka.KaBase):
         return False
     
     def clear_bb_lvl(self):
+        move = []
         for core_name, core_entry in self.lvl_read.items():
             valid_core, opt_type = self.determine_validity(core_name)
             if not valid_core:
@@ -89,6 +103,23 @@ class KaBr(ka.KaBase):
     def remove_dominated_entries(self):
         pass
 
+    def determine_optimal_type(self, new_rx, opt_rx):
+        """Determine if the solution is Pareto, weak, or not optimal"""
+        optimal = 0
+        pareto_optimal = 0
+        for param, obj_dict in self._objectives.items():
+            new_val = -new_rx[param] if obj_dict['goal'] == 'gt' else new_rx[param]
+            opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]           
+            optimal += 1 if new_val <= opt_val else 0
+            pareto_optimal += 1 if new_val < opt_val else 0
+            
+        if optimal == len(self._objectives.keys()) and pareto_optimal > 0:
+            return 'pareto'
+        elif pareto_optimal > 0:
+            return 'weak'
+        else:
+            return None
+    
     def scale_objective(self, val, ll, ul):
         """Scale an objective based on the upper/lower value"""
         if val < ll or val > ul:
@@ -144,6 +175,7 @@ class KaBr_lvl1(KaBr):
         """
         self.log_debug('Executing agent {}'.format(self.name)) 
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        self.lvl_write = self.lvl_read
         self._pf_size = len(self.lvl_read)
         self._hvi_dict = {}
 
@@ -162,13 +194,14 @@ class KaBr_lvl1(KaBr):
             if self._pf_size > self.total_pf_size:
                 self.prune_pareto_front()            
         elif self.pareto_sorter == 'dci hvi':
-            self.calculate_dci()
-            self.calculate_hvi_contribution()
-            if self._pf_size > self.total_pf_size:
+            if self._previous_pf:
+                self.calculate_dci()
                 self.calculate_hvi_contribution()
-                self.prune_pareto_front()
-                self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-                self._previous_pf = [x for x in self.lvl_read.keys()]
+                if self._pf_size > self.total_pf_size:
+                    self.calculate_hvi_contribution()
+                    self.prune_pareto_front()
+                    self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+                    self._previous_pf = [x for x in self.lvl_read.keys()]
             else:
                 self._previous_pf = [x for x in self.lvl_read.keys()]   
         else:
@@ -188,23 +221,7 @@ class KaBr_lvl1(KaBr):
         self.clear_entry()
        # self.clear_data_levels()
         self.action_complete()
-        
-    def clear_data_levels(self):
-        pf = [x for x in self.lvl_read.keys()]
-        lvl2 = self.bb.get_attr('abstract_lvls')['level 2']['old']
-        lvl3 = self.bb.get_attr('abstract_lvls')['level 3']['old']
-        for core_name, entry in lvl2.items():
-            if core_name in pf:
-                pass
-            else:
-                self.write_to_bb(2, core_name, entry, remove=True)
-        for core_name, entry in lvl3.items():
-            if core_name in pf:
-                pass
-            else:
-                self.write_to_bb(3, core_name, entry, remove=True)   
-                
-
+    
     def prune_pareto_front(self):
         """
         Remove locations of the Pareto front to reduce the overall size.
@@ -332,38 +349,6 @@ class KaBr_lvl1(KaBr):
             self.log_debug('Removing core {}, no longer optimal'.format(design))
             self._pf_size -= 1
             self.write_to_bb(self.bb_lvl, design, self.lvl_read[design], remove=True)
-            
-    def determine_optimal_type(self, new_rx, opt_rx):
-        """Determine if the solution is Pareto, weak, or not optimal"""
-        optimal = 0
-        pareto_optimal = 0
-        for param, obj_dict in self._objectives.items():
-            new_val = -new_rx[param] if obj_dict['goal'] == 'gt' else new_rx[param]
-            opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]           
-            optimal += 1 if new_val <= opt_val else 0
-            pareto_optimal += 1 if new_val < opt_val else 0
-            
-        if optimal == len(self._objectives.keys()) and pareto_optimal > 0:
-            return 'pareto'
-        elif pareto_optimal > 0:
-            return 'weak'
-        else:
-            return None
-        
-    def determine_validity(self, core_name):
-        """Determine if the core is pareto optimal"""
-        
-        if self.lvl_read == {}:
-            self.log_debug('Design {} is initial optimal design.'.format(core_name))
-            return (True, 'pareto')
-        pareto_opt = None
-        for opt_core in self.lvl_read.keys():
-            if opt_core != core_name:
-                pareto_opt = self.determine_optimal_type(self._lvl_data[core_name]['objective functions'], 
-                                                         self._lvl_data[opt_core]['objective functions'])
-                if pareto_opt == None:
-                    return (False, pareto_opt)
-        return (True, pareto_opt)
 
     def clear_bb_lvl(self):
         remove = []
@@ -383,8 +368,9 @@ class KaBr_lvl2(KaBr):
         self._num_allowed_entries = 10
         self._trigger_val_base = 4
         self._fitness = 0.0
+        self._class = 'reader_lvl2'
         self._update_hv = True
-        self.lvl_data = {}
+        self._lvl_data = {}
         
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
@@ -392,36 +378,28 @@ class KaBr_lvl2(KaBr):
         
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
 
         self.clear_bb_lvl()
-
-        while self._entry_name:
+        for core_name in self.lvl_read.keys():
             self.clear_entry()
-            self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-            self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
-            if self.read_bb_lvl():
+            valid_core, opt_type = self.determine_validity(core_name)
+            if valid_core:
+                self.add_entry((core_name, opt_type))
                 self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
                 entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
                 self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
+#        while self._entry_name:
+ #           self.clear_entry()
+  #          self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
+#            self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+ #           if self.read_bb_lvl():
+  #              self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
+   #             entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+    #            self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
         
         self._trigger_val = 0
         self.action_complete()
-        
-    def determine_validity(self, core_name):
-        """Determine if the core is pareto optimal"""
-        self._fitness = self.determine_fitness_function(core_name, self.lvl_data[core_name]['objective functions'])
-        
-        if self.lvl_write == {}:
-            self.log_debug('Design {} is initial optimal design.'.format(core_name))
-            return (True, 'pareto')
-        pareto_opt = None
-        for opt_core in self.lvl_write.keys():
-            if opt_core != core_name:
-                pareto_opt = self.determine_optimal_type(self.lvl_data[core_name]['objective functions'], 
-                                                         self.lvl_data[opt_core]['objective functions'])
-                if pareto_opt == None:
-                    return (False, pareto_opt)
-        return (True, pareto_opt)
     
     def determine_fitness_function(self, core_name, core_objectives):
         """
@@ -432,23 +410,6 @@ class KaBr_lvl2(KaBr):
             scaled_fit = self.scale_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'])
             fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
         return round(fitness, 5)
-    
-    def determine_optimal_type(self, new_rx, opt_rx):
-        """Determine if the solution is Pareto, weak, or not optimal"""
-        optimal = 0
-        pareto_optimal = 0
-        for param, obj_dict in self._objectives.items():
-            new_val = -new_rx[param] if obj_dict['goal'] == 'gt' else new_rx[param]
-            opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]           
-            optimal += 1 if new_val <= opt_val else 0
-            pareto_optimal += 1 if new_val < opt_val else 0
-            
-        if optimal == len(self._objectives.keys()) and pareto_optimal > 0:
-            return 'pareto'
-        elif pareto_optimal > 0:
-            return 'weak'
-        else:
-            return None
 
                 
 class KaBr_lvl3(KaBr):
@@ -458,17 +419,17 @@ class KaBr_lvl3(KaBr):
         self.bb_lvl = 2
         self.bb_lvl_read = 3
         self._trigger_val_base = 3
-        self.lvl_data = {}
+        self._lvl_data = {}
 
     def determine_validity(self, core_name):
         """Determine if the core falls within objective ranges and constrain ranges"""
         if self._constraints:
             for constraint, constraint_dict in self._constraints.items():
-                constraint_value = self.lvl_data[core_name]['constraints'][constraint]
+                constraint_value = self._lvl_data[core_name]['constraints'][constraint]
                 if constraint_value < constraint_dict['ll'] or constraint_value > constraint_dict['ul']:
                     return (False, None)
         for obj_name, obj_dict in self._objectives.items():     
-            obj_value = self.lvl_data[core_name]['objective functions'][obj_name]
+            obj_value = self._lvl_data[core_name]['objective functions'][obj_name]
             if obj_value < obj_dict['ll'] or obj_value > obj_dict['ul']:
                 return (False, None)
         return (True, None)

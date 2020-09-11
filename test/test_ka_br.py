@@ -606,10 +606,12 @@ def test_kabr_lvl2_handler_executor():
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.35},
                                                        'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.43},
-                                                       'core_4' : {'pareto type' : 'weak', 'fitness function' : 0.86667}}
-    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {'core_3' : {'valid' : True}}, 
+                                                       'core_3' : {'pareto type' : 'pareto', 'fitness function' : 0.36667},
+                                                       'core_4' : {'pareto type' : 'pareto', 'fitness function' : 0.86667}}
+    assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 
                                                        'old': {'core_1' : {'valid' : True}, 
                                                                'core_2' : {'valid' : True},
+                                                               'core_3' : {'valid' : True},
                                                                'core_4' : {'valid' : True}}}
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
     bb.publish_trigger()
@@ -832,27 +834,26 @@ def test_kabr_lvl3_add_entry():
     ns.shutdown()
     time.sleep(0.05)
     
-
-def test_timing():
-    ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
-    bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br3')
-    ka = bb.get_attr('_proxy_server')
-    br = ka.proxy('ka_br3')
+#def test_timing():
+#    ns = run_nameserver()
+ #   bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+  #  bb.initialize_abstract_level_3()
+   # bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br3')
+    #ka = bb.get_attr('_proxy_server')
+    #br = ka.proxy('ka_br3')
     
-    for k in range(0,200):
-        bb.update_abstract_lvl(3, 'core {}'.format(k), {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0},
-                                                       'constraints': {'eol keff':1.1}}, panel='new')
+#    for k in range(0,200):
+#        bb.update_abstract_lvl(3, 'core {}'.format(k), {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+#                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0},
+#                                                       'constraints': {'eol keff':1.1}}, panel='new')
 #    for k in range(1000,1500):
  #       bb.update_abstract_lvl(3, 'core {}'.format(k), {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
   #                                       'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0},
    #                                                    'constraints': {'eol keff':1.1}}, panel='old')
         
-    br.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 3']['new'])
-    br.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['new'])
-    br.set_attr(_entry_name='core_0')
-    br.handler_executor('test')
-    ns.shutdown()
-    time.sleep(0.05) 
+#    br.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 3']['new'])
+#    br.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['new'])
+ #   br.set_attr(_entry_name='core_0')
+ #   br.handler_executor('test')
+ #   ns.shutdown()
+ #   time.sleep(0.05) 

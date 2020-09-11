@@ -65,39 +65,37 @@ class Controller(object):
             
     def run_single_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
+        num_agents = len(self.bb.get_attr('agent_addrs'))
         while not self.bb.get_attr('_complete'):
             self.bb.publish_trigger()
             trig_num = self.bb.get_attr('_trigger_event')
             responses = False
-            # Wait until all responses have been recieved or until a specified time
+            # Wait until all responses have been recieved
             while not responses:
-                if len(self.bb.get_attr('_kaar')[trig_num]) == len(self.bb.get_attr('agent_addrs')):
-                    responses = True
+                try:
+                    if len(self.bb.get_attr('_kaar')[trig_num]) == num_agents:
+                        responses = True
+                except RuntimeError:
+                    pass
             self.bb.controller()
             self.bb.set_attr(_new_entry=False)
             self.bb.send_executor()
             agent_time = time.time()
             while self.bb.get_attr('_new_entry') == False:
-#                time.sleep(0.1)
- #               self.agent_time += 0.1
                 if time.time() - agent_time > self.agent_wait_time:
                     break
             agent_time = time.time() - agent_time
-            print(agent_time)
             self.update_bb_trigger_values(trig_num)
             self.bb.hv_indicator()
             self.bb.meta_data_entry(agent_time)
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
-#                print(self.bb.get_attr('abstract_lvls')['level 100'])
                 self.bb.write_to_h5()
                 if len(self.bb.get_attr('hv_list')) > 2 * self.bb.get_attr('num_calls'):
                     self.bb.determine_complete_hv()
                 if self.plot_progress:
                     self.bb.plot_progress()
-                self.bb.diagnostics_replace_agent()
         self.time.append(time.time())
         self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_attr('hv_list')[-1]})
-#        self.bb.update_abstract_lvl(100, 'final', {'agent': 'none', 'hvi': self.bb.get_attr('hv_list')[-1], 'time': self.time[1]-self.time[0]})
         self.bb.write_to_h5()
         
         
