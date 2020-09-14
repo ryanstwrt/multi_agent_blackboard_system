@@ -16,7 +16,7 @@ def test_kabr_init():
     ns = run_nameserver()
     ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
     assert ka_b.get_attr('bb') == None
-    assert ka_b.get_attr('bb_lvl') == 0
+    assert ka_b.get_attr('bb_lvl_write') == 0
     assert ka_b.get_attr('_entry') == None
     assert ka_b.get_attr('_entry_name') == None
     assert ka_b.get_attr('_writer_addr') == None
@@ -45,7 +45,7 @@ def test_kabr_trigger_handler_publish():
     ka_b.add_blackboard(bb)
     ka_b.connect_trigger()
     ka_b.set_attr(bb_lvl_read=1)
-    ka_b.set_attr(bb_lvl=2)
+    ka_b.set_attr(bb_lvl_write=2)
     bb.add_abstract_lvl(1, {'valid': bool})
     bb.add_panel(1, ['new','old'])
     bb.add_abstract_lvl(2, {'valid': bool})
@@ -93,7 +93,7 @@ def test_kabr_lvl1_init():
     ns = run_nameserver()
     ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
     assert ka_br1.get_attr('bb') == None
-    assert ka_br1.get_attr('bb_lvl') == 1
+    assert ka_br1.get_attr('bb_lvl_write') == 1
     assert ka_br1.get_attr('_entry') == None
     assert ka_br1.get_attr('_entry_name') == None
     assert ka_br1.get_attr('_writer_addr') == None
@@ -196,7 +196,7 @@ def test_kabr_lvl1_executor():
     assert br.get_attr('_pf_size') == 3
     
     assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
-                                       'core_[75.0, 55.0, 0.30]': 0.014500000000000013}
+                                       'core_[75.0, 55.0, 0.30]': 0.0625}
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[75.0, 55.0, 0.30]':{'pareto type' : 'pareto', 'fitness function' : 1.0},
                                                       'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                                                       'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}}
@@ -367,7 +367,7 @@ def test_kabr_lvl2_init():
     ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br2', base=ka_br.KaBr_lvl2)
     assert ka_br2.get_attr('bb') == None
-    assert ka_br2.get_attr('bb_lvl') == 1
+    assert ka_br2.get_attr('bb_lvl_write') == 1
     assert ka_br2.get_attr('_entry') == None
     assert ka_br2.get_attr('_entry_name') == None
     assert ka_br2.get_attr('_writer_addr') == None
@@ -635,7 +635,7 @@ def test_kabr_lvl3_init():
     ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br3', base=ka_br.KaBr_lvl3)
     assert ka_br2.get_attr('bb') == None
-    assert ka_br2.get_attr('bb_lvl') == 2
+    assert ka_br2.get_attr('bb_lvl_write') == 2
     assert ka_br2.get_attr('_entry') == None
     assert ka_br2.get_attr('_entry_name') == None
     assert ka_br2.get_attr('_writer_addr') == None

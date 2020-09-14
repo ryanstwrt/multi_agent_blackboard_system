@@ -13,6 +13,8 @@ class KaBr(ka.KaBase):
     def on_init(self):
         super().on_init()
         self.bb_lvl_read = 0
+        self.bb_lvl_write = 0
+        self.bb_lvl_data = 3
         self.new_panel = 'new'
         self.old_panel = 'old'
         self._num_entries = 0
@@ -39,6 +41,7 @@ class KaBr(ka.KaBase):
         if self.lvl_write == {}:
             self.log_debug('Design {} is initial optimal design.'.format(core_name))
             return (True, 'pareto')
+
         pareto_opt = None
         for opt_core in self.lvl_write.keys():
             if opt_core != core_name:
@@ -55,7 +58,7 @@ class KaBr(ka.KaBase):
         for entry_name in self.lvl_read.keys():
             self.clear_entry()
             self.add_entry((entry_name, True))
-            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel=self.new_panel)
+            self.write_to_bb(self.bb_lvl_write, self._entry_name, self._entry, panel=self.new_panel)
             entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
             self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)  
         self._trigger_val = 0
@@ -63,7 +66,8 @@ class KaBr(ka.KaBase):
             
     def handler_trigger_publish(self, message):
         """Read the BB level and determine if an entry is available."""
-        self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
+#        self.update_abstract_levels(read=True,write=True)
+        self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_write)]
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
 
         for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
@@ -126,7 +130,10 @@ class KaBr(ka.KaBase):
             return None
         else:
             return (val - ll) / (ul - ll)
-    
+        
+         
+            
+            
 class KaBr_lvl1(KaBr):
     """
     Reads `level 1` on the blackboard.
@@ -136,7 +143,7 @@ class KaBr_lvl1(KaBr):
     
     def on_init(self):
         super().on_init()
-        self.bb_lvl = 1
+        self.bb_lvl_write= 1
         self.bb_lvl_read = 1
         self._update_hv = False
         self._trigger_val_base = 6
@@ -158,6 +165,7 @@ class KaBr_lvl1(KaBr):
         
     def handler_trigger_publish(self, message):
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        self.lvl_write = self.lvl_read
         new_pf_size = len(self.lvl_read)
         
         self._trigger_val = self._trigger_val_base if new_pf_size > self._pf_size * self.pf_increase else 0
@@ -173,7 +181,14 @@ class KaBr_lvl1(KaBr):
         
         DCI accelerated HVI uses the DCI to remove solutions which are closeby to help increase the diversity of the Pareto front.
         """
-        self.log_debug('Executing agent {}'.format(self.name)) 
+        self.log_debug('Executing agent {}'.format(self.name))
+        #Update this to figure out an appropriate naming scheme for levels
+        for panel in self.bb.get_attr('abstract_lvls')['level 3'].values():
+            self._lvl_data.update(panel)        
+        
+        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        self.lvl_write = self.lvl_read
+        self.clear_bb_lvl()
         self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
         self.lvl_write = self.lvl_read
         self._pf_size = len(self.lvl_read)
@@ -205,21 +220,9 @@ class KaBr_lvl1(KaBr):
             else:
                 self._previous_pf = [x for x in self.lvl_read.keys()]   
         else:
-#            self.lvl_write = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]
-            self.clear_bb_lvl()
-#        if self.dci:
- #           if self._previous_pf:
-  #              self.calculate_dci()
-   #             self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-    #            self._previous_pf = [x for x in self.lvl_read.keys()]
-     #       else:
-      #          self._previous_pf = [x for x in self.lvl_read.keys()]
-       # else:
-        #    self.calculate_hvi_contribution()
-         #   if self._pf_size > self.total_pf_size:
-          #      self.prune_pareto_front()
+            pass
+
         self.clear_entry()
-       # self.clear_data_levels()
         self.action_complete()
     
     def prune_pareto_front(self):
@@ -348,7 +351,7 @@ class KaBr_lvl1(KaBr):
         for design in entries:
             self.log_debug('Removing core {}, no longer optimal'.format(design))
             self._pf_size -= 1
-            self.write_to_bb(self.bb_lvl, design, self.lvl_read[design], remove=True)
+            self.write_to_bb(self.bb_lvl_write, design, self.lvl_read[design], remove=True)
 
     def clear_bb_lvl(self):
         remove = []
@@ -363,7 +366,7 @@ class KaBr_lvl2(KaBr):
     """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
     def on_init(self):
         super().on_init()
-        self.bb_lvl = 1
+        self.bb_lvl_write= 1
         self.bb_lvl_read = 2
         self._num_allowed_entries = 10
         self._trigger_val_base = 4
@@ -386,7 +389,7 @@ class KaBr_lvl2(KaBr):
             valid_core, opt_type = self.determine_validity(core_name)
             if valid_core:
                 self.add_entry((core_name, opt_type))
-                self.write_to_bb(self.bb_lvl, self._entry_name, self._entry)
+                self.write_to_bb(self.bb_lvl_write, self._entry_name, self._entry)
                 entry = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
                 self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel)
 #        while self._entry_name:
@@ -416,7 +419,7 @@ class KaBr_lvl3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
     def on_init(self):
         super().on_init()
-        self.bb_lvl = 2
+        self.bb_lvl_write = 2
         self.bb_lvl_read = 3
         self._trigger_val_base = 3
         self._lvl_data = {}
