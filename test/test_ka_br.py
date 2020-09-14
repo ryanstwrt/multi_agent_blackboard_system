@@ -47,8 +47,8 @@ def test_kabr_trigger_handler_publish():
     ka_b.set_attr(bb_lvl_read=1)
     ka_b.set_attr(bb_lvl_write=2)
     bb.add_abstract_lvl(1, {'valid': bool})
-    bb.add_panel(1, ['new','old'])
     bb.add_abstract_lvl(2, {'valid': bool})
+    bb.add_panel(2, ['new','old'])
     bb.add_abstract_lvl(3, {'valid': bool})
     bb.publish_trigger()
     time.sleep(0.25)
@@ -84,7 +84,34 @@ def test_kabr_scale_objective():
     assert obj1 == None
     ns.shutdown()
     time.sleep(0.05)    
+    
+def test_kabr_update_abstract_level():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
+    ka_b.add_blackboard(bb)
+    ka_b.connect_trigger()
+    ka_b.set_attr(bb_lvl_read=1)
+    ka_b.set_attr(bb_lvl_write=2)
+    bb.add_abstract_lvl(1, {'valid': bool})
+    bb.add_abstract_lvl(2, {'valid': bool})
+    bb.add_panel(2, ['new','old'])
+    bb.add_abstract_lvl(3, {'valid': bool})
+    bb.add_panel(3, ['new','old'])
 
+    bb.update_abstract_lvl(1, 'core_1', {'valid': True})
+    bb.update_abstract_lvl(2, 'core_2', {'valid': True}, panel='new')
+    bb.update_abstract_lvl(2, 'core_4', {'valid': True}, panel='old')
+    bb.update_abstract_lvl(3, 'core_3', {'valid': True}, panel='new')
+    bb.update_abstract_lvl(3, 'core_5', {'valid': True}, panel='new')
+    assert ka_b.update_abstract_level(1) ==  {'core_1': {'valid': True}}
+    assert ka_b.update_abstract_level(2,panels=['new']) == {'core_2': {'valid': True}}
+    assert ka_b.update_abstract_level(3,panels=['new','old']) == {'core_3': {'valid': True}, 'core_5': {'valid': True}}
+    ka_b.set_attr(lvl_dat={})
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
 #-----------------------------------------
 # Test of KaBr_lvl1
 #-----------------------------------------
@@ -118,6 +145,35 @@ def test_kabr_lvl1_init():
     ns.shutdown()
     time.sleep(0.05)    
 
+def test_kabr_lvl1_update_abstract_levels():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+    
+    bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
+    br = ns.proxy('ka_br_lvl1')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.45]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11,'burnup' : 61.12}}, panel='new')
+    bb.update_abstract_lvl(2, 'core_[65.0, 65.0, 0.45]', {'valid': True}, panel='old')
+    
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11,'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(2, 'core_[65.0, 65.0, 0.42]', {'valid': True}, panel='new')
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+
+    br.update_abstract_levels()
+    assert [x for x in br.get_attr('lvl_read').keys()]  == ['core_[65.0, 65.0, 0.42]']
+    assert [x for x in br.get_attr('lvl_write').keys()] == ['core_[65.0, 65.0, 0.42]']
+    assert [x for x in br.get_attr('_lvl_data').keys()] == ['core_[65.0, 65.0, 0.45]', 'core_[65.0, 65.0, 0.42]']
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
 def test_kabr_lvl1_publish():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
@@ -321,10 +377,10 @@ def test_kabr_lvl1_calcualte_dci():
     bb.initialize_abstract_level_3()
     
     read = {'core_[71.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
-            'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
-            'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0},              
-            'core_[60.0, 70.0, 0.65]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
-            'core_[55.0, 68.0, 0.75]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+            'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 0.99},
+            'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 0.98},              
+            'core_[60.0, 70.0, 0.65]': {'pareto type' : 'pareto', 'fitness function' : 0.97},
+            'core_[55.0, 68.0, 0.75]': {'pareto type' : 'pareto', 'fitness function' : 0.96},
             'core_[63.0, 63.0, 0.83]': {'pareto type' : 'pareto', 'fitness function' : 1.0}}
     
     data = {'core_[65.0, 65.0, 0.42]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
@@ -354,8 +410,32 @@ def test_kabr_lvl1_calcualte_dci():
     
     br.set_attr(_previous_pf=['core_[65.0, 65.0, 0.42]','core_[70.0, 60.0, 0.50]'])
     br.calculate_dci()
-    assert [x for x in bb.get_attr('abstract_lvls')['level 1'].keys()] == ['core_[65.0, 65.0, 0.42]', 'core_[63.0, 63.0, 0.83]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 1'].keys()] == ['core_[71.0, 60.0, 0.50]', 'core_[65.0, 65.0, 0.42]', 'core_[60.0, 70.0, 0.65]']
 
+    
+    read_1 = {'core_[72.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+            'core_[70.0, 63.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},}
+    
+    data_1 = {'core_[72.0, 60.0, 0.50]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                       'objective functions': {'reactivity swing' : 900.0, 'burnup' : 90.0}},
+            'core_[70.0, 63.0, 0.50]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                       'objective functions': {'reactivity swing' : 220.0, 'burnup' : 30.4}},}
+    
+
+    read.update(read_1)
+    data.update(data_1)
+    for core, entry in read.items():
+        bb.update_abstract_lvl(1, core, entry)
+    for core, entry in data.items():
+        bb.update_abstract_lvl(3, core, entry, panel='old')
+
+    br.set_attr(lvl_read=read)
+    br.set_attr(_lvl_data=data)
+    
+    br.set_attr(_previous_pf=['core_[65.0, 65.0, 0.42]','core_[70.0, 60.0, 0.50]'])
+    br.calculate_dci()
+    assert [x for x in bb.get_attr('abstract_lvls')['level 1'].keys()] == ['core_[71.0, 60.0, 0.50]', 'core_[65.0, 65.0, 0.42]', 'core_[60.0, 70.0, 0.65]', 'core_[72.0, 60.0, 0.50]', 'core_[70.0, 63.0, 0.50]']
+    
     ns.shutdown()
     time.sleep(0.05)
     
@@ -392,6 +472,35 @@ def test_kabr_lvl2_init():
     ns.shutdown()
     time.sleep(0.05)
 
+def test_kabr_lvl2_update_abstract_levels():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+    
+    bb.connect_agent(ka_br.KaBr_lvl2, 'ka_br_lvl2')
+    br = ns.proxy('ka_br_lvl2')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.45]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11,'burnup' : 61.12}}, panel='new')
+    bb.update_abstract_lvl(2, 'core_[65.0, 65.0, 0.45]', {'valid': True}, panel='old')
+    
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11,'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(2, 'core_[65.0, 65.0, 0.42]', {'valid': True}, panel='new')
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+
+    br.update_abstract_levels()
+    assert [x for x in br.get_attr('lvl_read').keys()]  == ['core_[65.0, 65.0, 0.42]']
+    assert [x for x in br.get_attr('lvl_write').keys()] == ['core_[65.0, 65.0, 0.42]']
+    assert [x for x in br.get_attr('_lvl_data').keys()] == ['core_[65.0, 65.0, 0.45]', 'core_[65.0, 65.0, 0.42]']
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
 def test_kabr_lvl2_add_entry():
     ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2) 
@@ -652,6 +761,35 @@ def test_kabr_lvl3_init():
     assert ka_br2.get_attr('_shutdown_alias') == None
     assert ka_br2.get_attr('_num_entries') == 0
     assert ka_br2.get_attr('_num_allowed_entries') == 25
+    
+    ns.shutdown()
+    time.sleep(0.05)
+
+def test_kabr_lvl3_update_abstract_levels():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+    
+    bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br_lvl3')
+    br = ns.proxy('ka_br_lvl3')
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.45]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11,'burnup' : 61.12}}, panel='new')
+    bb.update_abstract_lvl(2, 'core_[65.0, 65.0, 0.45]', {'valid': True}, panel='old')
+    
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 704.11,'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(2, 'core_[65.0, 65.0, 0.42]', {'valid': True}, panel='new')
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+
+    br.update_abstract_levels()
+    assert [x for x in br.get_attr('lvl_read').keys()]  == ['core_[65.0, 65.0, 0.45]']
+    assert [x for x in br.get_attr('lvl_write').keys()] == ['core_[65.0, 65.0, 0.42]']
+    assert [x for x in br.get_attr('_lvl_data').keys()] == ['core_[65.0, 65.0, 0.45]', 'core_[65.0, 65.0, 0.42]']
     
     ns.shutdown()
     time.sleep(0.05)
