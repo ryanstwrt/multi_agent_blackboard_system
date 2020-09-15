@@ -43,7 +43,7 @@ class BbOpt(blackboard.Blackboard):
         self.objectives_ll = []
         self.objectives_ul = []
         
-        self.hv_list = [0]
+        self.hv_list = [0.0]
         self.hv_convergence = 1e-6
         self.num_calls = 25
         self._sm = None
@@ -133,7 +133,7 @@ class BbOpt(blackboard.Blackboard):
             hv_max = abs(min(recent_hv) - max(prev_hv))
             hv_indicator = hv_average#max([hv_average, hv_max])
         except ValueError:
-            hv_indicator = 1
+            hv_indicator = 1.0
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
         if hv_indicator < self.hv_convergence and len(self.abstract_lvls['level 1']) > self.total_solutions:
             self.log_info('Problem complete, shutting agents down')
@@ -184,41 +184,52 @@ class BbOpt(blackboard.Blackboard):
 
         lvl_1 = self.abstract_lvls['level 1']
 
-        cycle_length = []
-        rx_swing = []
-        height = []
-        smear = []
-        pu_content = []
-        bu = []
-        pu_mass = []
         fitness = []
 
         obj_dict = {}
+        ind_dict = {}
         for core, values in lvl_1.items():
             fitness.append(round(values['fitness function'],5))
             core_params = lvl_3[core]['objective functions']
+            core_designs = lvl_3[core]['design variables']
         
             for obj in self.objectives.keys():
                 if obj in obj_dict.keys():
                     obj_dict[obj].append(core_params[obj])
                 else:
                     obj_dict[obj] = [core_params[obj]]
+            for dv in self.design_variables.keys():
+                if dv in ind_dict.keys():
+                    ind_dict[dv].append(core_designs[dv])
+                else:
+                    ind_dict[dv] = [core_designs[dv]]                    
         objs = [x for x in self.objectives.keys()]
+        dvs = [x for x in self.design_variables.keys()]
         obj_labels = {'fitness': 'fitness',
                       'burnup': 'Burnup (GWD/MTHM)',
                       'cycle length': 'Cycle Length(days)',
                       'pu mass': 'Pu Mass (kg/year)',
                       'reactivity swing' : 'Rx Swing (pcm/month)'}
+        dv_labels = {'height' : 'Height (cm)',
+                     'smear' : 'Smear',
+                    'pu_content' : "Pu Fraction"}
         if len(obj_dict.keys()) == 2:
             fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]]})
         elif len(obj_dict.keys()) == 3:
-            fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]]})
+            fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=fitness, labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]], 'color': obj_labels['fitness']})
         elif len(obj_dict.keys()) > 3:
             fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=obj_dict[objs[3]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]], 'color': obj_labels[objs[3]]})
         try:
             fig1.show()
         except UnboundLocalError:
             pass
+        
+        fig2 = px.scatter_3d(x=ind_dict[dvs[0]], y=ind_dict[dvs[1]], z=ind_dict[dvs[2]], color=fitness, labels={'x':dv_labels[dvs[0]], 'y': dv_labels[dvs[1]], 'z': dv_labels[dvs[2]], 'color':'fitness'})
+        try:
+            fig2.show()
+        except UnboundLocalError:
+            pass
+        
         # Plot HV Convergece
         fig2 = px.line(x=[x for x in range(len(self.hv_list))], y=self.hv_list, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
         fig2.show()
@@ -289,5 +300,7 @@ class BbOpt(blackboard.Blackboard):
         """
         entry_name = str(self._trigger_event)
         entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[self._trigger_event]}
+#        entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[-1]}
+
         
         self.update_abstract_lvl(100, entry_name, entry)

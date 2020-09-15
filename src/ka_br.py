@@ -206,12 +206,7 @@ class KaBr_lvl1(KaBr):
         self.clear_bb_lvl()
         self._pf_size = len(self.lvl_read)
         self._hvi_dict = {}
-        
-        if self._previous_pf == {}:
-            self._previous_pf = [x for x in self.lvl_read.keys()]
-            return
 
-        # Make sure this is okay for larger numbers of entries otherwise revert to old method
         if self.pareto_sorter == 'dci':
             self.calculate_dci()
         elif self.pareto_sorter == 'hvi':
@@ -286,24 +281,29 @@ class KaBr_lvl1(KaBr):
         Calculate the DCI for the new pareto front
         """
         pf = {name: self._lvl_data[name]['objective functions'] for name in self.lvl_read.keys()}
-        pf_old = {name: self._lvl_data[name]['objective functions'] for name in self._previous_pf}
-
-        scaled_pf = self.scale_pareto_front([x for x in self.lvl_read.keys()])
-        
+        try:
+            pf_old = {name: self._lvl_data[name]['objective functions'] for name in self._previous_pf}
+            total_pf = [pf,pf_old]
+        except TypeError:
+            pf_old = []
+            total_pf = [pf]
+            
         # Calculate DCI for new/old pareto front
-        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, [pf,pf_old], div=self.dci_div)
+        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, div=self.dci_div)
         dci._grid_generator()
-        dci.compute_dci(pf_old)
-        dci_old = dci.dci
         dci.compute_dci(pf)
-        dci_diff = abs(dci.dci - dci_old)
+        dci_new = dci.dci
+        dc = dci.dc
+        if pf_old != []:
+            dci.compute_dci(pf_old)
+            dci_diff = abs(dci_new - dci.dci)
         
         designs_to_compare = {}
-        for design_name, dc_dict_new in dci.dc.items():
+        for design_name in pf.keys():
             try:
-                designs_to_compare[dc_dict_new['grid position']].update({design_name: self.lvl_read[design_name]['fitness function']})
+                designs_to_compare[dc[design_name]['grid position']].update({design_name: self.lvl_read[design_name]['fitness function']})
             except:
-                designs_to_compare[dc_dict_new['grid position']] = {design_name: self.lvl_read[design_name]['fitness function']}
+                designs_to_compare[dc[design_name]['grid position']] = {design_name: self.lvl_read[design_name]['fitness function']}
             
         designs_to_remove = []
         for grid_position, designs in designs_to_compare.items():

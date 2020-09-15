@@ -86,14 +86,21 @@ class Controller(object):
                     break
             agent_time = time.time() - agent_time
             self.update_bb_trigger_values(trig_num)
-            self.bb.hv_indicator()
-            self.bb.meta_data_entry(agent_time)
+#            self.bb.hv_indicator()
+#            self.bb.meta_data_entry(agent_time)
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
+                self.bb.hv_indicator()
+                self.bb.meta_data_entry(agent_time)
                 self.bb.write_to_h5()
                 if len(self.bb.get_attr('hv_list')) > 2 * self.bb.get_attr('num_calls'):
                     self.bb.determine_complete_hv()
                 if self.plot_progress:
                     self.bb.plot_progress()
+            else:
+                hv_list = self.bb.get_attr('hv_list')
+                self.bb.set_attr(hv_list=hv_list+[hv_list[-1]])
+                self.bb.meta_data_entry(agent_time)
+
         self.time.append(time.time())
         self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_attr('hv_list')[-1]})
         self.bb.write_to_h5()
