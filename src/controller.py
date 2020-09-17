@@ -21,7 +21,8 @@ class Controller(object):
                  bb_type=blackboard.Blackboard, 
                  ka={}, 
                  objectives=None, 
-                 design_variables=None, 
+                 design_variables=None,
+                 constraints=None,
                  archive='bb_archive', 
                  agent_wait_time=30, 
                  benchmark=None, 
@@ -42,7 +43,7 @@ class Controller(object):
 
 
         if bb_type == bb_opt.BbOpt:
-            self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
+            self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables, constraints=constraints)
             self.bb.set_attr(sm_type=surrogate_model['sm_type'])
             if surrogate_model['pickle file']:
                 with open(surrogate_model['pickle file'], 'rb') as pickle_file:

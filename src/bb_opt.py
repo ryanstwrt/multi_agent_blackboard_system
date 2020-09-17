@@ -161,7 +161,7 @@ class BbOpt(blackboard.Blackboard):
         """
         objectives = [x for x in self.objectives.keys()]
         objectives = objectives if not self.constraints else objectives + [x for x in self.constraints.keys()]
-        design_var, objective_func, data_dict = dg.get_data([x for x in self.design_variables.keys()], objectives)
+        design_var, objective_func, data_dict = dg.get_data([x for x in self.design_variables.keys()], objectives, database_name='SFR_DB_2', fixed_cycle_length=100)
         if self.sm_type == 'interpolate':
             self._sm = {}
             design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
@@ -170,7 +170,7 @@ class BbOpt(blackboard.Blackboard):
         else:
             self._sm = tm.Surrogate_Models()
             self._sm.random = 0
-            self._sm.update_database(design_var, objective_func)
+            self._sm.update_database([x for x in self.design_variables.keys()], objectives, database=data_dict)
             self._sm.optimize_model(self.sm_type)
             
     def plot_progress(self):
@@ -224,7 +224,8 @@ class BbOpt(blackboard.Blackboard):
         except UnboundLocalError:
             pass
         
-        fig2 = px.scatter_3d(x=ind_dict[dvs[0]], y=ind_dict[dvs[1]], z=ind_dict[dvs[2]], color=fitness, labels={'x':dv_labels[dvs[0]], 'y': dv_labels[dvs[1]], 'z': dv_labels[dvs[2]], 'color':'fitness'})
+#        fig2 = px.scatter_3d(x=ind_dict[dvs[0]], y=ind_dict[dvs[1]], z=ind_dict[dvs[2]], color=fitness, labels={'x':dv_labels[dvs[0]], 'y': dv_labels[dvs[1]], 'z': dv_labels[dvs[2]], 'color':'fitness'})
+        fig2 = px.scatter_3d(x=ind_dict[dvs[0]], y=ind_dict[dvs[1]], z=ind_dict[dvs[2]], labels={'x':dv_labels[dvs[0]], 'y': dv_labels[dvs[1]], 'z': dv_labels[dvs[2]]})
         try:
             fig2.show()
         except UnboundLocalError:
