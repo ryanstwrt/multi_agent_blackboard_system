@@ -615,3 +615,32 @@ class KaGA(KaLocal):
             new_gene = genotype[dv_mutate] - delta_k
             genotype[dv_mutate] = max(new_gene, self.design_variables[dv_mutate]['ll'])
         return genotype
+
+def KaSm(KaLocal):
+    """
+    Knowledge Agent who generates a SM based on the data level of the BB to find areas of interest
+    """
+    
+    def on_init(self):
+        super().on_init()
+        self.bb_lvl_read = 5
+        self._base_trigger_val = 5
+        self.previous_populations = {}
+
+    def handler_trigger_publish(self, message):
+        """
+
+        """
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        data_size = len(self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)])
+
+        self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+
+        
+    def search_method(self):
+        """
+        Generate a SM and find an areas of interest
+        """
+        pass

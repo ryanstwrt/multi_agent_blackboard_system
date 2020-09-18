@@ -177,13 +177,14 @@ class BbOpt(blackboard.Blackboard):
         """
         Generate a plot of the hypervolume and Pareto front during the problem.
         """
+        lvl_1 = self.abstract_lvls['level 1']
+        if lvl_1 == {}:
+            return
         
         lvl_3 = {}
         for panel in self.abstract_lvls['level 3'].values():
             lvl_3.update(panel)
-
-        lvl_1 = self.abstract_lvls['level 1']
-
+        
         fitness = []
 
         obj_dict = {}
@@ -207,12 +208,12 @@ class BbOpt(blackboard.Blackboard):
         dvs = [x for x in self.design_variables.keys()]
         obj_labels = {'fitness': 'fitness',
                       'burnup': 'Burnup (GWD/MTHM)',
-                      'cycle length': 'Cycle Length(days)',
+                      'cycle length': 'Cycle Length (days)',
                       'pu mass': 'Pu Mass (kg/year)',
                       'reactivity swing' : 'Rx Swing (pcm/month)'}
         dv_labels = {'height' : 'Height (cm)',
                      'smear' : 'Smear',
-                    'pu_content' : "Pu Fraction"}
+                     'pu_content' : 'Pu Fraction'}
         if len(obj_dict.keys()) == 2:
             fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]]})
         elif len(obj_dict.keys()) == 3:

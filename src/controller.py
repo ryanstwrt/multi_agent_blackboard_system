@@ -53,7 +53,7 @@ class Controller(object):
                 self.bb.generate_sm()
         
         elif bb_type == bb_benchmark.BenchmarkBB:
-            self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables)
+            self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables,constraints=constraints)
             self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
             self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))
         

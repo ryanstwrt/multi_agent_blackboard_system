@@ -56,12 +56,12 @@ class KaBr(ka.KaBase):
         self.log_debug('Executing agent {}'.format(self.name))
         self.update_abstract_levels()
         self.clear_bb_lvl()
-        self.lvl_read = self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel]) #self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)][self.new_panel]
+        self.lvl_read = self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
         for entry_name in self.lvl_read.keys():
             self.clear_entry()
             self.add_entry((entry_name, True))
             self.write_to_bb(self.bb_lvl_write, self._entry_name, self._entry, panel=self.new_panel)
-            entry = self.lvl_read[self._entry_name]# self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]['new'][self._entry_name]
+            entry = self.lvl_read[self._entry_name]
             self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel) 
         self._trigger_val = 0
         self.action_complete()
@@ -176,7 +176,7 @@ class KaBr_lvl1(KaBr):
         self.pareto_sorter = 'non-dominated'
         
     def handler_trigger_publish(self, message):
-        self.lvl_read = self.update_abstract_level(self.bb_lvl_read)# self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        self.lvl_read = self.update_abstract_level(self.bb_lvl_read)
         self.lvl_write = self.lvl_read
         new_pf_size = len(self.lvl_read)
         
