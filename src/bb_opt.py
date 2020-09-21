@@ -42,6 +42,7 @@ class BbOpt(blackboard.Blackboard):
         self.total_solutions = 50
         self.objectives_ll = []
         self.objectives_ul = []
+        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6}
         
         self.hv_list = [0.0]
         self.hv_convergence = 1e-6
@@ -51,9 +52,10 @@ class BbOpt(blackboard.Blackboard):
         self._nadir_point = {}
         self._ideal_point = {}
         self._pareto_level = ['level 1']
+        self.previous_pf = {}
+        self.dci_convergence_list = [0.0]
         
         # Initialize an abstract level which holds meta-data about the problem
-#        self.add_abstract_lvl(100, {'hvi indicator': float, 'time': float})
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
 
         
@@ -121,6 +123,64 @@ class BbOpt(blackboard.Blackboard):
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return
         
+    def convergence_indicator(self):
+        """
+        Determine what to do after a trigger event has been processed
+        """
+        if self.convergence_model['type'] == 'dci hvi':
+            self.dc_indicator()
+        elif self.convergence_model['type'] == 'hvi':
+            self.hv_indicator()
+        else:
+            self.log_info('convergence_model ({}) not recognized, reverting to hvi'.format(self.convergence_model['type']))
+            self.hv_indicator()
+
+    def convergence_update(self):
+        """
+        Determine if any values need to be udpated after a trigger event
+        """
+        self.hv_list.append(self.hv_list[-1])       
+        
+    def determine_complete(self):
+        """
+        Determine if the problem has converged
+        """
+        if self.convergence_model['type'] == 'dci hvi':
+            self.determine_complete_dci_hvi()
+        elif self.convergence_model['type'] == 'hvi':
+            self.determine_complete_hv()
+        else:
+            self.log_info('convergence_model ({}) not recognized, reverting to hvi'.format(self.convergence_model['type']))
+            pass           
+        
+    def determine_complete_dci_hvi(self):
+        """
+        Determine if the problem is complete using the convergence of dci and the hvi
+        """        
+        if self.dci_convergence_list[-1] < self.convergence_model['convergence rate']:
+            self.hv_indicator()
+        
+        
+    def dc_indicator(self):
+        """
+        Calculate the DCI 
+        """
+        current_pf = {name: self.abstract_lvls['level 3']['old'][name]['objective functions'] for name in self.abstract_lvls['level 1'].keys()}
+        if self.previous_pf == {}:
+            self.previous_pf = current_pf
+            return
+        
+        total_pf = [current_pf, self.previous_pf]
+        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, self.convergence_model['div'])
+        dci._grid_generator()
+        dci.compute_dci(current_pf)
+        current_dci = dci.dci
+        dci.compute_dci(self.previous_pf)
+        previous_dci = dci.dci
+        self.dci_convergence_list.append(current_dci - previous_dci)
+        self.previous_pf = current_pf
+        
+        
     def determine_complete_hv(self):
         """
         Determine if the problem is complete using the convergence of the hypervolume
@@ -130,8 +190,7 @@ class BbOpt(blackboard.Blackboard):
         prev_hv = self.hv_list[-2*self.num_calls:-self.num_calls]
         hv_average = abs(sum(recent_hv) / self.num_calls - sum(prev_hv) / self.num_calls)
         try:
-            hv_max = abs(min(recent_hv) - max(prev_hv))
-            hv_indicator = hv_average#max([hv_average, hv_max])
+            hv_indicator = hv_average
         except ValueError:
             hv_indicator = 1.0
         self.log_info('Convergence Rate: {} '.format(hv_indicator))

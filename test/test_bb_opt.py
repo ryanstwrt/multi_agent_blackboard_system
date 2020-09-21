@@ -205,7 +205,7 @@ def test_handler_writer():
     ns.shutdown()
     time.sleep(0.05)
 
-def test_determine_complete():
+def test_determine_complete_hv():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
@@ -237,3 +237,172 @@ def test_meta_data_etry():
 
     ns.shutdown()
     time.sleep(0.05)    
+
+def test_convergence_update():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(_trigger_event=3)
+    bb.set_attr(_ka_to_execute=('agent_x', 2.4))
+    bb.set_attr(hv_list=[0.1,0.2,0.3,0.4,0.5])
+    bb.convergence_update()
+    assert bb.get_attr('hv_list') == [0.1,0.2,0.3,0.4,0.5,0.5]
+    
+    ns.shutdown()
+    time.sleep(0.05)  
+    
+def test_dc_indicator():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.set_attr(convergence_model={'type': 'dci hvi', 'convergence rate': 1E-5, 'div': {'reactivity swing': 100, 'burnup': 100}})
+    
+    cores = {'core_[70.0, 65.0, 0.42]': {'reactivity swing' : 500.0, 'burnup' : 70.0}}
+
+    bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 70.0}}, panel='old')
+    
+    bb.dc_indicator()
+    assert bb.get_attr('previous_pf') == cores
+    assert bb.get_attr('dci_convergence_list') == [0.0]
+
+    for i in range(60,70):
+        bb.update_abstract_lvl(1, 'core_[{}.0, 65.0, 0.42]'.format(i), {'pareto type' : 'pareto', 'fitness function' : 1.0})
+        bb.update_abstract_lvl(3, 'core_[{}.0, 65.0, 0.42]'.format(i), {'design variables': {'height': float(i), 'smear': 65.0, 'pu_content': 0.42}, 
+                                                                        'objective functions': {'reactivity swing' : 500.0, 'burnup' : float(i)}}, panel='old')
+        cores.update({'core_[{}.0, 65.0, 0.42]'.format(i): {'reactivity swing' : 500.0, 'burnup' : float(i)}})
+    
+    bb.dc_indicator()
+    assert bb.get_attr('dci_convergence_list') == [0.0,  0.8484848484848485]
+    assert bb.get_attr('previous_pf') == cores
+
+    for i in range(71,100):
+        bb.update_abstract_lvl(1, 'core_[{}.0, 65.0, 0.42]'.format(i), {'pareto type' : 'pareto', 'fitness function' : 1.0})
+        bb.update_abstract_lvl(3, 'core_[{}.0, 65.0, 0.42]'.format(i), {'design variables': {'height': float(i), 'smear': 65.0, 'pu_content': 0.42}, 
+                                                                        'objective functions': {'reactivity swing' : 500.0, 'burnup' : float(i)}}, panel='old')
+        cores.update({'core_[{}.0, 65.0, 0.42]'.format(i): {'reactivity swing' : 500.0, 'burnup' : float(i)}})
+    
+    bb.dc_indicator()
+    assert bb.get_attr('dci_convergence_list') == [0.0,  0.8484848484848485, 0.7083333333333334]
+    assert bb.get_attr('previous_pf') == cores
+
+    bb.update_abstract_lvl(1, 'core_[71.1, 65.0, 0.42]'.format(i), {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[71.1, 65.0, 0.42]'.format(i), {'design variables': {'height': 71.1, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                                    'objective functions': {'reactivity swing' : 500.0, 'burnup' : 71.1}}, panel='old')
+    cores.update({'core_[71.1, 65.0, 0.42]':  {'reactivity swing' : 500.0, 'burnup' : 71.1}})
+    bb.dc_indicator()
+    assert bb.get_attr('dci_convergence_list') == [0.0,  0.8484848484848485, 0.7083333333333334, 0.0]
+    assert bb.get_attr('previous_pf') == cores
+    
+    ns.shutdown()
+    time.sleep(0.05)  
+    
+def test_determine_complete_dci_hvi():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.set_attr(convergence_model={'type': 'dci hvi', 'convergence rate': 1E-5, 'div': {'reactivity swing': 1000, 'burnup': 100}})
+    
+    bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 1000.0, 'burnup' : 0.0}}, panel='old')
+    
+    bb.dc_indicator()
+    assert bb.get_attr('dci_convergence_list') == [0.0]
+    bb.update_abstract_lvl(1, 'core_[71.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[71.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0}}, panel='old')
+        
+    bb.dc_indicator()
+    bb.update_abstract_lvl(1, 'core_[71.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[71.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0}}, panel='old')
+        
+    bb.dc_indicator()
+    
+    bb.determine_complete_dci_hvi()
+    assert bb.get_attr('dci_convergence_list') == [0.0,  0.5,  0.0]
+    assert bb.get_attr('hv_list') == [0.0, 0.25]
+    bb.update_abstract_lvl(1, 'core_[72.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[72.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 100.0}}, panel='old')
+        
+    bb.dc_indicator()
+    bb.update_abstract_lvl(1, 'core_[72.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[72.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 100.0}}, panel='old')
+        
+    bb.dc_indicator()
+    bb.determine_complete_dci_hvi()
+    assert bb.get_attr('dci_convergence_list') == [0.0,  0.5,  0.0, 0.33333333333333337, 0.0]
+    assert bb.get_attr('hv_list') == [0.0, 0.25, 0.5]
+    
+    ns.shutdown()
+    time.sleep(0.05) 
+    
+def test_convergence_indicator_dci_hvi():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.set_attr(convergence_model={'type': 'dci hvi', 'convergence rate': 1E-5, 'div': {'reactivity swing': 1000, 'burnup': 100}})
+    
+    bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 1000.0, 'burnup' : 0.0}}, panel='old')
+    
+    bb.convergence_indicator()
+    assert bb.get_attr('dci_convergence_list') == [0.0]
+    bb.update_abstract_lvl(1, 'core_[71.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[71.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0}}, panel='old')
+        
+    bb.convergence_indicator()
+    assert bb.get_attr('dci_convergence_list') == [0.0,  0.5]
+
+    ns.shutdown()
+    time.sleep(0.05) 
+    
+def test_convergence_indicator_hvi():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.set_attr(convergence_model={'type': 'hvi', 'convergence rate': 1E-5})
+    
+    bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 1000.0, 'burnup' : 0.0}}, panel='old')
+    assert bb.get_attr('hv_list') == [0.0]
+
+    bb.convergence_indicator()
+    assert bb.get_attr('hv_list') == [0.0, 0.0]
+
+    ns.shutdown()
+    time.sleep(0.05) 
+
+def test_convergence_indicator_random():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.set_attr(convergence_model={'type': 'random', 'convergence rate': 1E-5})
+    
+    bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 1000.0, 'burnup' : 0.0}}, panel='old')
+    assert bb.get_attr('hv_list') == [0.0]
+
+    bb.convergence_indicator()
+    assert bb.get_attr('hv_list') == [0.0, 0.0]
+
+    ns.shutdown()
+    time.sleep(0.05) 
+    

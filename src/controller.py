@@ -28,6 +28,7 @@ class Controller(object):
                  benchmark=None, 
                  plot_progress=False,
                  progress_rate=100,
+                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5},
                  surrogate_model={'sm_type': 'lr', 'pickle file': None}):
         self.bb_name = bb_name
         self.bb_type = bb_type
@@ -36,15 +37,17 @@ class Controller(object):
         self._proxy_server = proxy.NSProxy()
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
+        self.bb.set_attr(convergence_model=convergence_model)
+        
         self.plot_progress = plot_progress
         self.agent_time = 0
         self.progress_rate = progress_rate
         self.time = [time.time()]
-
-
+        
         if bb_type == bb_opt.BbOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables, constraints=constraints)
             self.bb.set_attr(sm_type=surrogate_model['sm_type'])
+            self.bb.set_attr(convergence_model=convergence_model)
             if surrogate_model['pickle file']:
                 with open(surrogate_model['pickle file'], 'rb') as pickle_file:
                     sm = pickle.load(pickle_file)
@@ -86,20 +89,21 @@ class Controller(object):
                 if time.time() - agent_time > self.agent_wait_time:
                     break
             agent_time = time.time() - agent_time
-            self.update_bb_trigger_values(trig_num)
-#            self.bb.hv_indicator()
-#            self.bb.meta_data_entry(agent_time)
+#            self.update_bb_trigger_values(trig_num)
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
-                self.bb.hv_indicator()
+                self.bb.convergence_indicator()
+#                self.bb.hv_indicator()
                 self.bb.meta_data_entry(agent_time)
                 self.bb.write_to_h5()
                 if len(self.bb.get_attr('hv_list')) > 2 * self.bb.get_attr('num_calls'):
-                    self.bb.determine_complete_hv()
+                    self.bb.determine_complete()
+#                    self.bb.determine_complete_hv()
                 if self.plot_progress:
                     self.bb.plot_progress()
             else:
-                hv_list = self.bb.get_attr('hv_list')
-                self.bb.set_attr(hv_list=hv_list+[hv_list[-1]])
+                self.bb.convergence_update()
+ #               hv_list = self.bb.get_attr('hv_list')
+  #              self.bb.set_attr(hv_list=hv_list+[hv_list[-1]])
                 self.bb.meta_data_entry(agent_time)
 
         self.time.append(time.time())
@@ -116,7 +120,6 @@ class Controller(object):
             responses = False
             # Wait until a response has been recieved
             while not responses:
-                time.sleep(0.1)
                 if len(self.bb.get_attr('_kaar')[trig_num]) > 0:
                     responses = True
             self.bb.controller()

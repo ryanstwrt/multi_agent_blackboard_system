@@ -623,7 +623,7 @@ def KaSm(KaLocal):
     
     def on_init(self):
         super().on_init()
-        self.bb_lvl_read = 5
+        self.bb_lvl_read = 3
         self._base_trigger_val = 5
         self.previous_populations = {}
 
@@ -642,5 +642,11 @@ def KaSm(KaLocal):
     def search_method(self):
         """
         Generate a SM and find an areas of interest
+        Option 1: Look at the ll/ul and find the objectives with the smallest range compared to this.
+        Option 2: Fix an objecives to a specific value (high/low/median) sweep over other parameters to find viable cores
+        Option 3: Randomly sample the objectives within llul
         """
+        pass
+    
+    def random_sample(self):
         pass

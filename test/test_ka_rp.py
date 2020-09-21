@@ -678,6 +678,10 @@ def test_kalocalhc_simple():
     time.sleep(0.05)
     
     
+#----------------------------------------------------------
+# Tests fopr KA-GA
+#----------------------------------------------------------
+    
 def test_kalocalga():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
@@ -867,3 +871,10 @@ def test_kaga_non_uniform_mutation():
 
     ns.shutdown()
     time.sleep(0.05)
+
+#----------------------------------------------------------
+# Tests fopr KA-SM
+#----------------------------------------------------------
+
+def test_KaSm_init():
+    pass
