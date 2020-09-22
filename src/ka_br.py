@@ -99,7 +99,8 @@ class KaBr(ka.KaBase):
             valid_core, opt_type = self.determine_validity(core_name)
             if not valid_core:
                 self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
-                    
+#        self.update_abstract_levels()
+                
     def remove_dominated_entries(self):
         pass
 
@@ -126,6 +127,23 @@ class KaBr(ka.KaBase):
             return None
         else:
             return (val - ll) / (ul - ll)
+        
+    def scale_list_objective(self, val_list, ll, ul, goal_type):
+        """Scale an objective based on the upper/lower value"""
+        scaled_list = []
+        for num, val in enumerate(val_list):
+            lower = ll[num] if type(ll) == list else ll
+            upper = ul[num] if type(ul) == list else ul
+            scaled_list.append(self.scale_objective(val, lower, upper))
+
+        if goal_type == 'max':
+            scaled_val = max(scaled_list)
+        elif goal_type == 'min':
+            scaled_val = min(scaled_list)
+        else:
+            scaled_val = sum(scaled_list)/len(scaled_list)
+
+        return scaled_val
         
     def update_abstract_levels(self):
         """
@@ -247,8 +265,13 @@ class KaBr_lvl1(KaBr):
         scaled_pf = []
         for x in pf:
             design_objectives = []
+            # This part of the loop is identical to the determine fitness function... perhaps create a function in KA_RP and merge
             for obj in self._objectives.keys():
-                scaled_obj = self.scale_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'])
+                if (self._objectives[obj]['variable type'] == float) or (self._objectives[obj]['variable type'] ==  int):
+                    scaled_obj = self.scale_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'])
+                elif self._objectives[obj]['variable type'] == list:
+                    goal = self._objectives[obj]['goal type'] if 'goal type' in self._objectives[obj] else 'avg'
+                    scaled_obj = self.scale_list_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'], goal)
                 design_objectives.append(scaled_obj if self._objectives[obj]['goal'] == 'lt' else (1.0-scaled_obj))
             scaled_pf.append(design_objectives)
         return scaled_pf
@@ -256,9 +279,8 @@ class KaBr_lvl1(KaBr):
     def calculate_hvi_contribution(self):
         pf = [x for x in self.lvl_read.keys()]
         scaled_pf = self.scale_pareto_front(pf)
-#        self._previous_pf = pf
         # Get the HVI from the blackboard rather than calculating it
-        hvi = self.calculate_hvi(scaled_pf) #self.bb.gt_attr('hv_list[-1]')
+        hvi = self.calculate_hvi(scaled_pf)
         designs_to_remove = []
         
         for design_name, design in zip(pf, scaled_pf):
@@ -336,7 +358,7 @@ class KaBr_lvl1(KaBr):
         self.remove_dominated_entries(remove)
         self.update_abstract_levels()
     
-            
+
 class KaBr_lvl2(KaBr):
     """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
     def on_init(self):
@@ -358,6 +380,7 @@ class KaBr_lvl2(KaBr):
         
         self.update_abstract_levels()
         self.clear_bb_lvl()
+        #self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
         for core_name in self.lvl_read.keys():
             self.clear_entry()
             valid_core, opt_type = self.determine_validity(core_name)
@@ -377,7 +400,11 @@ class KaBr_lvl2(KaBr):
         """
         fitness = 0
         for param, obj_dict in self._objectives.items():
-            scaled_fit = self.scale_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'])
+            if (type(core_objectives[param]) == float) or (type(core_objectives[param]) == int):
+                scaled_fit = self.scale_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'])
+            elif type(core_objectives[param]) == list:
+                goal = obj_dict['goal type'] if 'goal type' in obj_dict else 'avg'
+                scaled_fit = self.scale_list_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'], goal)
             fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
         return round(fitness, 5)
 
@@ -385,7 +412,7 @@ class KaBr_lvl2(KaBr):
         """
         Update the KA's current understanding of the BB
         """
-        self.lvl_read =  self.update_abstract_level(self.bb_lvl_read,panels=[self.new_panel])
+        self.lvl_read =  self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
         self.lvl_write = self.update_abstract_level(self.bb_lvl_write)
         self._lvl_data = self.update_abstract_level(self.bb_lvl_data, panels=[self.new_panel, self.old_panel])
     
@@ -405,10 +432,18 @@ class KaBr_lvl3(KaBr):
                 constraint_value = self._lvl_data[core_name]['constraints'][constraint]
                 if constraint_value < constraint_dict['ll'] or constraint_value > constraint_dict['ul']:
                     return (False, None)
+        
         for obj_name, obj_dict in self._objectives.items():     
             obj_value = self._lvl_data[core_name]['objective functions'][obj_name]
-            if obj_value < obj_dict['ll'] or obj_value > obj_dict['ul']:
-                return (False, None)
+            if type(obj_value) == (float or int):
+                if obj_value < obj_dict['ll'] or obj_value > obj_dict['ul']:
+                    return (False, None)
+            elif type(obj_value) == list:
+                for num, val in enumerate(obj_value):
+                    ll = obj_dict['ll'][num] if type(obj_dict['ll']) == list else obj_dict['ll']
+                    ul = obj_dict['ul'][num] if type(obj_dict['ul']) == list else obj_dict['ul']
+                    if val < ll or val > ul:
+                        return (False, None)                   
         return (True, None)
     
     def add_entry(self, core_name):
@@ -424,4 +459,4 @@ class KaBr_lvl3(KaBr):
         """
         self.lvl_read =  self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
         self.lvl_write = self.update_abstract_level(self.bb_lvl_write, panels=[self.new_panel])
-        self._lvl_data = self.update_abstract_level(self.bb_lvl_data, panels=[self.new_panel, self.old_panel])
+        self._lvl_data = self.lvl_read#self.update_abstract_level(self.bb_lvl_data, panels=[self.new_panel])#, self.old_panel])
