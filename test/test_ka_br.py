@@ -443,7 +443,7 @@ def test_kabr_lvl1_calculate_dci():
             'core_[63.0, 63.0, 0.83]': {'design variables': {'height': 71.0, 'smear': 60.0, 'pu_content': 0.50}, 
                                                        'objective functions': {'reactivity swing' : 500.4, 'burnup' : 50.9}},
             'core_[60.0, 70.0, 0.65]': {'design variables': {'height': 71.0, 'smear': 60.0, 'pu_content': 0.50}, 
-                                                       'objective functions': {'reactivity swing' : 525.0, 'burnup' : 45.0}}}
+                                                       'objective functions': {'reactivity swing' : 490.0, 'burnup' : 40.0}}}
     
     for core, entry in read.items():
         bb.update_abstract_lvl(1, core, entry)

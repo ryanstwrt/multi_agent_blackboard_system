@@ -328,7 +328,7 @@ class KaBr_lvl1(KaBr):
             total_pf = [pf]
          
         # Calculate DCI for new/old pareto front
-        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, div=self.dci_div)
+        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, goal={obj_name: obj['goal'] for obj_name, obj in self._objectives.items()}, div=self.dci_div)
         dci._grid_generator()
         dci.compute_dci(pf)
         dci_new = dci.dci
@@ -338,6 +338,7 @@ class KaBr_lvl1(KaBr):
             dci_diff = abs(dci_new - dci.dci)
         
         designs_to_compare = {}
+        print(dci)
         for design_name in pf.keys():
             try:
                 designs_to_compare[dc[design_name]['grid position']].update({design_name: self.lvl_read[design_name]['fitness function']})
