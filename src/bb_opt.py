@@ -159,15 +159,40 @@ class BbOpt(blackboard.Blackboard):
         """        
         if self.dci_convergence_list[-1] < self.convergence_model['convergence rate']:
             self.hv_indicator()
+        else:
+            self.convergence_update()
+        
+
+    def list_objective_value(self, obj_list, goal_type):
+        """
+        Returns a single value to use as either a fitness function or Pareto indicator if our objective is a list
+        """
+        
+        if goal_type == 'max':
+            obj_val = max(obj_list)
+        elif goal_type == 'min':
+            obj_val = min(obj_list)
+        else:
+            obj_val = sum(obj_list)/len(obj_list)   
+            
+        return obj_val
+    
+    def get_objective_value(self, core, obj):
+        objective_value = self.abstract_lvls['level 3']['old'][core]['objective functions'][obj]
+        if (type(objective_value) == float) or (type(objective_value) == int):
+            return objective_value
+        elif type(objective_value) == list:
+            return self.list_objective_value(objective_value, self.objectives[obj]['goal type']) 
         
         
     def dc_indicator(self):
         """
         Calculate the DCI 
         """
-        current_pf = {name: self.abstract_lvls['level 3']['old'][name]['objective functions'] for name in self.abstract_lvls['level 1'].keys()}
+        current_pf = {name: {obj: self.get_objective_value(name, obj) for obj in self.objectives.keys()} for name in self.abstract_lvls['level 1'].keys()}
         if self.previous_pf == {}:
             self.previous_pf = current_pf
+            self.convergence_update()
             return
         
         total_pf = [current_pf, self.previous_pf]
@@ -179,6 +204,7 @@ class BbOpt(blackboard.Blackboard):
         previous_dci = dci.dci
         self.dci_convergence_list.append(current_dci - previous_dci)
         self.previous_pf = current_pf
+        self.convergence_update()
         
         
     def determine_complete_hv(self):
@@ -208,12 +234,12 @@ class BbOpt(blackboard.Blackboard):
         cores = [x for x in self.abstract_lvls['level 1']]
         bb_lvl3 = self.abstract_lvls['level 3']['old']
         for core in cores:
-            pf_ = []
-            for obj,val in bb_lvl3[core]['objective functions'].items():
-                pf_.append(val if self.objectives[obj]['goal'] == 'lt' else -val)
-            pf.append(pf_)
-        self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
-        
+            pf.append([self.get_objective_value(core, obj) if self.objectives[obj]['goal'] == 'lt' else -self.get_objective_value(core, obj) for obj in self.objectives.keys()])
+        if self.convergence_model['type'] == 'dci hvi':
+            self.hv_list[self._trigger_event] = pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul)
+        else:
+            self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
+            
     def generate_sm(self):
         """
         Generate a surrogate model for the search agents to use.
@@ -359,6 +385,9 @@ class BbOpt(blackboard.Blackboard):
         """
         Add an entry to abstract level 100 for meta-data
         """
+        print(self._trigger_event)
+        print(len(self.hv_list))
+        print(self.hv_list)
         entry_name = str(self._trigger_event)
         entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[self._trigger_event]}
 #        entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[-1]}

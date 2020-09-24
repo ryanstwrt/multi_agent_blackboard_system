@@ -121,7 +121,7 @@ class KaGlobal(KaRp):
         This can either be a scipy interpolator or a sci-kit learn regression function.
     sm_type : str
         Name of the surrogate model to be used.
-        Valid options: (interpolator, lr, pr, gpr, mars, ann, rf)
+        Valid options: (interpolator, lr, pr, gpr, ann, rf)
         See surrogate_modeling for more details
     """
 

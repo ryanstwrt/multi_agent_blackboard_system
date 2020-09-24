@@ -136,15 +136,31 @@ class KaBr(ka.KaBase):
             upper = ul[num] if type(ul) == list else ul
             scaled_list.append(self.scale_objective(val, lower, upper))
 
-        if goal_type == 'max':
-            scaled_val = max(scaled_list)
-        elif goal_type == 'min':
-            scaled_val = min(scaled_list)
-        else:
-            scaled_val = sum(scaled_list)/len(scaled_list)
+        scaled_val = self.list_objective_value(scaled_list, goal_type)
 
         return scaled_val
+    
+    def list_objective_value(self, obj_list, goal_type):
+        """
+        Returns a single value to use as either a fitness function or Pareto indicator if our objective is a list
+        """
         
+        if goal_type == 'max':
+            obj_val = max(obj_list)
+        elif goal_type == 'min':
+            obj_val = min(obj_list)
+        else:
+            obj_val = sum(obj_list)/len(obj_list)   
+            
+        return obj_val
+    
+    def get_objective_value(self, core, obj):
+        objective_value = self._lvl_data[core]['objective functions'][obj]
+        if (type(objective_value) == float) or (type(objective_value) == int):
+            return objective_value
+        elif type(objective_value) == list:
+            return self.list_objective_value(objective_value, self._objectives[obj]['goal type'])        
+
     def update_abstract_levels(self):
         """
         Update the KA's current understanding of the BB
@@ -270,8 +286,7 @@ class KaBr_lvl1(KaBr):
                 if (self._objectives[obj]['variable type'] == float) or (self._objectives[obj]['variable type'] ==  int):
                     scaled_obj = self.scale_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'])
                 elif self._objectives[obj]['variable type'] == list:
-                    goal = self._objectives[obj]['goal type'] if 'goal type' in self._objectives[obj] else 'avg'
-                    scaled_obj = self.scale_list_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'], goal)
+                    scaled_obj = self.scale_list_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'], self._objectives[obj]['goal type'])
                 design_objectives.append(scaled_obj if self._objectives[obj]['goal'] == 'lt' else (1.0-scaled_obj))
             scaled_pf.append(design_objectives)
         return scaled_pf
@@ -303,14 +318,15 @@ class KaBr_lvl1(KaBr):
         """
         Calculate the DCI for the new pareto front
         """
-        pf = {name: self._lvl_data[name]['objective functions'] for name in self.lvl_read.keys()}
+        pf = {name: {obj: self.get_objective_value(name, obj) for obj in self._objectives.keys()} for name in self.lvl_read.keys()}
+            
         try:
-            pf_old = {name: self._lvl_data[name]['objective functions'] for name in self._previous_pf}
+            pf_old = {name: {obj: self.get_objective_value(name, obj) for obj in self._objectives.keys()} for name in self._previous_pf}
             total_pf = [pf,pf_old]
         except TypeError:
             pf_old = []
             total_pf = [pf]
-            
+         
         # Calculate DCI for new/old pareto front
         dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, div=self.dci_div)
         dci._grid_generator()
@@ -339,7 +355,6 @@ class KaBr_lvl1(KaBr):
         self.lvl_read = self.update_abstract_level(self.bb_lvl_read)
         self._previous_pf = [x for x in self.lvl_read.keys()]
 
-        
     def remove_dominated_entries(self, entries):
         """
         Remove designs that do not contibute to the Pareto front (i.e. designs with HV values of 0)
@@ -403,8 +418,7 @@ class KaBr_lvl2(KaBr):
             if (type(core_objectives[param]) == float) or (type(core_objectives[param]) == int):
                 scaled_fit = self.scale_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'])
             elif type(core_objectives[param]) == list:
-                goal = obj_dict['goal type'] if 'goal type' in obj_dict else 'avg'
-                scaled_fit = self.scale_list_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'], goal)
+                scaled_fit = self.scale_list_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'], obj_dict['goal type'])
             fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
         return round(fitness, 5)
 
