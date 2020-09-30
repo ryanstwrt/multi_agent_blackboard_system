@@ -338,12 +338,17 @@ class KaBr_lvl1(KaBr):
             dci_diff = abs(dci_new - dci.dci)
         
         designs_to_compare = {}
-        print(dci)
         for design_name in pf.keys():
-            try:
-                designs_to_compare[dc[design_name]['grid position']].update({design_name: self.lvl_read[design_name]['fitness function']})
-            except:
-                designs_to_compare[dc[design_name]['grid position']] = {design_name: self.lvl_read[design_name]['fitness function']}
+            if design_name in dc:
+                design_pos = dc[design_name]['grid position']
+                try:
+                    if design_pos in designs_to_compare:
+                        designs_to_compare[design_pos].update({design_name: self.lvl_read[design_name]['fitness function']})
+                    else:
+                        designs_to_compare[dc[design_name]['grid position']] = {design_name: self.lvl_read[design_name]['fitness function']}
+                except KeyError:
+                    pass
+            
             
         designs_to_remove = []
         for grid_position, designs in designs_to_compare.items():
@@ -420,17 +425,25 @@ class KaBr_lvl2(KaBr):
                 scaled_fit = self.scale_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'])
             elif type(core_objectives[param]) == list:
                 scaled_fit = self.scale_list_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'], obj_dict['goal type'])
-            fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
+            try:
+                fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
+            except TypeError:
+                fitness += 0
+
         return round(fitness, 5)
 
     def update_abstract_levels(self):
         """
         Update the KA's current understanding of the BB
+        
+        We add a try, except for the multi-agent case where the blackboard dictionary can change size due to another agent interacting with it.
         """
-        self.lvl_read =  self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
-        self.lvl_write = self.update_abstract_level(self.bb_lvl_write)
-        self._lvl_data = self.update_abstract_level(self.bb_lvl_data, panels=[self.new_panel, self.old_panel])
-    
+        try:
+            self.lvl_read =  self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
+            self.lvl_write = self.update_abstract_level(self.bb_lvl_write)
+            self._lvl_data = self.update_abstract_level(self.bb_lvl_data, panels=[self.new_panel, self.old_panel])
+        except RuntimeError:
+            self.update_abstract_levels()
                 
 class KaBr_lvl3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
@@ -439,6 +452,8 @@ class KaBr_lvl3(KaBr):
         self.bb_lvl_write = 2
         self.bb_lvl_read = 3
         self._trigger_val_base = 3
+        self._class = 'reader_lvl3'
+
 
     def determine_validity(self, core_name):
         """Determine if the core falls within objective ranges and constrain ranges"""

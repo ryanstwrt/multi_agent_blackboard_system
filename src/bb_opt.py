@@ -385,9 +385,6 @@ class BbOpt(blackboard.Blackboard):
         """
         Add an entry to abstract level 100 for meta-data
         """
-        print(self._trigger_event)
-        print(len(self.hv_list))
-        print(self.hv_list)
         entry_name = str(self._trigger_event)
         entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[self._trigger_event]}
 #        entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[-1]}

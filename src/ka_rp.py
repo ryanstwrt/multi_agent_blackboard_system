@@ -1,6 +1,7 @@
 import random
 import ka
 import copy
+import time
 
 class KaRp(ka.KaBase):
     """
@@ -41,6 +42,7 @@ class KaRp(ka.KaBase):
         This process is performed via an interpolator or a surrogate model.
         Sets the variables for the _entry and _entry_name
         """
+#        time.sleep(5)
         self.log_debug('Determining core parameters based on SM')
         design = [x for x in self.current_design_variables.values()]
         if 'benchmark' in self.sm_type:

@@ -114,21 +114,25 @@ class Controller(object):
             trig_num = self.bb.get_attr('_trigger_event')
             responses = False
             # Wait until a response has been recieved
-            while not responses:
-                if len(self.bb.get_attr('_kaar')[trig_num]) > 0:
-                    responses = True
+            while len(self.bb.get_attr('_kaar')[trig_num]) < 1:
+                pass
+            
             self.bb.controller()
             self.bb.send_executor()
 
-            if 'rp' in self.bb.get_attr('_kaar')[trig_num]:
-                self.bb.hv_indicator()
-            if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0:
+            if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
+                self.bb.convergence_indicator()
+           #     self.bb.meta_data_entry(agent_time)
                 self.bb.write_to_h5()
-                if len(self.bb.get_attr('hv_list')) > 2*self.bb.get_attr('num_calls'):
-                    self.bb.determine_complete_hv()
+                self.bb.diagnostics_replace_agent()
+                if len(self.bb.get_attr('hv_list')) > 2 * self.bb.get_attr('num_calls'):
+                    self.bb.determine_complete()
                 if self.plot_progress:
                     self.bb.plot_progress()
-                self.bb.diagnostics_replace_agent()
+            else:
+                self.bb.convergence_update()
+                agent_time = 0
+               # self.bb.meta_data_entry(agent_time)
                 
     def update_bb_trigger_values(self, trig_num):
         """
