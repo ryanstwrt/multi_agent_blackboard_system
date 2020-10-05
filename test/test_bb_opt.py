@@ -1,12 +1,12 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import blackboard
-import bb_opt
+import src.blackboard as blackboard
+import src.bb_opt as bb_opt
 import time
 import os
-import ka_rp as karp
-import ka_br as kabr
+import src.ka_rp as karp
+import src.ka_br as kabr
 
     
 #----------------------------------------------------------

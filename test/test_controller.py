@@ -1,8 +1,8 @@
-import controller
-import blackboard
-import bb_opt
-import ka_rp
-import ka_br
+import src.controller as controller
+import src.blackboard as blackboard
+import src.bb_opt as bb_opt
+import src.ka_rp as ka_rp
+import src.ka_br as ka_br
 import time
 import os
 import pickle

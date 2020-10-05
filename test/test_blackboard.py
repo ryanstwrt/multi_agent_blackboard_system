@@ -2,13 +2,12 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import numpy as np
-import blackboard
-import ka
+import src.blackboard as blackboard
+import src.ka as ka
 import time
 import os
 import h5py
 from collections.abc import Iterable
-import ka
     
 def test_blackboard_init_agent():
     ns = run_nameserver()

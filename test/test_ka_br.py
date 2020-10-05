@@ -1,12 +1,12 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import blackboard
-import ka
+import src.blackboard as blackboard
+import src.ka as ka
 import time
 import os
-import ka_br
-import bb_opt
+import src.ka_br as ka_br
+import src.bb_opt as bb_opt
 import pickle
 
 with open('./sm_gpr.pkl', 'rb') as pickle_file:

@@ -2,13 +2,13 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import pickle
-import blackboard
-import ka
+import src.blackboard as blackboard
+import src.ka as ka
 import time
 import os
-import ka_br
-import bb_opt
-import ka_rp
+import src.ka_br as ka_br
+import src.bb_opt as bb_opt
+import src.ka_rp as ka_rp
 from collections import OrderedDict
 
 

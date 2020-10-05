@@ -1,10 +1,10 @@
 import platypus as plat
-import performance_measure as pm
+import src.performance_measure as pm
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import ka_rp
-import bb_opt
+import src.ka_rp as ka_rp 
+import src.bb_opt as bb_opt
 import pickle
 import time
 import copy
