@@ -79,7 +79,7 @@ def test_combined_kabr_handler_executor():
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function': 1.475},
                                                        'core_2' : {'pareto type' : 'pareto', 'fitness function': 1.6},
-                                                       'core_3' : {'pareto type' : 'weak', 'fitness function': 1.6}}
+                                                       'core_3' : {'pareto type' : 'pareto', 'fitness function': 1.6}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {},
                                                        'old': {'core_1' : {'valid' : True},
                                                                'core_2' : {'valid' : True},
@@ -90,7 +90,7 @@ def test_combined_kabr_handler_executor():
     time.sleep(1) 
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_2' : {'pareto type' : 'pareto', 'fitness function': 1.6},
-                                                       'core_3' : {'pareto type' : 'weak', 'fitness function': 1.6}}
+                                                       'core_3' : {'pareto type' : 'pareto', 'fitness function': 1.6}}
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {},
                                                        'old': {'core_1' : {'valid' : True},
                                                                'core_2' : {'valid' : True},
@@ -103,14 +103,13 @@ def test_combined_kabr_karp():
     ns = run_nameserver()
     
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    with open('test/sm_lr_2obj.pkl', 'rb') as pickle_file:
+    with open('./sm_gpr.pkl', 'rb') as pickle_file:
         sm_ga = pickle.load(pickle_file)
-    bb.set_attr(sm_type='lr')
+    bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
     obj = {'reactivity swing': {'ll':0,   'ul':1000,  'goal':'lt', 'variable type': float},
            'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float}}
-    bb.set_attr(objectives=obj)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=obj)
     bb.connect_agent(ka_rp.KaGlobal, 'ka_rp_explore')
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
     bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br_lvl3')
@@ -136,7 +135,8 @@ def test_combined_kabr_karp():
 
     # Generate core and test second trigger publish (ka_br_lvl3)
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-                                         'objective functions': {'reactivity swing': 800.0, 'burnup': 30.0}}, panel='new')
+                                         'objective functions': {'reactivity swing': 800.0, 'burnup': 30.0},
+                                         'constraints': {'eol keff': 1.1}}, panel='new')
     
     bb.publish_trigger()
     time.sleep(0.1)
@@ -229,16 +229,13 @@ def test_combined_kabr_karp():
         time.sleep(0.1)
         bb.controller()
         bb.send_executor()
-        time.sleep(1.0)
+        time.sleep(1.5)
 
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl1', 6)
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1': {'pareto type' : 'pareto', 'fitness function' : 0.35},
-                                                       'core_[61.75, 65.0, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.5553},
-                                                       'core_[68.25, 65.0, 0.4]': {'pareto type' : 'weak', 'fitness function' : 0.64338},
-                                                       'core_[65.0, 61.75, 0.4]': {'pareto type' : 'weak', 'fitness function' : 0.54011},
-                                                       'core_[65.0, 68.25, 0.4]': {'pareto type' : 'weak', 'fitness function' : 0.65857},
-                                                       'core_[65.0, 65.0, 0.38]': {'pareto type' : 'weak', 'fitness function' : 0.59719},
-                                                       'core_[65.0, 65.0, 0.42]': {'pareto type' : 'weak', 'fitness function' : 0.6015}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[61.75, 65.0, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.61069},
+                                                       'core_[68.25, 65.0, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.67707},
+                                                       'core_[65.0, 68.25, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.6793},
+                                                       'core_[65.0, 65.0, 0.38]': {'pareto type' : 'pareto', 'fitness function' : 0.64698}}
 
     ns.shutdown()
     time.sleep(0.1)   

@@ -15,6 +15,7 @@ class BenchmarkBB(bb_opt.BbOpt):
                            'f2': {'ll':0, 'ul':1, 'goal':'lt', 'variable type': float}}
         self.design_variables =  {'x1':  {'ll':0, 'ul':1, 'variable type': float},
                                   'x2':  {'ll':0, 'ul':1, 'variable type': float}}
+        self.constraints = {}
         
         self.hv_convergence = 1e-6
         self._sm = None

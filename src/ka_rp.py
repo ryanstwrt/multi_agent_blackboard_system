@@ -1,6 +1,8 @@
 import random
 import ka
 import copy
+import time
+import performance_measure as pm
 
 class KaRp(ka.KaBase):
     """
@@ -29,6 +31,9 @@ class KaRp(ka.KaBase):
         self._objectives = {}
         self.objective_functions = {}
         self._objective_accuracy = 5
+        self._constraints = {}
+        self.current_constraints = {}
+        self._constraint_accuracy = 5
         self._update_hv = False
         self._class = 'search'
         
@@ -38,6 +43,7 @@ class KaRp(ka.KaBase):
         This process is performed via an interpolator or a surrogate model.
         Sets the variables for the _entry and _entry_name
         """
+#        time.sleep(5)
         self.log_debug('Determining core parameters based on SM')
         design = [x for x in self.current_design_variables.values()]
         if 'benchmark' in self.sm_type:
@@ -46,16 +52,21 @@ class KaRp(ka.KaBase):
                 self.objective_functions[obj] = round(float(obj_list[num]), self._objective_accuracy)
         elif self.sm_type == 'interpolate':
             for obj_name, interpolator in self._sm.items():
-                self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
+                if obj_name in self._objectives:
+                    self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
+                elif obj_name in self._constraints:
+                    self.current_constraints[obj_name] = round(float(interpolator(tuple(design))), self._constraint_accuracy)
         else:
-            obj_list = self._sm.predict(self.sm_type, [design])
-            for num, obj in enumerate(self._objectives.keys()):
-                self.objective_functions[obj] = round(float(obj_list[0][num]), self._objective_accuracy)
-        new_design = self.current_design_variables.copy()
-        new_design.update(self.objective_functions)
-        self.log_debug('Core Design & Objectives: {}'.format([(x,round(y, self._objective_accuracy)) for x,y in new_design.items()]))
+            obj_dict = self._sm.predict(self.sm_type, self.current_design_variables, output='dict')
+            for obj in self._objectives.keys():
+                self.objective_functions[obj] = round(float(obj_dict[obj]), self._objective_accuracy)
+            for cnst in self._constraints.keys():
+                self.current_constraints[cnst] = round(float(obj_dict[cnst]), self._constraint_accuracy)
+                
         self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
-        self._entry = {'design variables': self.current_design_variables, 'objective functions': self.objective_functions}
+        self._entry = {'design variables': self.current_design_variables, 
+                       'objective functions': self.objective_functions,
+                       'constraints': self.current_constraints}
         
     def handler_executor(self, message):
         """
@@ -94,7 +105,7 @@ class KaRp(ka.KaBase):
 
 class KaGlobal(KaRp):
     """
-    Knowledge agent to solve portions reactor physics problems using a SM.
+    Knowledge agent to solve portions reactor physics problems using a stochastic sampling technique.
     
     Inherets from KaBase.
     
@@ -113,7 +124,7 @@ class KaGlobal(KaRp):
         This can either be a scipy interpolator or a sci-kit learn regression function.
     sm_type : str
         Name of the surrogate model to be used.
-        Valid options: (interpolator, lr, pr, gpr, mars, ann, rf)
+        Valid options: (interpolator, lr, pr, gpr, ann, rf)
         See surrogate_modeling for more details
     """
 
@@ -128,6 +139,21 @@ class KaGlobal(KaRp):
             self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
 
+        
+class KaLHC(KaRp):
+    """
+    Knowledge agent who discovers the design space using a latin hyper cube sampling technique.
+    This can be beneficialy for adequatly sampling the design space, and for generating an accurate SM for KaSm.
+    
+    Inherets from KaBase
+    
+    Attributes:
+    """
+    
+    def on_init(self):
+        super().on_init()
+        lhc_grid = {}
+        
 
 
 class KaLocal(KaRp):
@@ -398,7 +424,7 @@ class KaGA(KaLocal):
     
     def on_init(self):
         super().on_init()
-        self._base_trigger_val = 10
+        self._base_trigger_val = 5
         self.previous_populations = {}
         self.crossover_rate = 0.8
         self.offspring_per_generation = 20
@@ -406,7 +432,7 @@ class KaGA(KaLocal):
         self.crossover_type = 'single point'
         self.num_cross_over_points = 1
         self.mutation_type = 'random'
-        self.pf_size = 10
+        self.pf_size = 40
         self.b = 2
         self.k = 5
         self.T = 100
@@ -415,6 +441,7 @@ class KaGA(KaLocal):
     def handler_trigger_publish(self, message):
         """
         Read the BB level and determine if an entry is available.
+        GA is currently triggered if we find that the PF level has solutions that it has not analyzed greater than some aribratry amount pf_size.
         
         Paremeters
         ----------
@@ -435,7 +462,7 @@ class KaGA(KaLocal):
         new = set([x for x in lvl.keys()])
         old = set([x for x in self.analyzed_design.keys()])
         intersection = old.intersection(new)
-        self._trigger_val = self._base_trigger_val if (len(lvl) >= self.pf_size + len(old) and intersection != new) else 0
+        self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 
@@ -604,5 +631,40 @@ class KaGA(KaLocal):
             genotype[dv_mutate] = min(new_gene, self.design_variables[dv_mutate]['ul'])
         else:
             new_gene = genotype[dv_mutate] - delta_k
-            genotype[dv_mutate] = max(new_gene, self.design_variables[dv_mutate]['ll'])  
+            genotype[dv_mutate] = max(new_gene, self.design_variables[dv_mutate]['ll'])
         return genotype
+
+def KaSm(KaLocal):
+    """
+    Knowledge Agent who generates a SM based on the data level of the BB to find areas of interest
+    """
+    
+    def on_init(self):
+        super().on_init()
+        self.bb_lvl_read = 3
+        self._base_trigger_val = 5
+        self.previous_populations = {}
+
+    def handler_trigger_publish(self, message):
+        """
+
+        """
+        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        data_size = len(self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)])
+
+        self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+
+        
+    def search_method(self):
+        """
+        Generate a SM and find an areas of interest
+        Option 1: Look at the ll/ul and find the objectives with the smallest range compared to this.
+        Option 2: Fix an objecives to a specific value (high/low/median) sweep over other parameters to find viable cores
+        Option 3: Randomly sample the objectives within llul
+        """
+        pass
+    
+    def random_sample(self):
+        pass

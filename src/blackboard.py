@@ -607,6 +607,7 @@ class Blackboard(Agent):
                 else:
                     assert type(entry_type) == lvl_format[entry_name]
             except AssertionError:
+                self.log_warning('Entry Name: {} with value: {} caused an error.\n'.format(entry_name, entry_type))
                 self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys: {}\n with value types: {}.\n Entry was not added.'.format(name, level, [x for x in entry.keys()], [x for x in entry.values()], [x for x in lvl_format.keys()], [x for x in lvl_format.values()]))
                 return
         

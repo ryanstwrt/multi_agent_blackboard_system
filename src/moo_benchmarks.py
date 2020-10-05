@@ -44,7 +44,7 @@ class optimization_test_functions(object):
             f1 = x-4
             
         f2 = (x-5) ** 2        
-        return [f1,f2]
+        return [float(f1),float(f2)]
     
     def zdt_1(self, x, num_vars):
         """

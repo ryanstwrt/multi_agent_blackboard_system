@@ -57,20 +57,25 @@ def diversity_indicatory(pf_names, pf, lower_ref, upper_ref):
 
 class diversity_comparison_indicator(object):
     
-    def __init__(self, lb, ub, pf, div=None):
+    def __init__(self, lb, ub, pf, goal=None, div=None):
         self._ideal_point = lb
         self._nadir_point = ub
         self.num_objectives = len(self._nadir_point)
+        self.goal = goal if goal else {obj: 'lt' for obj in self._ideal_point.keys()}
         self.div = div if div else {obj: abs(self._ideal_point[obj] - self._nadir_point[obj]) for obj in self._ideal_point.keys()}
 
         self.dc = {}
+        self._pf = {}
         self.dci = 0
         self._hyperbox_grid = None
         self._pf_grid_coordinates = {}
 
         self._grid_generator()
         for pf_set in pf:
-            self._pf_grid_coordinates.update(self._pareto_grid_locations(pf_set))       
+            self._pf.update(pf_set)
+        self._remove_dominated_solutions()
+        self._pf_grid_coordinates.update(self._pareto_grid_locations(self._pf))
+    
             
     def compute_dci(self, test_pf):
         """
@@ -135,3 +140,30 @@ class diversity_comparison_indicator(object):
         test_pf_grid = [x for x in test_pf_grid.values()]
         dist = [self._hyperbox_distance(obj_funcs, pf_grid_pos) for obj_funcs in test_pf_grid]
         return min(dist)
+
+    def _remove_dominated_solutions(self):
+        """
+        Remove any domianted entry in the Pareto front so it does not count towards the dci value
+        """
+        pf = {}
+        for solution_name, solution_1 in self._pf.items():
+            optimal = self._determine_dominated_solutions(solution_1)
+            if optimal:
+                pf.update({solution_name: solution_1})
+        self._pf = pf
+                            
+    def _determine_dominated_solutions(self, sol_1):
+        """
+        Determine if one solutions dominates another
+        """
+        for sol_2 in self._pf.values():
+            optimal = 0
+            if sol_1 != sol_2:
+                for obj, goal in self.goal.items():
+                    sol_1_val = -sol_1[obj] if goal == 'gt' else sol_1[obj]
+                    sol_2_val = -sol_2[obj] if goal == 'gt' else sol_2[obj]
+                    optimal += 1 if sol_1_val <= sol_2_val else 0
+                if optimal == 0:
+                    return False
+        
+        return True
