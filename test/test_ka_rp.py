@@ -8,8 +8,8 @@ import time
 import src.ka_rp as ka_rp
 import src.bb_opt as bb_opt
 
-with open('./sm_gpr.pkl', 'rb') as pickle_file:
-    sm_ga = pickle.load(pickle_file)
+#with open('./sm_gpr.pkl', 'rb') as pickle_file:
+#    sm_ga = pickle.load(pickle_file)
 
 
 def test_karp_init():
