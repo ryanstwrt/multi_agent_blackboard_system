@@ -13,7 +13,7 @@ osbrain
 plotly
 platypus-opt
 pymop
-sklearn
+sklearn=0.22.1
 matplotlib
 scikit-optimize
 #
