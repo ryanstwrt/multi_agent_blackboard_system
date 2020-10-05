@@ -12,4 +12,6 @@ scipy
 osbrain
 plotly
 platypus
+pymop
+sklearn
 #

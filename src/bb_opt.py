@@ -9,7 +9,7 @@ import os
 import glob
 import src.database_generator as dg
 import numpy as np
-#import train_surrogate_models as tm
+import src.train_surrogate_models as tm
 import scipy.interpolate
 import plotly.express as px
 import src.performance_measure as pm
