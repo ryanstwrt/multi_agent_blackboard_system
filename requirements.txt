@@ -11,7 +11,7 @@ h5py
 scipy
 osbrain
 plotly
-platypus
+platypus-opt
 pymop
 sklearn
 matplotlib

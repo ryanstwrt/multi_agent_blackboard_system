@@ -10,8 +10,8 @@ import src.bb_opt as bb_opt
 import pickle
 import src.train_surrogate_models as tm
 
-#with open('./sm_gpr.pkl', 'rb') as pickle_file:
-#    sm_ga = pickle.load(pickle_file)
+with open('./sm_gpr.pkl', 'rb') as pickle_file:
+    sm_ga = pickle.load(pickle_file)
 
 def test_kabr_init():
     ns = run_nameserver()
