@@ -12,4 +12,5 @@ h5py
 scipy
 osbrain
 plotly
+pickle
 #
