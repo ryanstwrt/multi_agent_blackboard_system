@@ -3,14 +3,4 @@
 #
 ##### Requirements without Version Specifiers #####
 pytest
-numpy
-PyYAML
-coveralls
-pytest-cov
-pandas
-h5py
-scipy
-osbrain
-plotly
-pickle
 #
