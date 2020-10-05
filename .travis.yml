@@ -3,6 +3,6 @@ python:
   - "3.6"
 
 install:
-  - pip install -r requirements.txt
+  - pip install -user requirements.txt
 script:
   - python3 -m pytest -vv --cov=./;
