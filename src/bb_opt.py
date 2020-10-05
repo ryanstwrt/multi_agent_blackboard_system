@@ -1,18 +1,18 @@
-import blackboard
-import ka_rp as karp
-import ka_br as kabr
+import src.blackboard as blackboard
+import src.ka_rp as karp
+import src.ka_br as kabr
 import osbrain
 from osbrain import proxy
 from osbrain import run_agent
 import time
 import os 
 import glob
-import database_generator as dg
+import src.database_generator as dg
 import numpy as np
-import train_surrogate_models as tm
+#import train_surrogate_models as tm
 import scipy.interpolate
 import plotly.express as px
-import performance_measure as pm
+import src.performance_measure as pm
 
 
 cur_dir = os.path.dirname(__file__)

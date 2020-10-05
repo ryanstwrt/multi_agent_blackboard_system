@@ -1,8 +1,8 @@
 import random
-import ka
+import src.ka as ka
 import copy
 import time
-import performance_measure as pm
+import src.performance_measure as pm
 
 class KaRp(ka.KaBase):
     """

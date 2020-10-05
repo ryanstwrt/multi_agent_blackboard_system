@@ -1,4 +1,4 @@
-import bb_opt
+import src.bb_opt as bb_opt
 import plotly.express as px
 
 class BenchmarkBB(bb_opt.BbOpt):
