@@ -15,4 +15,5 @@ platypus
 pymop
 sklearn
 matplotlib
+skopt
 #
