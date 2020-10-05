@@ -1,13 +1,12 @@
-import fridge.utilities.h5Interface as h5i
-import fridge.utilities.reactorInterface as RI
+import h5Interface as h5i
+import reactorInterface as RI
 
-def get_data(design_variables, objective_variables, database_name='SFR_DB', fixed_cycle_length=100):
+def get_data(design_variables, objective_variables, database_name='SFR_DB', fixed_cycle_length=120, num_cycles=4):
     h5_interface = h5i.h5Interface()
     h5_interface.read_h5('/Users/ryanstewart/projects/sfr_database/{}.h5'.format(database_name))
     ind_var_array = []
     obj_var_array = []
     data_dict = {}
-    num_cycles = 4
     for core in h5_interface.h5file.values():
         core_name = core.name
         data_dict[core_name] = {'independent variables': {}, 'dependent variables': {}}

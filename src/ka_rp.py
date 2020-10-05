@@ -2,6 +2,7 @@ import random
 import ka
 import copy
 import time
+import performance_measure as pm
 
 class KaRp(ka.KaBase):
     """
@@ -104,7 +105,7 @@ class KaRp(ka.KaBase):
 
 class KaGlobal(KaRp):
     """
-    Knowledge agent to solve portions reactor physics problems using a SM.
+    Knowledge agent to solve portions reactor physics problems using a stochastic sampling technique.
     
     Inherets from KaBase.
     
@@ -138,6 +139,21 @@ class KaGlobal(KaRp):
             self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
 
+        
+class KaLHC(KaRp):
+    """
+    Knowledge agent who discovers the design space using a latin hyper cube sampling technique.
+    This can be beneficialy for adequatly sampling the design space, and for generating an accurate SM for KaSm.
+    
+    Inherets from KaBase
+    
+    Attributes:
+    """
+    
+    def on_init(self):
+        super().on_init()
+        lhc_grid = {}
+        
 
 
 class KaLocal(KaRp):

@@ -387,7 +387,7 @@ class Blackboard(Agent):
                 Trigger value for the agent
         """
         agent_name, trig_val = message
-        self.log_info('Logging trigger response ({}) for agent {}.'.format(trig_val, agent_name))
+        self.log_debug('Logging trigger response ({}) for agent {}.'.format(trig_val, agent_name))
         self._kaar[self._trigger_event].update({agent_name: trig_val})
         
     def handler_writer(self, message):
