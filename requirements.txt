@@ -15,5 +15,5 @@ platypus
 pymop
 sklearn
 matplotlib
-skopt
+scikit-optimize
 #
