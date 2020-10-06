@@ -5,6 +5,7 @@
 pytest
 numpy
 coveralls
+pytest-cov
 pandas
 h5py
 scipy
