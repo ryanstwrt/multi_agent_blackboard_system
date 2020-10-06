@@ -269,9 +269,9 @@ def test_update_all_models():
     model2.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
     model2._initialize_models()
 
-    model_list = ['lr', 'pr', 'gpr', 'ann', 'rf']
-    model_scores = [0.3546058200687729, -0.2225911024507033, 0.0, -0.8124181759959282, 0.1770111582876811, ]
-    model_scores2 = [-0.5475314374931772, -0.2225911024507033,  0.0, -1.0503029979397898, 0.033954767107108486, ]
+    model_list = ['lr', 'pr', 'gpr', 'rf']
+    model_scores = [0.3546058200687729, -0.2225911024507033, 0.0, 0.1770111582876811, ]
+    model_scores2 = [-0.5475314374931772, -0.2225911024507033,  0.0, 0.033954767107108486, ]
     for model_type in model_list:
         model2.set_model(model_type)
     for model_type, model_score in zip(model_list, model_scores):
@@ -304,7 +304,7 @@ def test_optimize_pr():
     assert optimized_pr_model['mse_score'] == 10.222709357498402
     assert optimized_pr_model['hyper_parameters'] == {'poly__degree': 4}
     
-def test_optimize_ann():
+def test_optimize_grp():
     sm = tm.Surrogate_Models()
     variables, objectives = datasets.load_linnerud(return_X_y=True)
     sm.random = 57757
@@ -313,22 +313,17 @@ def test_optimize_ann():
     sm.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
     sm._initialize_models()
 
-    sm.set_model('ann')
-    ann_model = sm.models['ann']
-    try:
-        assert ann_model['score'] == -0.8124181759959282
-    except AssertionError:
-        assert ann_model['score'] == -1.1035757582289127
-    try:
-        assert ann_model['mse_score'] == 1.8124181759959297
-    except AssertionError:
-        assert ann_model['mse_score'] == 2.1035757582289114
-    hyper_parameters = {'hidden_layer_sizes': (10,25)}
+    sm.set_model('gpr')
+    ann_model = sm.models['gpr']
+    assert ann_model['score'] == 0.0#-0.8124181759959282
+    assert ann_model['mse_score'] == 1.0#1.8124181759959297
+
+    hyper_parameters = {'alpha': (1e-11,1e-7)}
     sm.optimize_model('ann', hyper_parameters)
     optimized_ann_model = sm.models['ann']
-    assert optimized_ann_model['score'] == -1.3392896377969676
-    assert optimized_ann_model['mse_score'] == 2.339289637796968
-    assert optimized_ann_model['hyper_parameters'] == {'hidden_layer_sizes': 15}
+    assert optimized_ann_model['score'] == -1.1335835438791648
+    assert optimized_ann_model['mse_score'] == 2.1335835438791655
+    assert optimized_ann_model['hyper_parameters'] == {'alpha': 3.2818867008479447e-08}
 
 def test_return_best_model():
     sm = tm.Surrogate_Models()
