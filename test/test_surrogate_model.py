@@ -306,25 +306,28 @@ def test_optimize_pr():
     
 def test_optimize_grp():
     sm = tm.Surrogate_Models()
-    variables, objectives = datasets.load_linnerud(return_X_y=True)
+    variables, objectives = datasets.load_diabetes(return_X_y=True)
     sm.random = 57757
+
     sm.cv = 3
     sm.number_iters = 3
-    sm.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
+    sm.update_database(np.ndarray.tolist(variables), [[x] for x in np.ndarray.tolist(objectives)])
     sm._initialize_models()
 
-    sm.set_model('gpr')
-    ann_model = sm.models['gpr']
-    assert ann_model['score'] == 0.0#-0.8124181759959282
-    assert ann_model['mse_score'] == 1.0#1.8124181759959297
+    sm.set_model('rf')
+    ann_model = sm.models['rf']
+    assert ann_model['score'] == 0.42132316605554143
+    assert ann_model['mse_score'] == 0.5786768339444586
 
-    hyper_parameters = {'alpha': (1e-11,1e-7)}
-    sm.optimize_model('ann', hyper_parameters)
-    optimized_ann_model = sm.models['ann']
-    assert optimized_ann_model['score'] == -1.1335835438791648
-    assert optimized_ann_model['mse_score'] == 2.1335835438791655
-    assert optimized_ann_model['hyper_parameters'] == {'alpha': 3.2818867008479447e-08}
-
+    
+    hyper_parameters = {'n_estimators': (100,200)}
+    sm.optimize_model('rf', hyper_parameters)
+    optimized_ann_model = sm.models['rf']
+    assert optimized_ann_model['hyper_parameters'] == {'n_estimators': 149}
+    assert optimized_ann_model['score'] == 0.4251771319924367
+    assert optimized_ann_model['mse_score'] == 0.5748228680075633
+    assert 1 > 2
+    
 def test_return_best_model():
     sm = tm.Surrogate_Models()
     variables, objectives = datasets.load_linnerud(return_X_y=True)
