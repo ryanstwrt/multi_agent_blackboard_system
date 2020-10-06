@@ -304,7 +304,7 @@ def test_optimize_pr():
     assert optimized_pr_model['mse_score'] == 10.222709357498402
     assert optimized_pr_model['hyper_parameters'] == {'poly__degree': 4}
     
-def test_optimize_grp():
+def test_optimize_rf():
     sm = tm.Surrogate_Models()
     variables, objectives = datasets.load_diabetes(return_X_y=True)
     sm.random = 57757
@@ -326,7 +326,6 @@ def test_optimize_grp():
     assert optimized_ann_model['hyper_parameters'] == {'n_estimators': 149}
     assert optimized_ann_model['score'] == 0.4251771319924367
     assert optimized_ann_model['mse_score'] == 0.5748228680075633
-    assert 1 > 2
     
 def test_return_best_model():
     sm = tm.Surrogate_Models()

@@ -164,7 +164,7 @@ def test_trigger_event():
     ka_b1.set_attr(_trigger_val=1)
     bb.publish_trigger()
     bb.controller()
-    time.sleep(0.75)
+    time.sleep(1.25)
     assert bb.get_attr('_kaar') == {1: {'ka_base': 0, 'ka_base1': 0, 'ka_base2': 0},
                                     2: {'ka_base': 0, 'ka_base1': 1, 'ka_base2': 0}}
     assert bb.get_attr('_ka_to_execute') == ('ka_base1', 1)
