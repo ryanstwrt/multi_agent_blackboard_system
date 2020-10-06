@@ -85,8 +85,8 @@ def test_run_single_agent_bb():
     bb_controller.bb.set_attr(num_calls=1)
     bb_controller.bb.set_attr(total_solutions=1)
     bb_controller.bb.set_attr(hv_list=[0.6,0.6])
-  #  bb_controller.run_single_agent_bb()
-   # assert bb_controller.bb.get_attr('_complete') == True
+    bb_controller.run_single_agent_bb()
+    assert bb_controller.bb.get_attr('_complete') == True
     bb_controller.shutdown()
     os.remove('sfr_opt.h5')
     time.sleep(0.05)

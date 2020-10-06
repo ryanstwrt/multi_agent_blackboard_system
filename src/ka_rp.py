@@ -152,7 +152,14 @@ class KaLHC(KaRp):
     
     def on_init(self):
         super().on_init()
-        lhc_grid = {}
+        self.lhc_stratum = {'height': 100, 'smear': 100, 'pu_content': 100}
+        self.lhc_grid = {}
+        
+        
+    def generate_lhc_grid(self):
+        """Generate the hyper space by which we can sample from"""
+        for dv in self.design_variables.items():
+            self.lhc_stratum[dv]
         
 
 
