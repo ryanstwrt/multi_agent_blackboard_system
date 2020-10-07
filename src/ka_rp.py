@@ -3,6 +3,8 @@ import src.ka as ka
 import copy
 import time
 import src.performance_measure as pm
+from pyDOE import lhs
+import numpy as np
 
 class KaRp(ka.KaBase):
     """
@@ -68,6 +70,7 @@ class KaRp(ka.KaBase):
                        'objective functions': self.objective_functions,
                        'constraints': self.current_constraints}
         
+        
     def handler_executor(self, message):
         """
         Execution handler for KA-RP.
@@ -80,7 +83,7 @@ class KaRp(ka.KaBase):
             required message for sending communication
         """
         self.log_debug('Executing agent {}'.format(self.name))
-        self.mc_design_variables()
+        self.search_method()
         self.calc_objectives()
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
         self._trigger_val = 0
@@ -131,7 +134,7 @@ class KaGlobal(KaRp):
     def on_init(self):
         super().on_init()
         
-    def mc_design_variables(self):
+    def search_method(self):
         """
         Determine the core design variables using a monte carlo method.
         """
@@ -152,16 +155,42 @@ class KaLHC(KaRp):
     
     def on_init(self):
         super().on_init()
-        self.lhc_stratum = {'height': 100, 'smear': 100, 'pu_content': 100}
-        self.lhc_grid = {}
+        self.lhc_criterion = 'corr'
+        self.samples = 50
+        self.lhd = []
+        self._trigger_val = 2.0
+        self._class = 'search lhc'
+    
+    def generate_lhc(self):
+        """
+        Generate a set of samples to select from.
+        """
+        lhd = lhs(len(self.design_variables.keys()), samples=self.samples, criterion=self.lhc_criterion)
+        self.lhd = lhd.tolist()
         
+    def search_method(self):
+        """
+        Determine the core design variables using a LHC method.
+        """
+        cur_design = self.lhd.pop(0)
+        num = 0
+        for dv, dv_dict in self.design_variables.items():
+            self.current_design_variables[dv] = round(cur_design[num] * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
+            num += 1
+        self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
         
-    def generate_lhc_grid(self):
-        """Generate the hyper space by which we can sample from"""
-        for dv in self.design_variables.items():
-            self.lhc_stratum[dv]
+    def handler_trigger_publish(self, message):
+        """
+        Send a message to the BB indiciating it's trigger value.
         
-
+        Parameters
+        ----------
+        message : str
+            Containts unused message, but required for agent communication.
+        """
+        self._trigger_val = self._trigger_val if len(self.lhd) else 0
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 
 class KaLocal(KaRp):
     """

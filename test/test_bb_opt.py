@@ -125,6 +125,7 @@ def test_add_ka_specific():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(karp.KaGlobal, 'ka_rp_explore')
+    bb.connect_agent(karp.KaLHC, 'ka_lhc')
     bb.connect_agent(karp.KaLocal, 'ka_rp_exploit')
     bb.connect_agent(kabr.KaBr_lvl1, 'ka_br_lvl1')
     bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
@@ -141,6 +142,8 @@ def test_add_ka_specific():
                                                           'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                                           'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
             assert agent.get_attr('sm_type') == 'interpolate'
+            if 'lhc' in alias:
+                assert agent.get_attr(lhd) != []
         elif 'lvl' in alias:
             assert agent.get_attr('_objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
                                                     'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},

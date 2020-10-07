@@ -111,6 +111,8 @@ class BbOpt(blackboard.Blackboard):
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
             ka.set_attr(design_variables=self.design_variables)
+            if 'lhc' in agent_class:
+                ka.generate_lhc()
         elif 'reader' in agent_class:
             if 'lvl1' in agent_class:
                 nadir_point = {}

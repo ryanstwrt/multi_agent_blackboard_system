@@ -127,7 +127,7 @@ def test_explore_handler_trigger_publish():
     ns.shutdown()
     time.sleep(0.05)
     
-def test_explore_mc_design_variables():
+def test_explore_search_method():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
     rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
@@ -136,7 +136,7 @@ def test_explore_mc_design_variables():
     
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('_entry_name') == None
-    rp.mc_design_variables()
+    rp.search_method()
     assert rp.get_attr('current_design_variables') != {}
     
     ns.shutdown()
@@ -176,7 +176,129 @@ def test_create_sm_regression():
     time.sleep(0.05)
 
 #----------------------------------------------------------
-# Tests fopr KA-Local
+# Tests for KA-LHC
+#----------------------------------------------------------
+
+def test_kalhc_init():
+    ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
+    
+    assert rp.get_attr('bb') == None
+    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('_entry') == None
+    assert rp.get_attr('_entry_name') == None
+    assert rp.get_attr('_writer_addr') == None
+    assert rp.get_attr('_writer_alias') == None
+    assert rp.get_attr('_executor_addr') == None
+    assert rp.get_attr('_executor_alias') == None
+    assert rp.get_attr('_trigger_response_addr') == None
+    assert rp.get_attr('_trigger_response_alias') == 'trigger_response_ka_rp'
+    assert rp.get_attr('_trigger_publish_addr') == None
+    assert rp.get_attr('_trigger_publish_alias') == None
+    assert rp.get_attr('_shutdown_alias') == None
+    assert rp.get_attr('_shutdown_addr') == None
+    assert rp.get_attr('_trigger_val') == 2.0
+    
+    assert rp.get_attr('current_design_variables') == {}
+    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('_sm') == None
+    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('sm_type') == 'interpolate'
+    assert rp.get_attr('_objectives') == {}
+    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('_objective_accuracy') == 5
+    assert rp.get_attr('_design_accuracy') == 5
+    assert rp.get_attr('lhc_criterion') == 'corr'
+    assert rp.get_attr('samples') == 50
+    assert rp.get_attr('lhd') == []
+
+    ns.shutdown()
+    time.sleep(0.05)    
+
+def test_kalhc_generate_lhc():
+    ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
+    
+    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})    
+    rp.generate_lhc()
+    lhd = rp.get_attr('lhd')
+    assert len(lhd) == 50
+    assert len(lhd[0]) == 3
+    
+    ns.shutdown()
+    time.sleep(0.05) 
+    
+def test_kalhc_search_method():
+    ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
+    
+    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})    
+    rp.generate_lhc()
+    lhd = rp.get_attr('lhd')[0]
+    print(lhd)
+    
+    rp.search_method()
+    design = rp.get_attr('current_design_variables')
+    assert round(lhd[2], 5) == design['pu_content']
+    
+    ns.shutdown()
+    time.sleep(0.05) 
+
+def test_kalhc_handler_executor():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3()
+
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga) 
+    bb.connect_agent(ka_rp.KaLHC, 'ka_rp_lhc')
+    
+    rp = ns.proxy('ka_rp_lhc')
+    rp.set_attr(_trigger_val=2)
+    bb.set_attr(_ka_to_execute=('ka_rp_lhc', 2))
+    bb.send_executor()
+    time.sleep(2.0)
+    
+    entry = rp.get_attr('_entry')
+    core_name = rp.get_attr('_entry_name')
+    bb_entry = {core_name: entry}
+    
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == bb_entry
+    assert rp.get_attr('_trigger_val') == 0    
+
+    ns.shutdown()
+    time.sleep(0.05)
+
+def test_kalhc_handler_trigger_publish():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3()
+    bb.connect_agent(ka_rp.KaLHC, 'ka_rp_lhc')
+    
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_rp_lhc': 2.0}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp_lhc', 2.0)
+    
+    rp = ns.proxy('ka_rp_lhc')
+    for i in range(50):
+        rp.search_method()
+    bb.publish_trigger()
+    time.sleep(0.25)
+    bb.controller()
+    assert bb.get_attr('_kaar') == {1: {'ka_rp_lhc': 2.0}, 2: {'ka_rp_lhc': 0.0}}
+    assert bb.get_attr('_ka_to_execute') == (None, 0)
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
+#----------------------------------------------------------
+# Tests for KA-Local
 #----------------------------------------------------------
 
 def test_karp_exploit_init():
