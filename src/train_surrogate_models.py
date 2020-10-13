@@ -21,7 +21,7 @@ class Surrogate_Models(object):
     self.ind_var = []
     self.obj_var = []
 
-    self.random = None
+    self.random = 10983
     self.cv = 3
     self.number_iters = 50
 
@@ -201,8 +201,12 @@ class Surrogate_Models(object):
         self.ind_var_names = variables
         self.dep_var_names = objectives
         for design in database.values():
-            self.ind_var.append([design['independent variables'][x] for x in variables])
-            self.obj_var.append([design['dependent variables'][x] for x in objectives])
+            try:
+                self.ind_var.append([design['independent variables'][x] for x in variables])
+                self.obj_var.append([design['dependent variables'][x] for x in objectives])
+            except KeyError:
+                self.ind_var.append([design[x] for x in variables])
+                self.obj_var.append([design[x] for x in objectives])
     else:
         for var, obj in zip(variables, objectives):
             self.ind_var.append(var)

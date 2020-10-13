@@ -17,7 +17,7 @@ def test_surrogate_model_init():
     assert sm.ind_var == []
     assert sm.obj_var == []
 
-    assert sm.random == None
+    assert sm.random == 10983
     assert sm.cv == 3
     assert sm.number_iters == 50
     

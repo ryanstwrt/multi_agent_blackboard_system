@@ -993,4 +993,59 @@ def test_kaga_non_uniform_mutation():
 #----------------------------------------------------------
 
 def test_KaSm_init():
-    pass
+    ns = run_nameserver()
+    rp = run_agent(name='ka_sm', base=ka_rp.KaSm)
+    
+    assert rp.get_attr('bb') == None
+    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('_entry') == None
+    assert rp.get_attr('_entry_name') == None
+    assert rp.get_attr('_writer_addr') == None
+    assert rp.get_attr('_writer_alias') == None
+    assert rp.get_attr('_executor_addr') == None
+    assert rp.get_attr('_executor_alias') == None
+    assert rp.get_attr('_trigger_response_addr') == None
+    assert rp.get_attr('_trigger_response_alias') == 'trigger_response_ka_sm'
+    assert rp.get_attr('_trigger_publish_addr') == None
+    assert rp.get_attr('_trigger_publish_alias') == None
+    assert rp.get_attr('_shutdown_alias') == None
+    assert rp.get_attr('_shutdown_addr') == None
+    assert rp.get_attr('_trigger_val') == 0.0
+    
+    assert rp.get_attr('lvl_data') == None
+    assert rp.get_attr('lvl_read') == None
+    assert rp.get_attr('analyzed_design') == {}
+    assert rp.get_attr('new_designs') == []
+    assert rp.get_attr('_objective_accuracy') == 5
+    assert rp.get_attr('_design_accuracy') == 5  
+    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('_objectives') == {}
+    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('bb_lvl_read') == 3
+    assert rp.get_attr('current_design_variables') == {}
+
+    assert rp.get_attr('sm_type') == 'gpr'
+    assert rp.get_attr('_sm') == None
+
+    ns.shutdown()
+    time.sleep(0.05)
+    
+def test_KaSm_generate_sm():
+    ns = run_nameserver()
+    rp = run_agent(name='ka_sm', base=ka_rp.KaSm)
+    rp.set_attr(design_variables={'a': {}, 'b': {}})
+    rp.set_attr(_objectives={'c': {}, 'd': {}})
+    rp.set_attr(sm_type='gpr')
+    
+    data = {}
+    for i in range(25):
+        data[i] = {'a': i, 'b': 10*i, 'c': i ** 2, 'd': (i + i) ** 2}
+
+    rp.generate_sm(data)
+    sm = rp.get_attr('_sm')
+    obj = sm.predict('gpr', {'c': 4, 'd': 16}, output='dict')
+    assert round(obj['a'], 5) == 2
+    assert round(obj['b'], 5) == 20
+    
+    ns.shutdown()
+    time.sleep(0.05)
