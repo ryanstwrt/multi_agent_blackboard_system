@@ -4,12 +4,10 @@ import numpy as np
 import sklearn
 from sklearn import linear_model
 from sklearn import datasets
-import pandas as pd
 import warnings
 import skopt
 from skopt.space import Categorical
 warnings.filterwarnings("ignore")
-from collections import Counter
 
 def test_surrogate_model_init():
     sm = tm.Surrogate_Models()

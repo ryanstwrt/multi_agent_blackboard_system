@@ -157,7 +157,14 @@ class KaGlobal(KaRp):
         """        
         for dv, dv_dict in self.design_variables.items():
             if dv_dict['variable type'] == list:
-                self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
+                dv_list = dv_dict['positions']
+                num = random.randint(0, dv_dict['length'])
+                random_loc = random.sample(list(dv_list.keys()), num)
+                design = []
+                for pos in dv_list.keys():
+                    val = random.sample(dv_list[pos]['options'], 1)[0] if pos in random_loc else dv_list[pos]['default']
+                    design.append(val)
+                self.current_design_variables[dv] = design
             else:
                 self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))

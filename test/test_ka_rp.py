@@ -130,14 +130,20 @@ def test_explore_handler_trigger_publish():
 def test_explore_search_method():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
+    rp.set_random_seed(seed=1)
     rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
-                                 'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-                                 'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})
+                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                  'experiments': {'length':         2, 
+                                                  'positions':      {0: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'},
+                                                                     1: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'}},
+                                                  'variable type': list}})
     
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('_entry_name') == None
     rp.search_method()
-    assert rp.get_attr('current_design_variables') != {}
+    assert rp.get_attr('current_design_variables') == {'height': 54.03093, 'smear': 66.94867, 'pu_content': 0.76377, 'experiments': ['exp_d', 'no_exp']}
+    rp.search_method()
     
     ns.shutdown()
     time.sleep(0.05)
@@ -159,24 +165,24 @@ def test_explore_set_random_seed():
     time.sleep(0.05)    
     
     
-def test_create_sm_interpolate():
-    ns = run_nameserver()
+#def test_create_sm_interpolate():
+#    ns = run_nameserver()
 #    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
- #   objs={'bol keff': {'ll':0.95, 'ul': 1.25, 'goal':'gt', 'variable type': float}, 
-  #                          'void': {'ll':-200, 'ul': 0, 'goal':'lt',  'variable type': float}, 
-   #                         'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}}
+#    objs={'bol keff': {'ll':0.95, 'ul': 1.25, 'goal':'gt', 'variable type': float}, 
+#                       'void': {'ll':-200, 'ul': 0, 'goal':'lt',  'variable type': float}, 
+#                       'doppler': {'ll':-10, 'ul':0, 'goal':'lt',  'variable type': float}}
 #    bb.initialize_abstract_level_3(objectives=objs)
- #   bb.generate_sm()
-    
-  #  sm = bb.get_attr('_sm')
-   # keff = sm['bol keff']((61.37,51.58,0.7340))
-    #assert keff == 0.9992587833657331
-    
-    ns.shutdown()
-    time.sleep(0.05)
+#    bb.generate_sm()
+#    
+#    sm = bb.get_attr('_sm')
+#    keff = sm['bol keff']((61.37,51.58,0.7340))
+#    assert keff == 0.9992587833657331
+#    
+#    ns.shutdown()
+#    time.sleep(0.05)
 
-def test_create_sm_regression():
-    ns = run_nameserver()
+#def test_create_sm_regression():
+#    ns = run_nameserver()
 #    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
  #   objs={'bol keff': {'ll':0.95, 'ul':1.25, 'goal':'gt', 'variable type': float}}
   #  bb.initialize_abstract_level_3(objectives=objs)
@@ -189,8 +195,8 @@ def test_create_sm_regression():
  #   assert round(sm.models['lr']['score'], 8)  == round(0.95576537, 8)
   #  assert round(sm.models['lr']['mse_score'], 8) == round(0.04423463, 8)
     
-    ns.shutdown()
-    time.sleep(0.05)
+#    ns.shutdown()
+#    time.sleep(0.05)
 
 #----------------------------------------------------------
 # Tests for KA-LHC

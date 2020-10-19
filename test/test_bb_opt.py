@@ -75,15 +75,18 @@ def test_BbOpt_initalize_abstract_level_3():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    dv =   {'height':           {'ll': 50, 'ul': 80, 'variable type': float}}
+    dv =   {'height':           {'ll': 50, 'ul': 80, 'variable type': float},
+            'experiments': {0: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'},
+                            1: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'},
+                            'variable type': list}}
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
-                                                   'level 3': {'new': {'design variables': {'height': float},
+                                                   'level 3': {'new': {'design variables': {'height': float, 'experiments': list},
                                                                        'objective functions':  {'reactivity swing': float, 'burnup': float},
                                                                        'constraints': {'eol keff': float}},
-                                                               'old': {'design variables': {'height': float},
+                                                               'old': {'design variables': {'height': float, 'experiments': list},
                                                                        'objective functions':  {'reactivity swing': float, 'burnup': float},
                                                                        'constraints': {'eol keff': float}}},
                                                    'level 100': {'agent': str, 'hvi': float, 'time': float}}
@@ -153,8 +156,6 @@ def test_add_ka_specific():
     ns.shutdown()
     time.sleep(0.05)  
 
-def test_determine_complete():
-    pass
 
 def test_hv_indicator():
     ns = run_nameserver()
@@ -170,7 +171,6 @@ def test_hv_indicator():
     
     bb.hv_indicator()
     assert bb.get_attr('hv_list') == [0, 0.5]
-    
     
     ns.shutdown()
     time.sleep(0.05)  
@@ -412,3 +412,34 @@ def test_convergence_indicator_random():
     ns.shutdown()
     time.sleep(0.05) 
     
+def test_read_from_h5():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb_h5 = run_agent(name='blackboard1', base=bb_opt.BbOpt)
+    bb_h5.set_attr(archive_name='blackboard_archive.h5')
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                  'experiments': {'length':         2, 
+                                                  'positions':      {0: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'},
+                                                                     1: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'}},
+                                                  'variable type': list}}
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
+
+    bb_h5.initialize_abstract_level_3(objectives=objs, design_variables=dv)    
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': ['exp_d', 'no_exp']},
+                                         'objective functions': {'reactivity swing': 50, 'burnup': 10},
+                                         'constraints': {'eol keff': 1.02}})    
+    bb.write_to_h5()
+    time.sleep(1)
+    bb_h5.load_h5(panels={1: ['new','old'], 2: ['new','old']})
+    
+    bb_h5_bb = bb_h5.get_attr('abstract_lvls')
+    bb_bb = bb.get_attr('abstract_lvls')
+    assert bb_h5_bb == bb_bb
+    
+    os.remove('blackboard_archive.h5')
+    ns.shutdown()
+    time.sleep(0.05)
