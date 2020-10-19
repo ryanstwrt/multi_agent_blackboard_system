@@ -142,6 +142,23 @@ def test_explore_search_method():
     ns.shutdown()
     time.sleep(0.05)
     
+def test_explore_set_random_seed():
+    ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
+    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                 'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                 'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})    
+    rp.set_random_seed(seed=10983)
+    rp.search_method()
+    assert rp.get_attr('current_design_variables') == {'height': 74.70197, 'pu_content': 0.19624, 'smear': 64.49033}
+    rp.set_random_seed()
+    rp.search_method()
+    assert rp.get_attr('current_design_variables') != {'height': 74.70197, 'pu_content': 0.19624, 'smear': 64.49033}
+    
+    ns.shutdown()
+    time.sleep(0.05)    
+    
+    
 def test_create_sm_interpolate():
     ns = run_nameserver()
 #    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)

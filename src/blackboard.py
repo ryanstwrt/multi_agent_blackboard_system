@@ -3,12 +3,9 @@ from osbrain import Agent
 from osbrain import run_agent
 from osbrain import proxy
 import numpy as np
-import time
 import h5py
 import os
-import sys
 import re
-from osbrain import run_nameserver
 
 class Blackboard(Agent):
     """
@@ -592,23 +589,22 @@ class Blackboard(Agent):
             boolean logic to determine if we are writing to a panel on an abstract level
         """
         lvl_name = 'level {}'.format(level)
-        if panel:
-            abstract_lvl = self.abstract_lvls[lvl_name][panel]
-            lvl_format = self.abstract_lvls_format[lvl_name][panel]
-        else:
-            abstract_lvl = self.abstract_lvls[lvl_name]
-            lvl_format = self.abstract_lvls_format[lvl_name]
+        abstract_lvl = self.abstract_lvls[lvl_name][panel] if panel else self.abstract_lvls[lvl_name]
+        lvl_format = self.abstract_lvls_format[lvl_name][panel] if panel else self.abstract_lvls_format[lvl_name]
             
         for entry_name, entry_type in entry.items():
-            try:
-                assert entry_name in lvl_format.keys()
+            if entry_name in lvl_format.keys():
                 if type(entry_type) == dict:
                     self.dict_type_checker(entry_type, lvl_format[entry_name])
                 else:
-                    assert type(entry_type) == lvl_format[entry_name]
-            except AssertionError:
-                self.log_warning('Entry Name: {} with value: {} caused an error.\n'.format(entry_name, entry_type))
-                self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys: {}\n with value types: {}.\n Entry was not added.'.format(name, level, [x for x in entry.keys()], [x for x in entry.values()], [x for x in lvl_format.keys()], [x for x in lvl_format.values()]))
+                    try:
+                        assert type(entry_type) == lvl_format[entry_name]
+                    except AssertionError:
+                        self.log_warning('Entry Name: {} with value: {} caused an error.\n'.format(entry_name, entry_type))
+                        self.log_warning('Entry {} is inconsistent with level {}.\n Entry keys are: {} \n with value types: {}.\n Abstract level expected keys: {}\n with value types: {}.\n Entry was not added.'.format(entry_name, level, [x for x in entry.keys()], [x for x in entry.values()], [x for x in lvl_format.keys()], [x for x in lvl_format.values()]))
+                        return
+            else:
+                self.log_warning('Entry Name: {} not found in level {}'.format(entry_name, [x for x in lvl_format.keys()]))
                 return
         
         abstract_lvl[name] = entry

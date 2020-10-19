@@ -1,11 +1,10 @@
-import random
 import src.ka as ka
+import src.performance_measure as pm
+import src.train_surrogate_models as tm
 import copy
 import time
-import src.performance_measure as pm
+import random
 from pyDOE import lhs
-import numpy as np
-import src.train_surrogate_models as tm
 
 class KaRp(ka.KaBase):
     """
@@ -40,6 +39,12 @@ class KaRp(ka.KaBase):
         self._update_hv = False
         self._class = 'search'
         
+    def set_random_seed(self, seed=None):
+        """
+        Sets the random seed number to provide a reproducabel result
+        """
+        random.seed(a=seed)
+
     def calc_objectives(self):
         """
         Calculate the objective functions based on the core design variables.
@@ -149,11 +154,7 @@ class KaGlobal(KaRp):
     def search_method(self):
         """
         Determine the core design variables using a monte carlo method.
-        """
-        #for dv, dv_dict in self.design_variables.items():
-#
- #       self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
-        
+        """        
         for dv, dv_dict in self.design_variables.items():
             if dv_dict['variable type'] == list:
                 self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
