@@ -1,8 +1,10 @@
-import random
-import ka
+import src.ka as ka
+import src.performance_measure as pm
+import src.train_surrogate_models as tm
 import copy
 import time
-import performance_measure as pm
+import random
+from pyDOE import lhs
 
 class KaRp(ka.KaBase):
     """
@@ -37,6 +39,12 @@ class KaRp(ka.KaBase):
         self._update_hv = False
         self._class = 'search'
         
+    def set_random_seed(self, seed=None):
+        """
+        Sets the random seed number to provide a reproducabel result
+        """
+        random.seed(a=seed)
+
     def calc_objectives(self):
         """
         Calculate the objective functions based on the core design variables.
@@ -51,23 +59,35 @@ class KaRp(ka.KaBase):
             for num, obj in enumerate(self._objectives.keys()):
                 self.objective_functions[obj] = round(float(obj_list[num]), self._objective_accuracy)
         elif self.sm_type == 'interpolate':
-            for obj_name, interpolator in self._sm.items():
-                if obj_name in self._objectives:
-                    self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
-                elif obj_name in self._constraints:
-                    self.current_constraints[obj_name] = round(float(interpolator(tuple(design))), self._constraint_accuracy)
+            self.get_interpolate_objectives(design)
         else:
-            obj_dict = self._sm.predict(self.sm_type, self.current_design_variables, output='dict')
-            for obj in self._objectives.keys():
-                self.objective_functions[obj] = round(float(obj_dict[obj]), self._objective_accuracy)
-            for cnst in self._constraints.keys():
-                self.current_constraints[cnst] = round(float(obj_dict[cnst]), self._constraint_accuracy)
+            self.get_sm_objectives()
                 
         self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
         self._entry = {'design variables': self.current_design_variables, 
                        'objective functions': self.objective_functions,
                        'constraints': self.current_constraints}
-        
+
+    def get_interpolate_objectives(self, design):
+        """
+        Get the objective functions based on an interpolator function
+        """
+        for obj_name, interpolator in self._sm.items():
+            if obj_name in self._objectives:
+                self.objective_functions[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
+            elif obj_name in self._constraints:
+                self.current_constraints[obj_name] = round(float(interpolator(tuple(design))), self._constraint_accuracy)
+                
+    def get_sm_objectives(self):
+        """
+        Get the objective functions based on a surrogate model
+        """
+        obj_dict = self._sm.predict(self.sm_type, self.current_design_variables, output='dict')
+        for obj in self._objectives.keys():
+            self.objective_functions[obj] = round(float(obj_dict[obj]), self._objective_accuracy)
+        for cnst in self._constraints.keys():
+            self.current_constraints[cnst] = round(float(obj_dict[cnst]), self._constraint_accuracy)
+                
     def handler_executor(self, message):
         """
         Execution handler for KA-RP.
@@ -80,7 +100,7 @@ class KaRp(ka.KaBase):
             required message for sending communication
         """
         self.log_debug('Executing agent {}'.format(self.name))
-        self.mc_design_variables()
+        self.search_method()
         self.calc_objectives()
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
         self._trigger_val = 0
@@ -131,14 +151,24 @@ class KaGlobal(KaRp):
     def on_init(self):
         super().on_init()
         
-    def mc_design_variables(self):
+    def search_method(self):
         """
         Determine the core design variables using a monte carlo method.
-        """
+        """        
         for dv, dv_dict in self.design_variables.items():
-            self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
+            if dv_dict['variable type'] == list:
+                dv_list = dv_dict['positions']
+                num = random.randint(0, dv_dict['length'])
+                random_loc = random.sample(list(dv_list.keys()), num)
+                design = []
+                for pos in dv_list.keys():
+                    val = random.sample(dv_list[pos]['options'], 1)[0] if pos in random_loc else dv_list[pos]['default']
+                    design.append(val)
+                self.current_design_variables[dv] = design
+            else:
+                self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
-
+                
         
 class KaLHC(KaRp):
     """
@@ -152,9 +182,52 @@ class KaLHC(KaRp):
     
     def on_init(self):
         super().on_init()
-        lhc_grid = {}
+        self.lhc_criterion = 'corr'
+        self.samples = 50
+        self.lhd = []
+        self._trigger_val = 2.0
+        self._class = 'search lhc'
+    
+    def generate_lhc(self):
+        """
+        Generate a set of samples to select from.
+        """
+        lhd = lhs(len(self.design_variables.keys()), samples=self.samples, criterion=self.lhc_criterion)
+        self.lhd = lhd.tolist()
         
-
+    def search_method(self):
+        """
+        Determine the core design variables using a LHC method.
+        """
+        cur_design = self.lhd.pop(0)
+        num = 0
+        for dv, dv_dict in self.design_variables.items():
+            if dv_dict['variable type'] == list:
+                dv_list = dv_dict['positions']
+                num = random.randint(0, dv_dict['length'])
+                random_loc = random.sample(list(dv_list.keys()), num)
+                design = []
+                for pos in dv_list.keys():
+                    val = random.sample(dv_list[pos]['options'], 1)[0] if pos in random_loc else dv_list[pos]['default']
+                    design.append(val)
+                self.current_design_variables[dv] = design
+            else:
+                self.current_design_variables[dv] = round(cur_design[num] * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
+            num += 1
+        self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
+        
+    def handler_trigger_publish(self, message):
+        """
+        Send a message to the BB indiciating it's trigger value.
+        
+        Parameters
+        ----------
+        message : str
+            Containts unused message, but required for agent communication.
+        """
+        self._trigger_val = self._trigger_val if len(self.lhd) else 0
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 
 class KaLocal(KaRp):
     """
@@ -634,7 +707,8 @@ class KaGA(KaLocal):
             genotype[dv_mutate] = max(new_gene, self.design_variables[dv_mutate]['ll'])
         return genotype
 
-def KaSm(KaLocal):
+    
+class KaSm(KaLocal):
     """
     Knowledge Agent who generates a SM based on the data level of the BB to find areas of interest
     """
@@ -643,7 +717,8 @@ def KaSm(KaLocal):
         super().on_init()
         self.bb_lvl_read = 3
         self._base_trigger_val = 5
-        self.previous_populations = {}
+        self.sm_type = 'gpr'
+        self._sm = None
 
     def handler_trigger_publish(self, message):
         """
@@ -656,6 +731,14 @@ def KaSm(KaLocal):
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 
+    def generate_sm(self, data):
+        """
+        Generate a simple surogate model based on the data provided in the data level of the blackboard.
+        """
+        self._sm = tm.Surrogate_Models()
+        self._sm.random = 10983
+        self._sm.update_database([x for x in self._objectives.keys()], [x for x in self.design_variables.keys()], database=data)
+        self._sm.update_model(self.sm_type)        
         
     def search_method(self):
         """

@@ -1,13 +1,14 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import blackboard
-import ka
+import src.blackboard as blackboard
+import src.ka as ka
 import time
 import os
-import ka_br
-import bb_opt
+import src.ka_br as ka_br
+import src.bb_opt as bb_opt
 import pickle
+import src.train_surrogate_models as tm
 
 with open('./sm_gpr.pkl', 'rb') as pickle_file:
     sm_ga = pickle.load(pickle_file)

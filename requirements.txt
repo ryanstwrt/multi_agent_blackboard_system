@@ -4,7 +4,6 @@
 ##### Requirements without Version Specifiers #####
 pytest
 numpy
-PyYAML
 coveralls
 pytest-cov
 pandas
@@ -12,5 +11,10 @@ h5py
 scipy
 osbrain
 plotly
-pickle
+platypus-opt
+pymop
+scikit-learn==0.22.1
+scikit-optimize==0.7.1
+matplotlib
+pyDOE
 #

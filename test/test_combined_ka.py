@@ -2,13 +2,13 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import pickle
-import blackboard
-import ka
+import src.blackboard as blackboard
+import src.ka as ka
 import time
 import os
-import ka_br
-import bb_opt
-import ka_rp
+import src.ka_br as ka_br
+import src.bb_opt as bb_opt
+import src.ka_rp as ka_rp
 from collections import OrderedDict
 
 
@@ -229,13 +229,13 @@ def test_combined_kabr_karp():
         time.sleep(0.1)
         bb.controller()
         bb.send_executor()
-        time.sleep(1.5)
+        time.sleep(1.25)
 
+    a = bb.get_attr('abstract_lvls')['level 3']['old']
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl1', 6)
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[61.75, 65.0, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.61069},
-                                                       'core_[68.25, 65.0, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.67707},
-                                                       'core_[65.0, 68.25, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.6793},
-                                                       'core_[65.0, 65.0, 0.38]': {'pareto type' : 'pareto', 'fitness function' : 0.64698}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[61.75, 65.0, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.59328},
+                                                       'core_[68.25, 65.0, 0.4]': {'pareto type' : 'pareto', 'fitness function' : 0.64323},
+                                                       'core_[65.0, 65.0, 0.38]': {'pareto type' : 'pareto', 'fitness function' : 0.62255}}
 
     ns.shutdown()
     time.sleep(0.1)   

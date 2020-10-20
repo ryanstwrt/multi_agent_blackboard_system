@@ -1,18 +1,18 @@
-import blackboard
-import ka_rp as karp
-import ka_br as kabr
+import src.blackboard as blackboard
+import src.ka_rp as karp
+import src.ka_br as kabr
 import osbrain
 from osbrain import proxy
 from osbrain import run_agent
 import time
 import os 
 import glob
-import database_generator as dg
+import src.database_generator as dg
 import numpy as np
-import train_surrogate_models as tm
+import src.train_surrogate_models as tm
 import scipy.interpolate
 import plotly.express as px
-import performance_measure as pm
+import src.performance_measure as pm
 
 
 cur_dir = os.path.dirname(__file__)
@@ -58,7 +58,6 @@ class BbOpt(blackboard.Blackboard):
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
 
-        
     def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
         """
         Initialze BB abstract level three with problem specific objectives and design variables
@@ -111,6 +110,8 @@ class BbOpt(blackboard.Blackboard):
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
             ka.set_attr(design_variables=self.design_variables)
+            if 'lhc' in agent_class:
+                ka.generate_lhc()
         elif 'reader' in agent_class:
             if 'lvl1' in agent_class:
                 nadir_point = {}

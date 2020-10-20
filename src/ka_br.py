@@ -1,5 +1,5 @@
-import ka
-import performance_measure as pm
+import src.ka as ka
+import src.performance_measure as pm
 import time
 
 class KaBr(ka.KaBase):

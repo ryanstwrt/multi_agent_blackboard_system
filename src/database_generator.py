@@ -1,5 +1,5 @@
-import h5Interface as h5i
-import reactorInterface as RI
+import src.h5Interface as h5i
+import src.reactorInterface as RI
 
 def get_data(design_variables, objective_variables, database_name='SFR_DB', fixed_cycle_length=120, num_cycles=4):
     h5_interface = h5i.h5Interface()
