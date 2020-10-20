@@ -128,11 +128,13 @@ def test_add_ka_specific():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(karp.KaGlobal, 'ka_rp_explore')
-    bb.connect_agent(karp.KaLHC, 'ka_lhc')
+    bb.connect_agent(karp.KaLHC, 'ka_rp_lhc')
     bb.connect_agent(karp.KaLocal, 'ka_rp_exploit')
     bb.connect_agent(kabr.KaBr_lvl1, 'ka_br_lvl1')
     bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
     bb.connect_agent(kabr.KaBr_lvl3, 'ka_br_lvl3')
+
+    
 
     for alias in ns.agents():
         agent = ns.proxy(alias)
@@ -146,7 +148,8 @@ def test_add_ka_specific():
                                                           'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
             assert agent.get_attr('sm_type') == 'interpolate'
             if 'lhc' in alias:
-                assert agent.get_attr(lhd) != []
+                assert len(agent.get_attr('lhd')) == 50
+                assert len(agent.get_attr('lhd')[0]) == 3
         elif 'lvl' in alias:
             assert agent.get_attr('_objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
                                                     'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
@@ -155,7 +158,6 @@ def test_add_ka_specific():
             
     ns.shutdown()
     time.sleep(0.05)  
-
 
 def test_hv_indicator():
     ns = run_nameserver()

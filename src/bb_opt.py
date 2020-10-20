@@ -58,7 +58,6 @@ class BbOpt(blackboard.Blackboard):
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
 
-        
     def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
         """
         Initialze BB abstract level three with problem specific objectives and design variables

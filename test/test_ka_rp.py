@@ -241,7 +241,6 @@ def test_kalhc_init():
 def test_kalhc_generate_lhc():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
-    
     rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})    
@@ -486,6 +485,7 @@ def test_exploit_handler_executor_rw():
     bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     
     rp = ns.proxy('ka_rp_exploit')
+    rp.set_random_seed(seed=10893)
     bb.set_attr(_ka_to_execute=('ka_rp_exploit', 2.0))
         
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
@@ -498,10 +498,8 @@ def test_exploit_handler_executor_rw():
 
     bb.send_executor()  
     time.sleep(1.0)
-    try:
-        assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 10  
-    except AssertionError:
-        assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 9    
+    assert [k for k in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[65.0, 64.99646, 0.4]', 'core_[65.0, 64.99646, 0.40435]', 'core_[65.0, 64.98988, 0.40435]', 'core_[65.00639, 64.98988, 0.40435]', 'core_[65.00639, 64.98988, 0.40313]', 'core_[65.00639, 64.98988, 0.39711]', 'core_[65.01204, 64.98988, 0.39711]', 'core_[65.01484, 64.98988, 0.39711]', 'core_[65.0235, 64.98988, 0.39711]', 'core_[65.01739, 64.98988, 0.39711]']
+  
     ns.shutdown()
     time.sleep(0.05)  
     
@@ -598,21 +596,18 @@ def test_kalocalrw():
     bb.connect_agent(ka_rp.KaLocalRW, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
+    rp.set_random_seed(seed=10893)
 
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.4]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4},
                                                           'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0,'burnup' : 50.0}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.set_attr(new_designs=['core_[65.0, 65.0, 0.42]'])
+    rp.set_attr(new_designs=['core_[65.0, 65.0, 0.4]'])
     rp.search_method()
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0, 65.0, 0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
-    try:
-        assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 10
-    except AssertionError:
-        assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 9
-
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0, 65.0, 0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[65.0, 64.99646, 0.4]', 'core_[65.0, 64.99646, 0.40435]', 'core_[65.0, 64.98988, 0.40435]', 'core_[65.00639, 64.98988, 0.40435]', 'core_[65.00639, 64.98988, 0.40313]', 'core_[65.00639, 64.98988, 0.39711]', 'core_[65.01204, 64.98988, 0.39711]', 'core_[65.01484, 64.98988, 0.39711]', 'core_[65.0235, 64.98988, 0.39711]', 'core_[65.01739, 64.98988, 0.39711]']
     ns.shutdown()
     time.sleep(0.05)
     
@@ -769,6 +764,7 @@ def test_kalocalhc():
     rp.set_attr(step_limit=5000)
     rp.set_attr(convergence_criteria=0.005)
     rp.set_attr(hc_type='steepest ascent')
+    rp.set_random_seed(seed=1099)
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     bb.update_abstract_lvl(3, 'core_[78.65, 65.0, 0.42]', {'design variables': {'height': 78.65, 'smear': 65.0, 'pu_content': 0.42}, 
@@ -781,11 +777,11 @@ def test_kalocalhc():
     rp.search_method()
     time.sleep(3)
     
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) ==  23
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] ==  ['core_[65.0, 65.0, 0.378]', 'core_[65.0, 65.0, 0.3402]', 'core_[65.0, 65.0, 0.30618]', 'core_[65.0, 65.0, 0.27556]', 'core_[65.0, 65.0, 0.248]', 'core_[65.0, 65.0, 0.2232]', 'core_[65.0, 65.0, 0.20088]', 'core_[65.0, 65.0, 0.18079]', 'core_[65.0, 65.0, 0.16271]', 'core_[71.5, 65.0, 0.16271]', 'core_[78.65, 65.0, 0.16271]', 'core_[78.65, 65.0, 0.14644]', 'core_[78.65, 65.0, 0.1318]', 'core_[78.65, 65.0, 0.11862]', 'core_[78.65, 68.25, 0.11862]', 'core_[78.65, 68.25, 0.12455]', 'core_[78.65, 69.95625, 0.12455]', 'core_[78.65, 69.95625, 0.12144]', 'core_[79.63313, 69.95625, 0.12144]', 'core_[79.63313, 69.95625, 0.12296]', 'core_[79.63313, 69.95625, 0.1245]', 'core_[79.63313, 69.95625, 0.12606]', 'core_[79.63313, 69.95625, 0.12527]']
    
     ns.shutdown()
     time.sleep(0.05)
-            
+
 def test_kalocalhc_simple():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
@@ -800,8 +796,10 @@ def test_kalocalhc_simple():
     bb.connect_agent(ka_rp.KaLocalHC, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
-    rp.set_attr(step_rate=0.5)
-    rp.set_attr(convergence_criteria=0.005)
+    rp.set_attr(step_size=0.75)
+    rp.set_attr(step_rate=0.01)
+    rp.set_attr(convergence_criteria=0.001)
+    rp.set_random_seed(seed=1073)
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
                                                           'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
@@ -811,11 +809,10 @@ def test_kalocalhc_simple():
     rp.set_attr(new_designs=['core_[65.0, 65.0, 0.42]'])
     rp.search_method()
     time.sleep(2)
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) >  1
+    assert([x for x in bb.get_attr('abstract_lvls')['level 3']['new']]) == ['core_[65.0, 65.0, 0.105]', 'core_[65.0, 65.0, 0.02625]', 'core_[65.0, 65.0, 0.00656]', 'core_[65.0, 65.0, 0.00164]', 'core_[65.0, 65.0, 0.00287]', 'core_[65.0, 65.0, 0.00502]', 'core_[65.0, 65.0, 0.00126]', 'core_[65.0, 65.0, 0.00031]', 'core_[65.0, 65.0, 8e-05]', 'core_[65.0, 65.0, 2e-05]', 'core_[65.0, 65.0, 4e-05]', 'core_[65.0, 65.0, 1e-05]', 'core_[65.0, 65.0, 0.0]']
    
     ns.shutdown()
     time.sleep(0.05)
-    
     
 #----------------------------------------------------------
 # Tests fopr KA-GA
@@ -835,6 +832,7 @@ def test_kalocalga():
     bb.connect_agent(ka_rp.KaGA, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
+    rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_trigger_number=2)
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.1]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.1}, 
@@ -849,7 +847,8 @@ def test_kalocalga():
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     time.sleep(2)
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 2
+
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[70.0, 65.0, 0.1]', 'core_[65.0, 60.0, 0.25]']
     bb.update_abstract_lvl(3, 'core_[90.0, 80.0, 0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
     
@@ -864,11 +863,11 @@ def test_kalocalga():
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     time.sleep(2)
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) > 0
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[70.0, 65.0, 0.1]', 'core_[65.0, 60.0, 0.25]', 'core_[65.0, 80.0, 0.5]']
     
     ns.shutdown()
     time.sleep(0.05)
-
+    
 def test_kalocalga_linear_crossover():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
@@ -883,6 +882,7 @@ def test_kalocalga_linear_crossover():
     bb.connect_agent(ka_rp.KaGA, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
+    rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_trigger_number=2)
     rp.set_attr(crossover_type='linear crossover')
@@ -898,11 +898,10 @@ def test_kalocalga_linear_crossover():
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     time.sleep(2)
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 3
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0, 65.0, 0.15]', 'core_[80.0, 70.0, 0.25]', 'core_[50.0, 55.0, 0.05]']
     solutions = ['core_[60.0, 65.0, 0.15]', 'core_[50.0, 55.0, 0.05]', 'core_[80.0, 70.0, 0.25]']
     for solution in solutions:
         assert solution in [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()]
-
     
     bb.update_abstract_lvl(3, 'core_[90.0, 80.0, 0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
@@ -918,7 +917,7 @@ def test_kalocalga_linear_crossover():
     rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     time.sleep(2)
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) >= 3
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0, 65.0, 0.15]', 'core_[80.0, 70.0, 0.25]', 'core_[50.0, 55.0, 0.05]', 'core_[70.0, 70.0, 0.3]', 'core_[50.0, 50.0, 0.0]', 'core_[80.0, 70.0, 0.7]']
     
     ns.shutdown()
     time.sleep(0.05)
@@ -937,6 +936,7 @@ def test_kalocalga_full():
     bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
+    rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_size=2)
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0,  'pu_content': 0.42}, 
@@ -957,16 +957,18 @@ def test_kalocalga_full():
     bb.send_executor()
     time.sleep(0.5)
     assert rp.get_attr('analyzed_design') == {'core_[65.0, 65.0, 0.42]': {'Analyzed': True}, 'core_[70.0, 60.0, 0.50]': {'Analyzed': True}}
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 2
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[70.0, 65.0, 0.42]', 'core_[65.0, 60.0, 0.5]']
 
+    # Make sure we don't recombine already examined results
     bb.publish_trigger()
     time.sleep(0.5)
     bb.controller()
     bb.send_executor()  
     time.sleep(0.5)
     assert rp.get_attr('analyzed_design') == {'core_[65.0, 65.0, 0.42]': {'Analyzed': True}, 'core_[70.0, 60.0, 0.50]': {'Analyzed': True}}
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 2
-    
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[70.0, 65.0, 0.42]', 'core_[65.0, 60.0, 0.5]']
+
+    # Reduce the PF size and ensure we don't execute the GA_KA
     rp.set_attr(pf_size=1)    
     bb.remove_bb_entry(1, 'core_[65.0, 65.0, 0.42]')
     bb.publish_trigger()
@@ -975,8 +977,7 @@ def test_kalocalga_full():
     bb.send_executor()  
     time.sleep(0.5)
     assert rp.get_attr('analyzed_design') == {'core_[65.0, 65.0, 0.42]': {'Analyzed': True}, 'core_[70.0, 60.0, 0.50]': {'Analyzed': True}}
-    assert len(bb.get_attr('abstract_lvls')['level 3']['new']) == 2
-
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[70.0, 65.0, 0.42]', 'core_[65.0, 60.0, 0.5]']
     
     ns.shutdown()
     time.sleep(0.05)
@@ -989,10 +990,10 @@ def test_kaga_random_mutation():
     bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
+    rp.set_random_seed(seed=1073)
     genotype = {'height':70.0,'smear':65.0,'pu_content':0.5}
     new_genotype = rp.random_mutation(genotype)
-    
-    assert genotype != new_genotype    
+    assert new_genotype == {'height': 70.0, 'smear': 66.2978, 'pu_content': 0.5}    
     ns.shutdown()
     time.sleep(0.05)
     
@@ -1004,9 +1005,10 @@ def test_kaga_non_uniform_mutation():
     bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
+    rp.set_random_seed(seed=1073)
     genotype = {'height':55.0,'smear':65.0,'pu_content':0.5}
     new_genotype = rp.non_uniform_mutation(genotype)
-    assert genotype != new_genotype
+    assert new_genotype == {'height': 55.0, 'smear': 70.0, 'pu_content': 0.5}
 
     ns.shutdown()
     time.sleep(0.05)

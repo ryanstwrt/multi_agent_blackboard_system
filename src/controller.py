@@ -29,7 +29,8 @@ class Controller(object):
                  plot_progress=False,
                  progress_rate=100,
                  convergence_model={'type': 'hvi', 'convergence rate': 1E-5},
-                 surrogate_model={'sm_type': 'lr', 'pickle file': None}):
+                 surrogate_model={'sm_type': 'lr', 'pickle file': None},
+                 reproducible=False):
         self.bb_name = bb_name
         self.bb_type = bb_type
         self.agent_wait_time = agent_wait_time
