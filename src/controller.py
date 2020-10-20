@@ -27,10 +27,10 @@ class Controller(object):
                  agent_wait_time=30, 
                  benchmark=None, 
                  plot_progress=False,
-                 progress_rate=100,
-                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5},
+                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 50},
                  surrogate_model={'sm_type': 'lr', 'pickle file': None},
-                 reproducible=False):
+                 random_seed=None):
+        
         self.bb_name = bb_name
         self.bb_type = bb_type
         self.agent_wait_time = agent_wait_time
@@ -40,15 +40,17 @@ class Controller(object):
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
         self.bb.set_attr(convergence_model=convergence_model)
         
-        self.plot_progress = plot_progress
         self.agent_time = 0
-        self.progress_rate = progress_rate
+        self.progress_rate = convergence_model['interval']
+        self.plot_progress = plot_progress
         self.time = [time.time()]
         
         if bb_type == bb_opt.BbOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables, constraints=constraints)
             self.bb.set_attr(sm_type=surrogate_model['sm_type'])
             self.bb.set_attr(convergence_model=convergence_model)
+            if random_seed:
+                self.bb.set_attr(random_seed=random_seed)
             if surrogate_model['pickle file']:
                 with open(surrogate_model['pickle file'], 'rb') as pickle_file:
                     sm = pickle.load(pickle_file)
@@ -61,6 +63,7 @@ class Controller(object):
             self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
             self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))
         
+        print(self.bb.get_attr('convergence_model'))
         ka_attributes = {}
         for ka_name, ka_type in ka.items():
             self.bb.connect_agent(ka_type, ka_name, attr=ka_attributes)
@@ -94,7 +97,7 @@ class Controller(object):
                 self.bb.convergence_indicator()
                 self.bb.meta_data_entry(agent_time)
                 self.bb.write_to_h5()
-                if len(self.bb.get_attr('hv_list')) > 2 * self.bb.get_attr('num_calls'):
+                if len(self.bb.get_attr('hv_list')) > 2 * self.progress_rate:
                     self.bb.determine_complete()
                 if self.plot_progress:
                     self.bb.plot_progress()
@@ -126,7 +129,7 @@ class Controller(object):
            #     self.bb.meta_data_entry(agent_time)
                 self.bb.write_to_h5()
                 self.bb.diagnostics_replace_agent()
-                if len(self.bb.get_attr('hv_list')) > 2 * self.bb.get_attr('num_calls'):
+                if len(self.bb.get_attr('hv_list')) > 2 * self.progress_rate:
                     self.bb.determine_complete()
                 if self.plot_progress:
                     self.bb.plot_progress()

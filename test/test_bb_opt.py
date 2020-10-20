@@ -216,6 +216,7 @@ def test_determine_complete_hv():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
+    bb.set_attr(convergence_model={'type': 'hvi', 'convergence rate': 1E-3, 'interval':2,'pf size': 9})
     bb.set_attr(num_calls=2)
     bb.set_attr(total_solutions=9)
     

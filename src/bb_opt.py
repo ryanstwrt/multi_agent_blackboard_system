@@ -39,14 +39,11 @@ class BbOpt(blackboard.Blackboard):
 
         self.constraints = {'eol keff':    {'ll': 1.0, 'ul': 2.5, 'variable type': float}}
         
-        self.total_solutions = 50
         self.objectives_ll = []
         self.objectives_ul = []
-        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6}
-        
+        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6, 'interval': 25, 'pf size': 50}
+
         self.hv_list = [0.0]
-        self.hv_convergence = 1e-6
-        self.num_calls = 25
         self._sm = None
         self.sm_type = 'interpolate'
         self._nadir_point = {}
@@ -54,6 +51,7 @@ class BbOpt(blackboard.Blackboard):
         self._pareto_level = ['level 1']
         self.previous_pf = {}
         self.dci_convergence_list = [0.0]
+        self.random_seed = None
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
@@ -107,6 +105,7 @@ class BbOpt(blackboard.Blackboard):
         ka.set_attr(_objectives=self.objectives)
         ka.set_attr(_constraints=self.constraints)
         if 'search' in agent_class:
+            ka.set_random_seed(seed=self.random_seed)
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
             ka.set_attr(design_variables=self.design_variables)
@@ -212,16 +211,16 @@ class BbOpt(blackboard.Blackboard):
         """
         Determine if the problem is complete using the convergence of the hypervolume
         """
-        
-        recent_hv = self.hv_list[-self.num_calls:]
-        prev_hv = self.hv_list[-2*self.num_calls:-self.num_calls]
-        hv_average = abs(sum(recent_hv) / self.num_calls - sum(prev_hv) / self.num_calls)
+        num = self.convergence_model['interval']
+        recent_hv = self.hv_list[-num:]
+        prev_hv = self.hv_list[-2*num:-num]
+        hv_average = abs(sum(recent_hv) / num - sum(prev_hv) / num)
         try:
             hv_indicator = hv_average
         except ValueError:
             hv_indicator = 1.0
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
-        if hv_indicator < self.hv_convergence and len(self.abstract_lvls['level 1']) > self.total_solutions:
+        if hv_indicator < self.convergence_model['convergence rate'] and len(self.abstract_lvls['level 1']) > self.convergence_model['pf size']:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 self.send(connections['shutdown'][0], "shutdown")
@@ -239,6 +238,7 @@ class BbOpt(blackboard.Blackboard):
         if self.convergence_model['type'] == 'dci hvi':
             self.hv_list[self._trigger_event] = pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul)
         else:
+            print(pf)
             self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
             
     def generate_sm(self):

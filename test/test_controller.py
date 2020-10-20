@@ -12,6 +12,9 @@ def test_controller_init():
     assert bb_controller.bb_name == 'bb'
     assert bb_controller.bb_type == blackboard.Blackboard
     assert bb_controller.agent_wait_time == 30
+    assert bb_controller.agent_time == 0
+    assert bb_controller.progress_rate == 25
+    assert bb_controller.plot_progress == False
     bb_controller._ns.shutdown()
     time.sleep(0.05)
     
@@ -26,7 +29,7 @@ def test_controller_init_sfr_opt():
           'smear':      {'ll': 70.0, 'ul': 70.0, 'variable type': float},
           'pu_content': {'ll': 0.5,  'ul': 1.0,  'variable type': float}}
     const = {'eol keff':    {'ll': 1.1, 'ul': 2.5, 'variable type': float}}
-    conv_model = {'type': 'dci hvi', 'convergence rate': 1E-6, 'div': {'reactivity swing': 100, 'burnup': 100}}
+    conv_model = {'type': 'dci hvi', 'convergence rate': 1E-6, 'div': {'reactivity swing': 100, 'burnup': 100}, 'interval':5, 'pf size': 5}
     bb_controller = controller.Controller(bb_name='sfr_opt', 
                                           bb_type=bb_opt.BbOpt, 
                                           ka=kas, 
@@ -36,7 +39,6 @@ def test_controller_init_sfr_opt():
                                           archive='sfr_opt', 
                                           agent_wait_time=10,
                                           plot_progress = True,
-                                          progress_rate = 50,
                                           convergence_model = conv_model,
                                           surrogate_model={'sm_type'     : 'gpr', 
                                                            'pickle file' : './sm_gpr.pkl'})
@@ -47,7 +49,7 @@ def test_controller_init_sfr_opt():
     assert bb_controller.bb_type == bb_opt.BbOpt
     assert bb_controller.agent_wait_time == 10
     assert bb_controller.plot_progress == True
-    assert bb_controller.progress_rate == 50   
+    assert bb_controller.progress_rate == 5  
 
     agents =  bb_controller.bb.get_attr('agent_addrs')
     bb = bb_controller.bb
@@ -69,23 +71,34 @@ def test_run_single_agent_bb():
            'ka_br_lvl3': ka_br.KaBr_lvl3,
            'ka_br_lvl2': ka_br.KaBr_lvl2,
            'ka_br_lvl1': ka_br.KaBr_lvl1,}
+    objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
+                           'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
+                           'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}    
     bb_controller = controller.Controller(bb_name='sfr_opt', 
                                           bb_type=bb_opt.BbOpt, 
-                                          ka=kas, 
+                                          ka=kas,
+                                          objectives=objectives,
                                           archive='sfr_opt', 
                                           agent_wait_time=5,
-                                          progress_rate=1,
+                                          convergence_model={'type': 'hvi', 
+                                                             'convergence rate': 1E-3, 
+                                                             'interval':5, 
+                                                             'pf size': 5},
                                           surrogate_model={'sm_type'     : 'gpr', 
-                                                           'pickle file' : './sm_gpr.pkl'})
-
-    bb_controller.bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-                                                       'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
-    bb_controller.bb.update_abstract_lvl(1, 'core_1', {'pareto type' : 'pareto', 'fitness function': 1.0})    
-    bb_controller.bb.set_attr(hv_convergence=1)
-    bb_controller.bb.set_attr(num_calls=1)
-    bb_controller.bb.set_attr(total_solutions=1)
-    bb_controller.bb.set_attr(hv_list=[0.6,0.6])
+                                                           'pickle file' : './sm_gpr.pkl'},
+                                          random_seed=10983)
+   
     bb_controller.run_single_agent_bb()
+    lvls = bb_controller.bb.get_attr('abstract_lvls')
+
+    assert [x for x in lvls['level 1']] == ['core_[70.96687, 64.49033, 0.18643]', 'core_[78.43707, 64.49033, 0.18643]', 'core_[74.70197, 61.26581, 0.18643]', 'core_[74.70197, 67.71485, 0.18643]', 'core_[74.70197, 64.49033, 0.17711]', 'core_[74.51522, 64.49033, 0.19624]', 'core_[78.43707, 61.26581, 0.19624]', 'core_[78.43707, 67.71485, 0.19624]', 'core_[70.96687, 67.71485, 0.19624]', 'core_[74.70197, 64.32911, 0.19624]', 'core_[67.41853, 64.49033, 0.19624]', 'core_[74.51521, 64.49033, 0.19624]', 'core_[74.70197, 64.3291, 0.19624]', 'core_[76.62379, 61.44685, 0.12881]']
+    assert len([x for x in lvls['level 2']['new']]) == 0
+    assert len([x for x in lvls['level 2']['old']]) == 26
+    assert len([x for x in lvls['level 3']['new']]) == 38
+    assert len([x for x in lvls['level 3']['old']]) == 28
+    
+    assert bb_controller.bb.get_attr('hv_list') == [0.0, 0.0, 0.0, 0.0, 0.0, 0.05335896864304055, 0.05335896864304055, 0.05335896864304055, 0.05335896864304055, 0.05335896864304055, 0.06442559991558683, 0.06442559991558683, 0.06442559991558683, 0.06442559991558683, 0.06442559991558683, 0.07758427453681789, 0.07758427453681789, 0.07758427453681789, 0.07758427453681789, 0.07758427453681789, 0.07758427453681789, 0.07758427453681789, 0.07758427453681789, 0.07758427453681789, 0.07758427453681789, 0.07758427453681789]
+    assert bb_controller.bb.get_attr('_kaar') == {1: {'ka_rp_explore': 0.25, 'ka_rp_exploit': 0, 'ka_br_lvl1': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0}, 2: {'ka_rp_explore': 0.25, 'ka_rp_exploit': 0, 'ka_br_lvl1': 0, 'ka_br_lvl3': 3, 'ka_br_lvl2': 0}, 3: {'ka_rp_explore': 0.5, 'ka_br_lvl1': 0, 'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 4}, 4: {'ka_rp_explore': 0.75, 'ka_rp_exploit': 5, 'ka_br_lvl3': 0, 'ka_br_lvl1': 0, 'ka_br_lvl2': 0}, 5: {'ka_rp_explore': 1.0, 'ka_rp_exploit': 0, 'ka_br_lvl1': 0, 'ka_br_lvl3': 3, 'ka_br_lvl2': 0}, 6: {'ka_rp_explore': 1.25, 'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl1': 0, 'ka_br_lvl2': 4}, 7: {'ka_rp_explore': 1.5, 'ka_rp_exploit': 5, 'ka_br_lvl3': 0, 'ka_br_lvl1': 6, 'ka_br_lvl2': 0}, 8: {'ka_rp_explore': 1.75, 'ka_br_lvl1': 0, 'ka_br_lvl3': 0, 'ka_rp_exploit': 5, 'ka_br_lvl2': 0}, 9: {'ka_rp_explore': 2.0, 'ka_rp_exploit': 5, 'ka_br_lvl3': 3, 'ka_br_lvl1': 0, 'ka_br_lvl2': 0}, 10: {'ka_rp_explore': 2.25, 'ka_rp_exploit': 5, 'ka_br_lvl3': 3, 'ka_br_lvl1': 0, 'ka_br_lvl2': 0}, 11: {'ka_rp_explore': 2.5, 'ka_rp_exploit': 5, 'ka_br_lvl1': 0, 'ka_br_lvl3': 3, 'ka_br_lvl2': 0}, 12: {'ka_rp_explore': 2.75, 'ka_rp_exploit': 5, 'ka_br_lvl1': 0, 'ka_br_lvl3': 3, 'ka_br_lvl2': 0}, 13: {'ka_rp_explore': 3.0, 'ka_br_lvl1': 0, 'ka_rp_exploit': 0, 'ka_br_lvl3': 3, 'ka_br_lvl2': 0}, 14: {'ka_rp_explore': 0.25, 'ka_br_lvl1': 0, 'ka_rp_exploit': 0, 'ka_br_lvl3': 3, 'ka_br_lvl2': 0}, 15: {'ka_rp_explore': 0.5, 'ka_rp_exploit': 0, 'ka_br_lvl1': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 5}, 16: {'ka_rp_explore': 0.75, 'ka_rp_exploit': 5, 'ka_br_lvl3': 0, 'ka_br_lvl1': 6, 'ka_br_lvl2': 0}, 17: {'ka_rp_explore': 1.0, 'ka_br_lvl1': 0, 'ka_rp_exploit': 5, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0}, 18: {'ka_rp_explore': 1.25, 'ka_rp_exploit': 5, 'ka_br_lvl3': 3, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 19: {'ka_rp_explore': 1.5, 'ka_rp_exploit': 5, 'ka_br_lvl1': 0, 'ka_br_lvl3': 3, 'ka_br_lvl2': 0}, 20: {'ka_rp_explore': 1.75, 'ka_rp_exploit': 5, 'ka_br_lvl3': 3, 'ka_br_lvl1': 0, 'ka_br_lvl2': 0}, 21: {'ka_rp_explore': 2.0, 'ka_rp_exploit': 5, 'ka_br_lvl3': 3, 'ka_br_lvl1': 0, 'ka_br_lvl2': 0}, 22: {'ka_rp_explore': 2.25, 'ka_rp_exploit': 5, 'ka_br_lvl3': 4, 'ka_br_lvl1': 0, 'ka_br_lvl2': 0}, 23: {'ka_rp_explore': 2.5, 'ka_br_lvl1': 0, 'ka_br_lvl3': 4, 'ka_rp_exploit': 5, 'ka_br_lvl2': 0}, 24: {'ka_rp_explore': 2.75, 'ka_br_lvl1': 0, 'ka_rp_exploit': 5, 'ka_br_lvl3': 4, 'ka_br_lvl2': 0}, 25: {'ka_rp_explore': 3.0, 'ka_rp_exploit': 5, 'ka_br_lvl1': 0, 'ka_br_lvl3': 4, 'ka_br_lvl2': 0}}
     assert bb_controller.bb.get_attr('_complete') == True
     bb_controller.shutdown()
     os.remove('sfr_opt.h5')
