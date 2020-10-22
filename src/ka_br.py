@@ -60,7 +60,7 @@ class KaBr(ka.KaBase):
         self._lvl_data = self.lvl_read
 
         self.clear_bb_lvl()
-        self.lvl_read = self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
+#        self.lvl_read = self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
         for entry_name in self.lvl_read.keys():
             self.clear_entry()
             self.add_entry((entry_name, True))
@@ -105,7 +105,10 @@ class KaBr(ka.KaBase):
         for core_name, core_entry in self.lvl_read.items():
             valid_core, opt_type = self.determine_validity(core_name)
             if not valid_core:
+                move.append(core_name)
                 self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
+        for core in move:
+            self.lvl_read.pop(core)
                 
     def remove_dominated_entries(self):
         pass
@@ -216,7 +219,7 @@ class KaBr_lvl1(KaBr):
         self.pareto_sorter = 'non-dominated'
         
     def handler_trigger_publish(self, message):
-        self.lvl_read = message['level {}'.format(self.bb_lvl_read)]#self.update_abstract_level(self.bb_lvl_read)
+        self.lvl_read = message['level {}'.format(self.bb_lvl_read)]
         self.lvl_write = self.lvl_read
         new_pf_size = len(self.lvl_read)
         
@@ -243,7 +246,7 @@ class KaBr_lvl1(KaBr):
         """
         self.log_debug('Executing agent {}'.format(self.name))
 
-        self.lvl_read = message['level {}'.format(self.bb_lvl_read)]#self.update_abstract_level(self.bb_lvl_read)
+        self.lvl_read = message['level {}'.format(self.bb_lvl_read)]
         self.lvl_write = self.lvl_read
         lvl = {}
         for panel in message['level {}'.format(self.bb_lvl_data)].values():
@@ -332,34 +335,18 @@ class KaBr_lvl1(KaBr):
         """
         pf = {name: {obj: self.get_objective_value(name, obj) for obj in self._objectives.keys()} for name in self.lvl_read.keys()}
             
-        try:
-            pf_old = {name: {obj: self.get_objective_value(name, obj) for obj in self._objectives.keys()} for name in self._previous_pf}
-            total_pf = [pf,pf_old]
-        except TypeError:
-            pf_old = []
-            total_pf = [pf]
-         
-        # Calculate DCI for new/old pareto front
-        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, goal={obj_name: obj['goal'] for obj_name, obj in self._objectives.items()}, div=self.dci_div)
-        dci._grid_generator()
+        # Place the PF in the DCI hypergrid
+        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, [pf], goal={obj_name: obj['goal'] for obj_name, obj in self._objectives.items()}, div=self.dci_div)
         dci.compute_dci(pf)
-        dci_new = dci.dci
         dc = dci.dc
-        if pf_old != []:
-            dci.compute_dci(pf_old)
-            dci_diff = abs(dci_new - dci.dci)
         
         designs_to_compare = {}
         for design_name in pf.keys():
-            if design_name in dc:
-                design_pos = dc[design_name]['grid position']
-                try:
-                    if design_pos in designs_to_compare:
-                        designs_to_compare[design_pos].update({design_name: self.lvl_read[design_name]['fitness function']})
-                    else:
-                        designs_to_compare[dc[design_name]['grid position']] = {design_name: self.lvl_read[design_name]['fitness function']}
-                except KeyError:
-                    pass
+            design_pos = dc[design_name]['grid position']
+            if design_pos in designs_to_compare:
+                designs_to_compare[design_pos].update({design_name: self.lvl_read[design_name]['fitness function']})
+            else:
+                designs_to_compare[dc[design_name]['grid position']] = {design_name: self.lvl_read[design_name]['fitness function']}
             
         designs_to_remove = []
         for grid_position, designs in designs_to_compare.items():
@@ -369,8 +356,7 @@ class KaBr_lvl1(KaBr):
         designs_to_remove = [item for sublist in designs_to_remove for item in sublist]
         if designs_to_remove != []:
              self.remove_dominated_entries(designs_to_remove)
-        self.lvl_read = self.update_abstract_level(self.bb_lvl_read)
-        self._previous_pf = [x for x in self.lvl_read.keys()]
+
 
     def remove_dominated_entries(self, entries):
         """
@@ -380,6 +366,7 @@ class KaBr_lvl1(KaBr):
             self.log_debug('Removing core {}, no longer optimal'.format(design))
             self._pf_size -= 1
             self.write_to_bb(self.bb_lvl_write, design, self.lvl_read[design], remove=True)
+            self.lvl_read.pop(design)
 
     def clear_bb_lvl(self):
         remove = []
@@ -387,9 +374,7 @@ class KaBr_lvl1(KaBr):
             valid_core, opt_type = self.determine_validity(core_name)
             if not valid_core:
                 remove.append(core_name)
-        self.remove_dominated_entries(remove)
-        self.update_abstract_levels()
-    
+        self.remove_dominated_entries(remove)    
 
 class KaBr_lvl2(KaBr):
     """Reads 'level 2' to determine if a core design is Pareto optimal for `level 1`."""
