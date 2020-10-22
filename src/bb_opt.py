@@ -13,6 +13,7 @@ import src.train_surrogate_models as tm
 import scipy.interpolate
 import plotly.express as px
 import src.performance_measure as pm
+import random
 
 
 cur_dir = os.path.dirname(__file__)
@@ -52,6 +53,7 @@ class BbOpt(blackboard.Blackboard):
         self.previous_pf = {}
         self.dci_convergence_list = [0.0]
         self.random_seed = None
+        random.seed(a=self.random_seed)
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
@@ -216,10 +218,8 @@ class BbOpt(blackboard.Blackboard):
         recent_hv = self.hv_list[-num:]
         prev_hv = self.hv_list[-2*num:-num]
         hv_average = abs(sum(recent_hv) / num - sum(prev_hv) / num)
-        try:
-            hv_indicator = hv_average
-        except ValueError:
-            hv_indicator = 1.0
+        hv_indicator = hv_average
+        
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
         if hv_indicator < self.convergence_model['convergence rate'] and len(self.abstract_lvls['level 1']) > self.convergence_model['pf size']:
             self.log_info('Problem complete, shutting agents down')
@@ -338,6 +338,17 @@ class BbOpt(blackboard.Blackboard):
         else:
             self.log_info('No KA to execute, waiting to sends trigger again.')
 
+    def controller(self):
+        """Determines which KA to select after a trigger event."""
+        self.log_debug('Determining which KA to execute')
+        self._ka_to_execute = (None, 0)
+        cur_tv = self._kaar[self._trigger_event]
+        if cur_tv:
+            max_ka = max(cur_tv, key=cur_tv.get)
+            if cur_tv[max_ka] > 0:
+                equal_vals = [(k,v) for k,v in cur_tv.items() if v == cur_tv[max_ka]]
+                self._ka_to_execute = random.choice(equal_vals)
+        
     def publish_trigger(self):
         """Send a trigger event message to all KAs."""
         self._trigger_event += 1

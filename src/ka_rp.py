@@ -255,6 +255,7 @@ class KaLocal(KaRp):
         self.analyzed_design = {}
         self.generated_designs = {}
         self.new_designs = []
+        self.neighboorhod_search = 'fixed'
         self._class = 'local search ns'
 
     def determine_model_applicability(self, dv):
@@ -307,7 +308,7 @@ class KaLocal(KaRp):
             _trigger_val : int
                 Trigger value for knowledge agent
         """
-        new_entry = self.read_bb_lvl(message)        
+        new_entry = self.read_bb_lvl(message)
         self._trigger_val = self._base_trigger_val if new_entry else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
@@ -324,7 +325,9 @@ class KaLocal(KaRp):
         
         core = random.choice(self.new_designs)
         design_ = self.lvl_data[core]['design variables']
-        perts = [1.0 - self.perturbation_size, 1.0 + self.perturbation_size]
+        pert = self.perturbation_size if self.neighboorhod_search == 'fixed' else random.uniform(0,self.perturbation_size)
+        perts = [1.0 - pert, 1.0 + pert]
+            
         for dv, dv_value in design_.items():
             for pert in perts:
                 design = copy.copy(design_)
@@ -351,7 +354,7 @@ class KaLocalHC(KaLocal):
     
     def on_init(self):
         super().on_init()
-        self._base_trigger_val = 5.00003
+        self._base_trigger_val = 5.00001
         self.avg_diff_limit = 5
         self.step_size = 0.05
         self.step_rate = 0.01
@@ -468,7 +471,7 @@ class KaLocalRW(KaLocal):
     
     def on_init(self):
         super().on_init()
-        self._base_trigger_val = 5.00002
+        self._base_trigger_val = 5.00001
         self.step_size = 0.01
         self.walk_length = 10
         self._class = 'local search rw'
@@ -541,7 +544,6 @@ class KaLocalGA(KaLocal):
         self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
-
         
     def search_method(self):
         """
@@ -550,6 +552,8 @@ class KaLocalGA(KaLocal):
         Currently two crossover types are allowed: single-point and linear.
         Currently two mutation types are allowed: random and non-uniform.
         """
+        self.pf_size = int(self.pf_size*1.05)
+
         population = [x for x in self.lvl_read.keys()]
         original_pop_len = len(population)
         children = []
