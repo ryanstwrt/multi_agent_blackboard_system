@@ -30,7 +30,7 @@ def test_karp_init():
     assert rp.get_attr('_shutdown_addr') == None
     
     assert rp.get_attr('_trigger_val') == 0
-    assert rp.get_attr('_base_trigger_val') == 0.25    
+    assert rp.get_attr('_base_trigger_val') == 0.250001   
     assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
@@ -40,6 +40,7 @@ def test_karp_init():
     assert rp.get_attr('_objectives') == {}
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5
+    assert rp.get_attr('_class') == 'search'
     
     ns.shutdown()
     time.sleep(0.05)
@@ -67,7 +68,7 @@ def test_karp_explore_init():
     assert rp.get_attr('_shutdown_alias') == None
     assert rp.get_attr('_shutdown_addr') == None
     assert rp.get_attr('_trigger_val') == 0
-    assert rp.get_attr('_base_trigger_val') == 0.25
+    assert rp.get_attr('_base_trigger_val') == 0.250001
     
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
@@ -113,16 +114,16 @@ def test_explore_handler_trigger_publish():
     bb.connect_agent(ka_rp.KaGlobal, 'ka_rp')
     
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.15)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0.25}}
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 0.25)
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0.250001}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 0.250001)
     
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.15)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0.25}, 2: {'ka_rp': 0.50}}
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 0.50)
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0.250001}, 2: {'ka_rp': 0.500002}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 0.500002)
     
     ns.shutdown()
     time.sleep(0.05)
@@ -220,7 +221,7 @@ def test_kalhc_init():
     assert rp.get_attr('_trigger_publish_alias') == None
     assert rp.get_attr('_shutdown_alias') == None
     assert rp.get_attr('_shutdown_addr') == None
-    assert rp.get_attr('_trigger_val') == 2.0
+    assert rp.get_attr('_trigger_val') == 0
     
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('objective_functions') == {}
@@ -304,8 +305,8 @@ def test_kalhc_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_rp_lhc': 2.0}}
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp_lhc', 2.0)
+    assert bb.get_attr('_kaar') == {1: {'ka_rp_lhc': 50.000006}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp_lhc', 50.000006)
     
     rp = ns.proxy('ka_rp_lhc')
     for i in range(50):
@@ -313,7 +314,7 @@ def test_kalhc_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_rp_lhc': 2.0}, 2: {'ka_rp_lhc': 0.0}}
+    assert bb.get_attr('_kaar') == {1: {'ka_rp_lhc': 50.000006}, 2: {'ka_rp_lhc': 0.0}}
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     
     ns.shutdown()
@@ -521,8 +522,8 @@ def test_exploit_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}, 2: {'ka_rp':5}}
-    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 5)
+    assert bb.get_attr('_kaar') == {1: {'ka_rp': 0}, 2: {'ka_rp':5.00001}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_rp', 5.00001)
     
     ns.shutdown()
     time.sleep(0.05)
@@ -818,7 +819,7 @@ def test_kalocalhc_simple():
 # Tests fopr KA-GA
 #----------------------------------------------------------
     
-def test_kalocalga():
+def test_KaLocalGA():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
@@ -829,7 +830,7 @@ def test_kalocalga():
     bb.initialize_abstract_level_3(objectives=objs)
     bb.initialize_abstract_level_3()
 
-    bb.connect_agent(ka_rp.KaGA, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
     rp.set_random_seed(seed=1073)
@@ -868,7 +869,7 @@ def test_kalocalga():
     ns.shutdown()
     time.sleep(0.05)
     
-def test_kalocalga_linear_crossover():
+def test_KaLocalGA_linear_crossover():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
@@ -879,7 +880,7 @@ def test_kalocalga_linear_crossover():
     bb.initialize_abstract_level_3(objectives=objs)
     bb.initialize_abstract_level_3()
 
-    bb.connect_agent(ka_rp.KaGA, 'ka_rp_exploit')
+    bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
     rp.set_random_seed(seed=1073)
@@ -922,7 +923,7 @@ def test_kalocalga_linear_crossover():
     ns.shutdown()
     time.sleep(0.05)
     
-def test_kalocalga_full():
+def test_KaLocalGA_full():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
@@ -933,7 +934,7 @@ def test_kalocalga_full():
     bb.initialize_abstract_level_3(objectives=objs)
     bb.initialize_abstract_level_3()
 
-    bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
+    bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
     rp.set_random_seed(seed=1073)
@@ -987,7 +988,7 @@ def test_kaga_random_mutation():
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
 
-    bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
+    bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
     rp.set_random_seed(seed=1073)
@@ -1002,7 +1003,7 @@ def test_kaga_non_uniform_mutation():
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
 
-    bb.connect_agent(ka_rp.KaGA, 'ka_rp_ga')
+    bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
     rp.set_random_seed(seed=1073)
@@ -1019,7 +1020,7 @@ def test_kaga_non_uniform_mutation():
 
 def test_KaSm_init():
     ns = run_nameserver()
-    rp = run_agent(name='ka_sm', base=ka_rp.KaSm)
+    rp = run_agent(name='ka_sm', base=ka_rp.KaLocalSm)
     
     assert rp.get_attr('bb') == None
     assert rp.get_attr('bb_lvl') == 3
@@ -1057,7 +1058,7 @@ def test_KaSm_init():
     
 def test_KaSm_generate_sm():
     ns = run_nameserver()
-    rp = run_agent(name='ka_sm', base=ka_rp.KaSm)
+    rp = run_agent(name='ka_sm', base=ka_rp.KaLocalSm)
     rp.set_attr(design_variables={'a': {}, 'b': {}})
     rp.set_attr(_objectives={'c': {}, 'd': {}})
     rp.set_attr(sm_type='gpr')

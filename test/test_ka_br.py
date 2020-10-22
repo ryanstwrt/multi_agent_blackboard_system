@@ -39,27 +39,6 @@ def test_kabr_init():
     ns.shutdown()
     time.sleep(0.05)
     
-def test_kabr_trigger_handler_publish():
-    ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
-    ka_b.add_blackboard(bb)
-    ka_b.connect_trigger()
-    ka_b.set_attr(bb_lvl_read=1)
-    ka_b.set_attr(bb_lvl_write=2)
-    bb.add_abstract_lvl(1, {'valid': bool})
-    bb.add_abstract_lvl(2, {'valid': bool})
-    bb.add_panel(2, ['new','old'])
-    bb.add_abstract_lvl(3, {'valid': bool})
-    bb.publish_trigger()
-    time.sleep(0.25)
-    
-    assert ka_b.get_attr('_trigger_val') == 0
-    assert bb.get_attr('_kaar') == {1: {'ka_br': 0}}
-    
-    ns.shutdown()
-    time.sleep(0.05)
-    
 def test_kabr_clear_entry():
     ns = run_nameserver()
     ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
@@ -155,7 +134,7 @@ def test_kabr_lvl1_init():
     assert ka_br1.get_attr('_objectives') == None
     assert ka_br1.get_attr('_shutdown_addr') == None
     assert ka_br1.get_attr('_shutdown_alias') == None
-    assert ka_br1.get_attr('_trigger_val_base') == 6
+    assert ka_br1.get_attr('_trigger_val_base') == 6.00000000003
     assert ka_br1.get_attr('_pf_size') == 1
     assert ka_br1.get_attr('_hvi_dict') == {}
     assert ka_br1.get_attr('_upper_objective_reference_point') == None
@@ -218,8 +197,8 @@ def test_kabr_lvl1_publish():
     bb.publish_trigger()
     time.sleep(0.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl1': 6}}
-    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl1', 6)
+    assert bb.get_attr('_kaar') == {1: {'ka_br_lvl1': 6.00000000003}}
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl1', 6.00000000003)
 
     ns.shutdown()
     time.sleep(0.05)       
@@ -589,7 +568,7 @@ def test_kabr_lvl2_init():
     assert ka_br2.get_attr('_shutdown_alias') == None
     assert ka_br2.get_attr('_num_entries') == 0
     assert ka_br2.get_attr('_num_allowed_entries') == 10
-    assert ka_br2.get_attr('_trigger_val_base') == 4
+    assert ka_br2.get_attr('_trigger_val_base') == 4.00000000002
     assert ka_br2.get_attr('_fitness') == 0.0
     assert ka_br2.get_attr('_update_hv') == True
     
@@ -639,7 +618,7 @@ def test_kabr_lvl2_add_entry():
     
 def test_kabr_lvl2_determine_validity():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     ka_br2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
     ka_br2.add_blackboard(bb)
     ka_br2.connect_writer()
@@ -648,9 +627,6 @@ def test_kabr_lvl2_determine_validity():
     ka_br2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                  'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}})
     
-    bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
-    bb.add_abstract_lvl(2, {'valid': bool})
-    bb.add_panel(2, ['new', 'old'])
     bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 'objective functions': {'keff': float, 'void_coeff': float}})
     bb.add_panel(3, ['new','old'])
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 'objective functions': {'keff': 1.05, 'void_coeff': -150.0,}}, panel='old')
@@ -696,7 +672,7 @@ def test_kabr_lvl2_determine_validity():
     
 def test_move_curent_entry():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     ka_br2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
     ka_br2.add_blackboard(bb)
     ka_br2.connect_writer()
@@ -793,21 +769,18 @@ def test_kabr_lvl2_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(1.25)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br2': 0}, 2: {'ka_br2': 5}}   
-    assert bb.get_attr('_ka_to_execute') == ('ka_br2', 5)
+    assert bb.get_attr('_kaar') == {1: {'ka_br2': 0}, 2: {'ka_br2': 5.00000000002}}   
+    assert bb.get_attr('_ka_to_execute') == ('ka_br2', 5.00000000002)
     
     ns.shutdown()
     time.sleep(0.05)
 
 def test_kabr_lvl2_handler_executor():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_br2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
-    ka_br2.add_blackboard(bb)
-    ka_br2.connect_writer()
-    ka_br2.connect_trigger()
-    ka_br2.connect_executor()
-    ka_br2.connect_complete()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.connect_agent(ka_br.KaBr_lvl2, 'ka_br')
+    ka_br2 = ns.proxy('ka_br')
+
     ka_br2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                  'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                  'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
@@ -888,6 +861,7 @@ def test_kabr_lvl3_init():
     assert ka_br2.get_attr('_shutdown_alias') == None
     assert ka_br2.get_attr('_num_entries') == 0
     assert ka_br2.get_attr('_num_allowed_entries') == 25
+    assert ka_br2.get_attr('_trigger_val_base') == 3.00000000001
     
     ns.shutdown()
     time.sleep(0.05)
@@ -923,27 +897,25 @@ def test_kabr_lvl3_update_abstract_levels():
     
 def test_kabr_lvl3_determine_validity():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_br3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
-    ka_br3.add_blackboard(bb)
-    ka_br3.connect_trigger()
-    ka_br3.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                 'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}})
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
+                                               'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}},
+                                   constraints={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}})
+    bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br3')
+    ka = bb.get_attr('_proxy_server')
+    br = ka.proxy('ka_br3')
     
-    bb.add_abstract_lvl(2, {'valid': bool})
-    bb.add_panel(2, ['old', 'new'])
-    bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 
-                            'objective functions': {'keff': float, 'void_coeff': float}})
-    bb.add_panel(3, ['new','old'])
-    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-                                         'objective functions': {'keff': 1.05, 'void_coeff': -150.0}}, panel='new')
-    bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-                                         'objective functions': {'keff': 0.9, 'void_coeff': -150.0}}, panel='new')    
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
+                                                          'constraints': {'eol keff': 1.1}}, panel='new')
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50},
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 250.0},
+                                                          'constraints': {'eol keff': 1.1}}, panel='new')
     
     bb.publish_trigger()
-    bool_ = ka_br3.determine_validity('core_1')
+    bool_ = br.determine_validity('core_[65.0, 65.0, 0.42]')
     assert bool_ == (True, None)
-    bool_ = ka_br3.determine_validity('core_2')
+    bool_ = br.determine_validity('core_[70.0, 60.0, 0.50]')
     assert bool_ == (False, None)
 
     ns.shutdown()
@@ -977,29 +949,24 @@ def test_kabr_lvl3_determine_validity_constraint():
     
 def test_kabr_lvl3_read_bb_lvl():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_br3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
-    ka_br3.add_blackboard(bb)
-    ka_br3.connect_writer()
-    ka_br3.connect_trigger()
-    ka_br3.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                 'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}})
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
+                                               'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}},
+                                   constraints={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}})
+    bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br3')
+    ka = bb.get_attr('_proxy_server')
+    br = ka.proxy('ka_br3')
     
-    bb.add_abstract_lvl(2, {'valid': bool})
-    bb.add_panel(2, ['new', 'old'])
-    bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 
-                            'objective functions': {'keff': float, 'void_coeff': float}})
-    bb.add_panel(3, ['new', 'old'])
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
+                                                          'constraints': {'eol keff': 1.1}}, panel='new')
     
-    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0}}, panel='new')
-
     bb.publish_trigger()
     time.sleep(0.5)
-    ka_br3.read_bb_lvl()
+    br.read_bb_lvl()
     
-    assert ka_br3.get_attr('_entry') == {'valid': True}
-    assert ka_br3.get_attr('_entry_name') == 'core_1'
+    assert br.get_attr('_entry') == {'valid': True}
+    assert br.get_attr('_entry_name') == 'core_[65.0, 65.0, 0.42]'
 
     ns.shutdown()
     time.sleep(0.05)    
@@ -1030,8 +997,8 @@ def test_kabr_lvl3_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.1)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 4}}   
-    assert bb.get_attr('_ka_to_execute') == ('ka_br3', 4)
+    assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 4.00000000001}}   
+    assert bb.get_attr('_ka_to_execute') == ('ka_br3', 4.00000000001)
 
     bb.remove_bb_entry(3, 'core_1', panel='new')
     bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
@@ -1041,7 +1008,7 @@ def test_kabr_lvl3_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.1)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 4}, 3:{'ka_br3':0}}   
+    assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 4.00000000001}, 3:{'ka_br3':0}}   
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     
     ns.shutdown()
@@ -1049,32 +1016,26 @@ def test_kabr_lvl3_handler_trigger_publish():
     
 def test_kabr_lvl3_handler_executor():
     ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    ka_br3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
-    ka_br3.add_blackboard(bb)
-    ka_br3.connect_writer()
-    ka_br3.connect_executor()
-    ka_br3.connect_trigger()
-    ka_br3.connect_complete()
-
-    ka_br3.set_attr(_objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float},
                                            'doppler_coeff': {'ll':-1.0,  'ul':-0.6, 'goal':'lt', 'variable type': float}})
     
-    bb.add_abstract_lvl(2, {'valid': bool})
-    bb.add_panel(2, ['new', 'old'])
-    bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 
-                            'objective functions': {'keff': float, 'void_coeff': float, 'doppler_coeff': float}})
-    bb.add_panel(3, ['new', 'old'])
+    bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br3')
+    ka = bb.get_attr('_proxy_server')
+    br = ka.proxy('ka_br3')
     
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4},
-                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
+                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.75},
+                                        'constraints': {'eol keff': 1.1}}, panel='new')
     bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80}}, panel='new')
+                                         'objective functions': {'keff': 1.1, 'void_coeff': -150.0, 'doppler_coeff': -0.80},
+                                        'constraints': {'eol keff': 1.1}}, panel='new')
     bb.update_abstract_lvl(3, 'core_3', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4},
-                                         'objective functions': {'keff': 0.9, 'void_coeff': -150.0, 'doppler_coeff': -0.75}}, panel='new')
+                                         'objective functions': {'keff': 0.9, 'void_coeff': -150.0, 'doppler_coeff': -0.75},
+                                        'constraints': {'eol keff': 1.1}}, panel='new')
 
-    bb.set_attr(_ka_to_execute=('ka_br', 10.0))
+    bb.set_attr(_ka_to_execute=('ka_br3', 10.0))
     bb.publish_trigger()
     time.sleep(0.1)
     bb.send_executor()
@@ -1129,30 +1090,47 @@ def test_kabr_lvl3_determine_validity_list():
     time.sleep(0.1)
     
 #def test_timing():
+#    import src.ka_rp as ka_rp
+#
+#    with open('./sm_gpr.pkl', 'rb') as pickle_file:
+#        sm_ga = pickle.load(pickle_file)
+
+    
 #    ns = run_nameserver()
 #    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+#    bb.set_attr(sm_type='gpr')
+#    bb.set_attr(_sm=sm_ga) 
 #    bb.initialize_abstract_level_3()
-#    bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br3')
+ #    bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br3')
+#    bb.connect_agent(ka_rp.KaLocal, 'ka_rp')
 #    ka = bb.get_attr('_proxy_server')
-#    br = ka.proxy('ka_br3')
-#        
+ #    br = ka.proxy('ka_br3')
+#    rp = ka.proxy('ka_rp')
+#    new_list = []
 #    for k in range(0,100):
+#        bb.update_abstract_lvl(1, 'core {}'.format(k), {'pareto type': 'weak', 'fitness function': 1.23})
 #        bb.update_abstract_lvl(2, 'core {}'.format(k), {'valid': True}, panel='new')
 #        bb.update_abstract_lvl(3, 'core {}'.format(k), {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
 #                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0},
 #                                                       'constraints': {'eol keff':1.1}}, panel='new')
-#    for k in range(1000,1200):
+        
+#    for k in range(0,100):
 #        bb.update_abstract_lvl(3, 'core {}'.format(k), {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
 #                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0},
 #                                                       'constraints': {'eol keff':1.1}}, panel='old')
-#        
-#    br.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 3']['new'])
-#    br.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['new'])
-#    br.set_attr(_entry_name='core_0')
+#        new_list.append('core {}'.format(k))
+        
+        
+ #    br.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 3']['new'])
+ #    br.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['new'])
+ #    br.set_attr(_entry_name='core_0')
+#    rp.set_attr(new_designs=new_list)
 #    a = time.time()
-#    br.handler_executor('test')
-#    print(time.time()-a)
-    #br.handler_trigger_publish('test')
+#    bb.set_attr(_ka_to_execute=('ka_rp', 1))
+#    bb.send_executor()
+ #   print(time.time()-a)
+  #  br.handler_trigger_publish('test')
+#    time.sleep(2)
 #    ns.shutdown()
 #    time.sleep(0.05) 
 #    assert 1 > 2

@@ -36,7 +36,7 @@ class KaBr(ka.KaBase):
         
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
-        if 'lvl2' in self._class:
+        if 'level 2' in self._class:
             self._fitness = self.determine_fitness_function(core_name, self._lvl_data[core_name]['objective functions'])
         
         if self.lvl_write == {}:
@@ -54,7 +54,11 @@ class KaBr(ka.KaBase):
     
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name))
-        self.update_abstract_levels()
+
+        self.lvl_read =  message['level {}'.format(self.bb_lvl_read)][self.new_panel] 
+        self.lvl_write = message['level {}'.format(self.bb_lvl_write)][self.new_panel]
+        self._lvl_data = self.lvl_read
+
         self.clear_bb_lvl()
         self.lvl_read = self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
         for entry_name in self.lvl_read.keys():
@@ -68,7 +72,10 @@ class KaBr(ka.KaBase):
             
     def handler_trigger_publish(self, message):
         """Read the BB level and determine if an entry is available."""
-        self.update_abstract_levels()
+        self.lvl_read =  message['level {}'.format(self.bb_lvl_read)][self.new_panel] 
+        self.lvl_write = message['level {}'.format(self.bb_lvl_write)][self.new_panel]
+        self._lvl_data = self.lvl_read
+        
         self._num_entries = len(self.lvl_read)
 
         new_entry = self.read_bb_lvl()
@@ -99,7 +106,6 @@ class KaBr(ka.KaBase):
             valid_core, opt_type = self.determine_validity(core_name)
             if not valid_core:
                 self.move_entry(self.bb_lvl_read, core_name, core_entry, self.old_panel, self.new_panel)
-#        self.update_abstract_levels()
                 
     def remove_dominated_entries(self):
         pass
@@ -192,14 +198,14 @@ class KaBr_lvl1(KaBr):
         self.bb_lvl_write= 1
         self.bb_lvl_read = 1
         self._update_hv = False
-        self._trigger_val_base = 6
+        self._trigger_val_base = 6.00000000003
         self._pf_size = 1
         self._lower_objective_reference_point = None
         self._upper_objective_reference_point = None
         self._hvi_dict = {}
         self._lvl_data = {}
         self._designs_to_remove = []
-        self._class = 'reader_lvl1'
+        self._class = 'reader level 1'
         self.pf_increase = 1.25
         self.total_pf_size = 100
         self._previous_pf = None
@@ -210,7 +216,7 @@ class KaBr_lvl1(KaBr):
         self.pareto_sorter = 'non-dominated'
         
     def handler_trigger_publish(self, message):
-        self.lvl_read = self.update_abstract_level(self.bb_lvl_read)
+        self.lvl_read = message['level {}'.format(self.bb_lvl_read)]#self.update_abstract_level(self.bb_lvl_read)
         self.lvl_write = self.lvl_read
         new_pf_size = len(self.lvl_read)
         
@@ -236,8 +242,14 @@ class KaBr_lvl1(KaBr):
         DCI accelerated HVI uses the DCI to remove solutions which are closeby to help increase the diversity of the Pareto front.
         """
         self.log_debug('Executing agent {}'.format(self.name))
-        #Update this to figure out an appropriate naming scheme for levels
-        self.update_abstract_levels()
+
+        self.lvl_read = message['level {}'.format(self.bb_lvl_read)]#self.update_abstract_level(self.bb_lvl_read)
+        self.lvl_write = self.lvl_read
+        lvl = {}
+        for panel in message['level {}'.format(self.bb_lvl_data)].values():
+            lvl.update(panel)        
+        self._lvl_data = lvl
+        
         self.clear_bb_lvl()
         self._pf_size = len(self.lvl_read)
         self._hvi_dict = {}
@@ -349,7 +361,6 @@ class KaBr_lvl1(KaBr):
                 except KeyError:
                     pass
             
-            
         designs_to_remove = []
         for grid_position, designs in designs_to_compare.items():
             if len(designs) > 1:
@@ -387,21 +398,42 @@ class KaBr_lvl2(KaBr):
         self.bb_lvl_write= 1
         self.bb_lvl_read = 2
         self._num_allowed_entries = 10
-        self._trigger_val_base = 4
+        self._trigger_val_base = 4.00000000002
         self._fitness = 0.0
-        self._class = 'reader_lvl2'
+        self._class = 'reader level 2'
         self._update_hv = True
         
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
         self._entry = {'pareto type': core_name[1], 'fitness function': self._fitness}
+
+    def handler_trigger_publish(self, message):
+        """Read the BB level and determine if an entry is available."""
+        self.lvl_read =  message['level {}'.format(self.bb_lvl_read)][self.new_panel] 
+        self.lvl_write = message['level {}'.format(self.bb_lvl_write)]
+        lvl = {}
+        for panel in message['level {}'.format(self.bb_lvl_data)].values():
+            lvl.update(panel)
+        self._lvl_data = lvl        
+        self._num_entries = len(self.lvl_read)
+
+        new_entry = self.read_bb_lvl()
+        trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
+        self._trigger_val = self._trigger_val_base + int(trig_prob) if trig_prob > 0 else 0
+        self.send(self._trigger_response_alias, (self.name, self._trigger_val))
+        self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
     def handler_executor(self, message):
         self.log_debug('Executing agent {}'.format(self.name)) 
+
+        self.lvl_read =  message['level {}'.format(self.bb_lvl_read)][self.new_panel] 
+        self.lvl_write = message['level {}'.format(self.bb_lvl_write)] 
+        lvl = {}
+        for panel in message['level {}'.format(self.bb_lvl_data)].values():
+            lvl.update(panel)
+        self._lvl_data = lvl
         
-        self.update_abstract_levels()
         self.clear_bb_lvl()
-        #self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
         for core_name in self.lvl_read.keys():
             self.clear_entry()
             valid_core, opt_type = self.determine_validity(core_name)
@@ -444,15 +476,15 @@ class KaBr_lvl2(KaBr):
             self._lvl_data = self.update_abstract_level(self.bb_lvl_data, panels=[self.new_panel, self.old_panel])
         except RuntimeError:
             self.update_abstract_levels()
-                
+            
 class KaBr_lvl3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
     def on_init(self):
         super().on_init()
         self.bb_lvl_write = 2
         self.bb_lvl_read = 3
-        self._trigger_val_base = 3
-        self._class = 'reader_lvl3'
+        self._trigger_val_base = 3.00000000001
+        self._class = 'reader level 3'
 
 
     def determine_validity(self, core_name):
@@ -489,4 +521,4 @@ class KaBr_lvl3(KaBr):
         """
         self.lvl_read =  self.update_abstract_level(self.bb_lvl_read, panels=[self.new_panel])
         self.lvl_write = self.update_abstract_level(self.bb_lvl_write, panels=[self.new_panel])
-        self._lvl_data = self.lvl_read#self.update_abstract_level(self.bb_lvl_data, panels=[self.new_panel])#, self.old_panel])
+        self._lvl_data = self.lvl_read

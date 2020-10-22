@@ -27,7 +27,7 @@ class Controller(object):
                  agent_wait_time=30, 
                  benchmark=None, 
                  plot_progress=False,
-                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 50},
+                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200},
                  surrogate_model={'sm_type': 'lr', 'pickle file': None},
                  random_seed=None):
         
@@ -63,7 +63,6 @@ class Controller(object):
             self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
             self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))
         
-        print(self.bb.get_attr('convergence_model'))
         ka_attributes = {}
         for ka_name, ka_type in ka.items():
             self.bb.connect_agent(ka_type, ka_name, attr=ka_attributes)

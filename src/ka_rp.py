@@ -5,7 +5,7 @@ import copy
 import time
 import random
 from pyDOE import lhs
-
+import time
 class KaRp(ka.KaBase):
     """
     Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
@@ -23,7 +23,7 @@ class KaRp(ka.KaBase):
     def on_init(self):
         super().on_init()
         self._trigger_val = 0
-        self._base_trigger_val = 0.25
+        self._base_trigger_val = 0.250001
         self.bb_lvl = 3
         self._sm = None
         self.sm_type = 'interpolate'
@@ -150,6 +150,7 @@ class KaGlobal(KaRp):
 
     def on_init(self):
         super().on_init()
+        self._class = 'global search mc'
         
     def search_method(self):
         """
@@ -185,8 +186,7 @@ class KaLHC(KaRp):
         self.lhc_criterion = 'corr'
         self.samples = 50
         self.lhd = []
-        self._trigger_val = 2.0
-        self._class = 'search lhc'
+        self._class = 'global search lhc'
     
     def generate_lhc(self):
         """
@@ -225,7 +225,7 @@ class KaLHC(KaRp):
         message : str
             Containts unused message, but required for agent communication.
         """
-        self._trigger_val = self._trigger_val if len(self.lhd) else 0
+        self._trigger_val = len(self.lhd) + 0.000006 if len(self.lhd) > 0 else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
 
@@ -247,7 +247,7 @@ class KaLocal(KaRp):
 
     def on_init(self):
         super().on_init()
-        self._base_trigger_val = 5
+        self._base_trigger_val = 5.00001
         self.bb_lvl_read = 1
         self.perturbation_size = 0.05
         self.lvl_data = None
@@ -255,8 +255,7 @@ class KaLocal(KaRp):
         self.analyzed_design = {}
         self.generated_designs = {}
         self.new_designs = []
-        self._class = 'search_local'
-
+        self._class = 'local search ns'
 
     def determine_model_applicability(self, dv):
         """
@@ -284,8 +283,8 @@ class KaLocal(KaRp):
         KA will perturb the core via the perturbations method and write all results the BB
         """
         self.log_debug('Executing agent {}'.format(self.name))
-        self.lvl_read = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-        self.lvl_data = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl)]['old']
+        self.lvl_read = message[0]
+        self.lvl_data = message[1]
         self.search_method()
         self.action_complete()
                       
@@ -308,7 +307,7 @@ class KaLocal(KaRp):
             _trigger_val : int
                 Trigger value for knowledge agent
         """
-        new_entry = self.read_bb_lvl()
+        new_entry = self.read_bb_lvl(message)        
         self._trigger_val = self._base_trigger_val if new_entry else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
@@ -333,8 +332,8 @@ class KaLocal(KaRp):
                 self.current_design_variables = design
                 self.determine_model_applicability(dv)
         self.analyzed_design[core] = {'Analyzed': True}
-            
-    def read_bb_lvl(self):
+
+    def read_bb_lvl(self, lvl):
         """
         Determine if there are any 'new' entries on level 1.
         
@@ -343,22 +342,23 @@ class KaLocal(KaRp):
             True -  if level has entries
             False -  if level is empty
         """
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        lvl = lvl['level {}'.format(self.bb_lvl_read)]
         cores = [x for x in self.analyzed_design.keys()]
         self.new_designs = [key for key in lvl if not key in self.analyzed_design]
-        return True if self.new_designs else False
-
+        return True if self.new_designs else False    
     
 class KaLocalHC(KaLocal):
     
     def on_init(self):
         super().on_init()
+        self._base_trigger_val = 5.00003
         self.avg_diff_limit = 5
         self.step_size = 0.05
         self.step_rate = 0.01
         self.step_limit = 100
         self.convergence_criteria = 0.001
         self.hc_type = 'simple'
+        self._class = 'local search hc'
         
     def search_method(self):
         """
@@ -468,8 +468,10 @@ class KaLocalRW(KaLocal):
     
     def on_init(self):
         super().on_init()
+        self._base_trigger_val = 5.00002
         self.step_size = 0.01
         self.walk_length = 10
+        self._class = 'local search rw'
         
     def search_method(self):
         """
@@ -490,14 +492,14 @@ class KaLocalRW(KaLocal):
             self.determine_model_applicability(dv)
         self.analyzed_design[core] = {'Analyzed': True, 'HV': 0.0}
         
-class KaGA(KaLocal):
+class KaLocalGA(KaLocal):
     """
     Pseudo-basic gentic algorithm for helping global and local searches
     """
-    
+     
     def on_init(self):
         super().on_init()
-        self._base_trigger_val = 5
+        self._base_trigger_val = 5.00004
         self.previous_populations = {}
         self.crossover_rate = 0.8
         self.offspring_per_generation = 20
@@ -509,6 +511,7 @@ class KaGA(KaLocal):
         self.b = 2
         self.k = 5
         self.T = 100
+        self._class = 'local search ga'
         
 
     def handler_trigger_publish(self, message):
@@ -531,7 +534,7 @@ class KaGA(KaLocal):
             _trigger_val : int
                 Trigger value for knowledge agent
         """
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
+        lvl = message['level {}'.format(self.bb_lvl_read)]
         new = set([x for x in lvl.keys()])
         old = set([x for x in self.analyzed_design.keys()])
         intersection = old.intersection(new)
@@ -708,7 +711,7 @@ class KaGA(KaLocal):
         return genotype
 
     
-class KaSm(KaLocal):
+class KaLocalSm(KaLocal):
     """
     Knowledge Agent who generates a SM based on the data level of the BB to find areas of interest
     """
@@ -716,16 +719,16 @@ class KaSm(KaLocal):
     def on_init(self):
         super().on_init()
         self.bb_lvl_read = 3
-        self._base_trigger_val = 5
+        self._base_trigger_val = 5.0005
         self.sm_type = 'gpr'
         self._sm = None
+        self._class = 'local search sm'
 
     def handler_trigger_publish(self, message):
         """
 
         """
-        lvl = self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)]
-        data_size = len(self.bb.get_attr('abstract_lvls')['level {}'.format(self.bb_lvl_read)])
+        data_size = len(message['level {}'.format(self.bb_lvl_read)])
 
         self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))

@@ -102,6 +102,7 @@ class BbOpt(blackboard.Blackboard):
         ns = proxy.NSProxy()
         ka = ns.proxy(agent)
         agent_class = ka.get_attr('_class')
+        
         ka.set_attr(_objectives=self.objectives)
         ka.set_attr(_constraints=self.constraints)
         if 'search' in agent_class:
@@ -112,7 +113,7 @@ class BbOpt(blackboard.Blackboard):
             if 'lhc' in agent_class:
                 ka.generate_lhc()
         elif 'reader' in agent_class:
-            if 'lvl1' in agent_class:
+            if 'level 1' in agent_class:
                 nadir_point = {}
                 ideal_point = {}
                 ka.set_attr(_lower_objective_reference_point=[0 for x in self.objectives.keys()])
@@ -238,7 +239,6 @@ class BbOpt(blackboard.Blackboard):
         if self.convergence_model['type'] == 'dci hvi':
             self.hv_list[self._trigger_event] = pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul)
         else:
-            print(pf)
             self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
             
     def generate_sm(self):
@@ -255,7 +255,7 @@ class BbOpt(blackboard.Blackboard):
                 self._sm[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
         else:
             self._sm = tm.Surrogate_Models()
-            self._sm.random = 0
+            self._sm.random = self.random_seed
             self._sm.update_database([x for x in self.design_variables.keys()], objectives, database=data_dict)
             self._sm.optimize_model(self.sm_type)
             
@@ -325,12 +325,27 @@ class BbOpt(blackboard.Blackboard):
     def send_executor(self):
         """Send an executor message to the triggered KA."""
         if self._ka_to_execute != (None, 0):
-            self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], self._ka_to_execute[1], self._trigger_event))
+            self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], round(self._ka_to_execute[1],2), self._trigger_event))
+            agent_class = str(self.agent_addrs[self._ka_to_execute[0]]['class'])
             self._new_entry = False
-            self.send('executor_{}'.format(self._ka_to_execute[0]), self._ka_to_execute)
+            if 'Local' in agent_class:
+                self.send('executor_{}'.format(self._ka_to_execute[0]), (self.abstract_lvls['level 1'],
+                                                                         self.abstract_lvls['level 3']['old']))
+            elif 'Br' in agent_class:
+                self.send('executor_{}'.format(self._ka_to_execute[0]), self.abstract_lvls)
+            else:
+                self.send('executor_{}'.format(self._ka_to_execute[0]), self._ka_to_execute)
         else:
             self.log_info('No KA to execute, waiting to sends trigger again.')
-            
+
+    def publish_trigger(self):
+        """Send a trigger event message to all KAs."""
+        self._trigger_event += 1
+        self.log_debug('\n\nPublishing Trigger Event {}'.format(self._trigger_event))
+        self._kaar[self._trigger_event] = {}
+        self.send(self._pub_trigger_alias, self.abstract_lvls)
+
+
 #    def h5_delete_entries(self, h5):
 #        """
 #        Examine the H5 file and current blackbaord dabstract levels and remove entries in the H5 file that are no longer in the BB bastract levels. (likely this is due to solution no longer being on the Pareto front)
