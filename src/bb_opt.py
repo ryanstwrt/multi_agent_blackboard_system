@@ -42,7 +42,7 @@ class BbOpt(blackboard.Blackboard):
         
         self.objectives_ll = []
         self.objectives_ul = []
-        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6, 'interval': 25, 'pf size': 50}
+        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6, 'interval': 25, 'pf size': 50, 'total TVs': 2000}
 
         self.hv_list = [0.0]
         self._sm = None

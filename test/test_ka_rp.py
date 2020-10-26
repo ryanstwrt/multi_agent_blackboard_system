@@ -244,11 +244,15 @@ def test_kalhc_generate_lhc():
     rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
     rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})    
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                  'experiment': {'length': 2,
+                                                 'positions': {0: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'},
+                                                               1: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'}},
+                                                 'variable type': list}})    
     rp.generate_lhc()
     lhd = rp.get_attr('lhd')
     assert len(lhd) == 50
-    assert len(lhd[0]) == 3
+    assert len(lhd[0]) == 5
     
     ns.shutdown()
     time.sleep(0.05) 
@@ -259,14 +263,18 @@ def test_kalhc_search_method():
     
     rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})    
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                  'experiments': {'length': 2,
+                                                 'positions': {0: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'},
+                                                              1: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'}},
+                                                 'variable type': list}})    
     rp.generate_lhc()
     lhd = rp.get_attr('lhd')[0]
-    print(lhd)
     
     rp.search_method()
     design = rp.get_attr('current_design_variables')
     assert round(lhd[2], 5) == design['pu_content']
+    assert len(design['experiments'].keys()) == 2
     
     ns.shutdown()
     time.sleep(0.05) 

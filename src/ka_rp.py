@@ -192,7 +192,14 @@ class KaLHC(KaRp):
         """
         Generate a set of samples to select from.
         """
-        lhd = lhs(len(self.design_variables.keys()), samples=self.samples, criterion=self.lhc_criterion)
+        length = 0
+        for k,v in self.design_variables.items():
+            if v['variable type'] == list:
+                length += v['length']
+            else:
+                length += 1
+            
+        lhd = lhs(length, samples=self.samples, criterion=self.lhc_criterion)
         self.lhd = lhd.tolist()
         
     def search_method(self):
@@ -203,13 +210,12 @@ class KaLHC(KaRp):
         num = 0
         for dv, dv_dict in self.design_variables.items():
             if dv_dict['variable type'] == list:
-                dv_list = dv_dict['positions']
-                num = random.randint(0, dv_dict['length'])
-                random_loc = random.sample(list(dv_list.keys()), num)
-                design = []
-                for pos in dv_list.keys():
-                    val = random.sample(dv_list[pos]['options'], 1)[0] if pos in random_loc else dv_list[pos]['default']
-                    design.append(val)
+                length = dv_dict['length']
+                design = {}
+                for pos in dv_dict['positions']:
+                    val = int(length * cur_design[num])
+                    design[pos] = dv_dict['positions'][pos]['options'][val]
+                    num +=1
                 self.current_design_variables[dv] = design
             else:
                 self.current_design_variables[dv] = round(cur_design[num] * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
@@ -516,7 +522,6 @@ class KaLocalGA(KaLocal):
         self.T = 100
         self._class = 'local search ga'
         
-
     def handler_trigger_publish(self, message):
         """
         Read the BB level and determine if an entry is available.

@@ -76,8 +76,9 @@ def test_BbOpt_initalize_abstract_level_3():
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     dv =   {'height':           {'ll': 50, 'ul': 80, 'variable type': float},
-            'experiments': {0: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'},
-                            1: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'},
+            'experiments': {'length':         2, 
+                            'positions':      {0: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'},
+                                               1: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'}},
                             'variable type': list}}
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
