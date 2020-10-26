@@ -29,7 +29,7 @@ def test_controller_init_sfr_opt():
           'smear':      {'ll': 70.0, 'ul': 70.0, 'variable type': float},
           'pu_content': {'ll': 0.5,  'ul': 1.0,  'variable type': float}}
     const = {'eol keff':    {'ll': 1.1, 'ul': 2.5, 'variable type': float}}
-    conv_model = {'type': 'dci hvi', 'convergence rate': 1E-6, 'div': {'reactivity swing': 100, 'burnup': 100}, 'interval':5, 'pf size': 5}
+    conv_model = {'type': 'dci hvi', 'convergence rate': 1E-6, 'div': {'reactivity swing': 100, 'burnup': 100}, 'interval':5, 'pf size': 5, 'total tvs': 100}
     bb_controller = controller.Controller(bb_name='sfr_opt', 
                                           bb_type=bb_opt.BbOpt, 
                                           ka=kas, 
@@ -83,7 +83,8 @@ def test_run_single_agent_bb():
                                           convergence_model={'type': 'hvi', 
                                                              'convergence rate': 1E-3, 
                                                              'interval':5, 
-                                                             'pf size': 5},
+                                                             'pf size': 5, 
+                                                             'total tvs': 100},
                                           surrogate_model={'sm_type'     : 'gpr', 
                                                            'pickle file' : './sm_gpr.pkl'},
                                           random_seed=10983)

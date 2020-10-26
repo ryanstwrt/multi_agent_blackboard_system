@@ -19,7 +19,6 @@ import random
 cur_dir = os.path.dirname(__file__)
 test_path = os.path.join(cur_dir, '../test/')
 
-
 class BbOpt(blackboard.Blackboard):
     
     def on_init(self):
@@ -42,7 +41,7 @@ class BbOpt(blackboard.Blackboard):
         
         self.objectives_ll = []
         self.objectives_ul = []
-        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6, 'interval': 25, 'pf size': 50, 'total TVs': 2000}
+        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6, 'interval': 25, 'pf size': 50, 'total tvs': 1E6}
 
         self.hv_list = [0.0]
         self._sm = None
@@ -155,6 +154,13 @@ class BbOpt(blackboard.Blackboard):
         else:
             self.log_info('convergence_model ({}) not recognized, reverting to hvi'.format(self.convergence_model['type']))
             pass           
+        # Determine if the problem is over our trigger value limit
+        if len(self._kaar) >= self.convergence_model['total tvs']:
+            self.log_info('Problem is over total allowable TVs, shutting agents down')
+            for agent_name, connections in self.agent_addrs.items():
+                self.send(connections['shutdown'][0], "shutdown")
+            self._complete = True
+        
         
     def determine_complete_dci_hvi(self):
         """
