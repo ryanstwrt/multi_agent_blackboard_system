@@ -157,15 +157,18 @@ class KaGlobal(KaRp):
         Determine the core design variables using a monte carlo method.
         """        
         for dv, dv_dict in self.design_variables.items():
-            if dv_dict['variable type'] == list:
-                dv_list = dv_dict['positions']
-                num = random.randint(0, dv_dict['length'])
-                random_loc = random.sample(list(dv_list.keys()), num)
-                design = []
-                for pos in dv_list.keys():
-                    val = random.sample(dv_list[pos]['options'], 1)[0] if pos in random_loc else dv_list[pos]['default']
-                    design.append(val)
+            if dv_dict['variable type'] == dict:
+                length = dv_dict['length']
+                design = {}
+                for pos in dv_dict['dict']:
+                    if dv_dict['dict'][pos]['variable type'] != float:
+                        design[pos] = random.choice(dv_dict['dict'][pos]['options'])
+                    else:
+                        design[pos] = round(random.random() * (dv_dict['dict'][pos]['ul'] - dv_dict['dict'][pos]['ll']) + dv_dict['dict'][pos]['ll'], self._design_accuracy)
+                    
                 self.current_design_variables[dv] = design
+            elif dv_dict['variable type'] == str:
+                self.current_design_variables[dv] = random.choice(dv_dict['options'])               
             else:
                 self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
@@ -194,7 +197,7 @@ class KaLHC(KaRp):
         """
         length = 0
         for k,v in self.design_variables.items():
-            if v['variable type'] == list:
+            if v['variable type'] == dict:
                 length += v['length']
             else:
                 length += 1
@@ -209,14 +212,20 @@ class KaLHC(KaRp):
         cur_design = self.lhd.pop(0)
         num = 0
         for dv, dv_dict in self.design_variables.items():
-            if dv_dict['variable type'] == list:
+            if dv_dict['variable type'] == dict:
                 length = dv_dict['length']
                 design = {}
-                for pos in dv_dict['positions']:
-                    val = int(length * cur_design[num])
-                    design[pos] = dv_dict['positions'][pos]['options'][val]
+                for pos in dv_dict['dict']:
+                    if dv_dict['dict'][pos]['variable type'] != float:
+                        val = int(length * cur_design[num])
+                        design[pos] = dv_dict['dict'][pos]['options'][val]
+                    else:
+                        design[pos] = round(cur_design[num] * (dv_dict['dict'][pos]['ul'] - dv_dict['dict'][pos]['ll']) + dv_dict['dict'][pos]['ll'], self._design_accuracy)
                     num +=1
+
                 self.current_design_variables[dv] = design
+            elif dv_dict['variable type'] == str:
+                self.current_design_variables[dv] = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]              
             else:
                 self.current_design_variables[dv] = round(cur_design[num] * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
             num += 1

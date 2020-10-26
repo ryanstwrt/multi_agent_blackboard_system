@@ -135,15 +135,16 @@ def test_explore_search_method():
     rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                  'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
                                   'experiments': {'length':         2, 
-                                                  'positions':      {0: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'},
-                                                                     1: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'}},
-                                                  'variable type': list}})
+                                                  'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+                                                                'random variable': {'ll': 0,  'ul': 2,  'variable type': float}},
+                                                  'variable type': dict}})
     
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('_entry_name') == None
     rp.search_method()
-    assert rp.get_attr('current_design_variables') == {'height': 54.03093, 'smear': 66.94867, 'pu_content': 0.76377, 'experiments': ['exp_d', 'no_exp']}
+    assert rp.get_attr('current_design_variables') == {'height': 54.03093, 'smear': 66.94867, 'pu_content': 0.76377, 'position': 'exp_c', 'experiments': {'0':'exp_a', 'random variable': 0.99087}}
     rp.search_method()
     
     ns.shutdown()
@@ -248,7 +249,7 @@ def test_kalhc_generate_lhc():
                                   'experiment': {'length': 2,
                                                  'positions': {0: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'},
                                                                1: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'}},
-                                                 'variable type': list}})    
+                                                 'variable type': dict}})    
     rp.generate_lhc()
     lhd = rp.get_attr('lhd')
     assert len(lhd) == 50
@@ -264,21 +265,21 @@ def test_kalhc_search_method():
     rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
-                                  'experiments': {'length': 2,
-                                                 'positions': {0: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'},
-                                                              1: {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp'}},
-                                                 'variable type': list}})    
+                                  'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+                                  'experiments': {'length':         2, 
+                                                  'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+                                                                'random variable': {'ll': 0,  'ul': 2,  'variable type': float}},
+                                                  'variable type': dict}})   
     rp.generate_lhc()
     lhd = rp.get_attr('lhd')[0]
     
     rp.search_method()
     design = rp.get_attr('current_design_variables')
     assert round(lhd[2], 5) == design['pu_content']
-    assert len(design['experiments'].keys()) == 2
-    
+    assert len(design['experiments']) == 2
     ns.shutdown()
     time.sleep(0.05) 
-
+        
 def test_kalhc_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)

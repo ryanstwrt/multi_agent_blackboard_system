@@ -79,11 +79,20 @@ class BbOpt(blackboard.Blackboard):
         self.objectives_ll = [self._nadir_point[x] for x in self.objectives.keys()]
         self.objectives_ul = [self._ideal_point[x] for x in self.objectives.keys()]
 
-        dv  = {dv:   dv_dict['variable type']   for dv,   dv_dict   in self.design_variables.items()}
-        obj = {obj:  obj_dict['variable type']  for obj,  obj_dict  in self.objectives.items()}
-        cnst  = {cnst: cnst_dict['variable type'] for cnst, cnst_dict in self.constraints.items()}
+        dv  = self.create_level_format(self.design_variables)
+        obj = self.create_level_format(self.objectives)
+        cnst  = self.create_level_format(self.constraints)
         self.add_abstract_lvl(3, {'design variables': dv, 'objective functions': obj, 'constraints' : cnst})
         self.add_panel(3, ['new','old'])
+        
+    def create_level_format(self, level_entry):
+        level_format = {}
+        for dv, dv_dict in level_entry.items():
+            if dv_dict['variable type'] == dict:
+                level_format[dv] = self.create_level_format(dv_dict['dict'])
+            else:
+                level_format[dv] = dv_dict['variable type']
+        return level_format
         
     def clear_data_levels(self):
         """

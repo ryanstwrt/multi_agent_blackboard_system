@@ -46,6 +46,22 @@ def test_BbOpt_init():
     ns.shutdown()
     time.sleep(0.05)
     
+def test_create_lvl_format():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                  'experiments': {'length':         2, 
+                                                  'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+                                                                '1': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}},
+                                                  'variable type': dict}}
+    lvl_format = bb.create_level_format(dv)
+    assert lvl_format == {'height': float, 'smear': float, 'pu_content': float, 'experiments': {'0': str, '1': str}}
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
 def test_BbOpt_initalize_abstract_level_3_basic():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
@@ -77,17 +93,17 @@ def test_BbOpt_initalize_abstract_level_3():
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     dv =   {'height':           {'ll': 50, 'ul': 80, 'variable type': float},
             'experiments': {'length':         2, 
-                            'positions':      {0: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'},
-                                               1: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'}},
-                            'variable type': list}}
+                            'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp', 'variable type': str},
+                                          '1': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp', 'variable type': str}},
+                            'variable type': dict}}
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
-                                                   'level 3': {'new': {'design variables': {'height': float, 'experiments': list},
+                                                   'level 3': {'new': {'design variables': {'height': float, 'experiments': {'0': str, '1': str}},
                                                                        'objective functions':  {'reactivity swing': float, 'burnup': float},
                                                                        'constraints': {'eol keff': float}},
-                                                               'old': {'design variables': {'height': float, 'experiments': list},
+                                                               'old': {'design variables': {'height': float, 'experiments': {'0': str, '1': str}},
                                                                        'objective functions':  {'reactivity swing': float, 'burnup': float},
                                                                        'constraints': {'eol keff': float}}},
                                                    'level 100': {'agent': str, 'hvi': float, 'time': float}}
@@ -452,24 +468,24 @@ def test_read_from_h5():
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
                                   'experiments': {'length':         2, 
-                                                  'positions':      {0: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'},
-                                                                     1: {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp'}},
-                                                  'variable type': list}}
-    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
+                                                  'dict':  {'0': {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp', 'variable type': str},
+                                                            '1': {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp', 'variable type': str}},
+                                                  'variable type': dict}}
+    objs = {'reactivity swing': {'ll':0.0,  'ul':1000.0, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0.0,  'ul':100.0,  'goal':'gt', 'variable type': float}}
 
     bb_h5.initialize_abstract_level_3(objectives=objs, design_variables=dv)    
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
-    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': ['exp_d', 'no_exp']},
-                                         'objective functions': {'reactivity swing': 50, 'burnup': 10},
-                                         'constraints': {'eol keff': 1.02}})    
+    bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': {'0': 'exp_a', '1':'no_exp'}},
+                                         'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0},
+                                         'constraints': {'eol keff': 1.02}}, panel='old')    
     bb.write_to_h5()
-    time.sleep(1)
-    bb_h5.load_h5(panels={1: ['new','old'], 2: ['new','old']})
-    
-    bb_h5_bb = bb_h5.get_attr('abstract_lvls')
     bb_bb = bb.get_attr('abstract_lvls')
-    assert bb_h5_bb == bb_bb
+
+    bb_h5.load_h5(panels={2: ['new','old'], 3: ['new','old']})    
+    bb_h5_bb = bb_h5.get_attr('abstract_lvls')
+    assert bb_bb == {'level 1': {}, 'level 2': {'new': {}, 'old': {}}, 'level 100': {}, 'level 3': {'new': {}, 'old': {'core_1': {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': {'0': 'exp_a', '1': 'no_exp'}}, 'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0}, 'constraints': {'eol keff': 1.02}}}}}
+    assert bb_h5_bb == {'level 1': {}, 'level 2': {'new': {}, 'old': {}}, 'level 100': {}, 'level 3': {'new': {}, 'old': {'core_1': {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': {'0': 'exp_a', '1': 'no_exp'}}, 'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0}, 'constraints': {'eol keff': 1.02}}}}}
     
     os.remove('blackboard_archive.h5')
     ns.shutdown()

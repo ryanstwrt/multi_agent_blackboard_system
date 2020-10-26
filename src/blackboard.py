@@ -327,6 +327,9 @@ class Blackboard(Agent):
         for k,v in data_dict.items():
             if type(v) == dict:
                 self.dict_writer(k, v, group_level[data_name])
+            elif type(v) == list:
+                group_level[data_name][k] = [self.convert_to_h5_type(type(x), x) for x in v]
+                group_level[data_name][k].attrs['type'] = repr(type(v))
             else:
                 group_level[data_name][k] = self.convert_to_h5_type(type(v), v)
                 group_level[data_name][k].attrs['type'] = repr(type(v))
@@ -569,8 +572,11 @@ class Blackboard(Agent):
                 formatted_dict[k] = type(v)
                 try:
                     assert formatted_dict[k] == lvl_format
-                except (TypeError, AssertionError):
-                    assert formatted_dict[k] == lvl_format[k]
+                except (TypeError, AssertionError, KeyError):
+                    try:
+                        assert formatted_dict[k] == lvl_format[k]
+                    except(AssertionError, KeyError):
+                        self.log_warning('Entry Name: "{}" not in BB level with entries {}'.format(k, [x for x in lvl_format.keys()]))
         return formatted_dict
             
     def update_abstract_lvl(self, level, name, entry, panel=None):
