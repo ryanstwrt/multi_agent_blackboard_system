@@ -130,6 +130,9 @@ class BbOpt(blackboard.Blackboard):
                 ka.set_attr(_upper_objective_reference_point=[1 for x in self.objectives.keys()])
                 ka.set_attr(_nadir_point=self._nadir_point)
                 ka.set_attr(_ideal_point=self._ideal_point)
+            elif 'inter bb' in agent_class:
+                ka.set_attr(_design_variables=self.design_variables)
+                
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
             return
@@ -433,3 +436,78 @@ class BbOpt(blackboard.Blackboard):
 
         
         self.update_abstract_lvl(100, entry_name, entry)
+
+
+class MasterBbOpt(BbOpt):
+    
+    def on_init(self):
+        super().on_init()
+        self._complete = False
+        self.problem = 'basic'
+        self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
+        self.add_abstract_lvl(2, {'valid': bool})
+        self.add_panel(2, ['new', 'old'])
+
+        self.objectives = {'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
+        self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
+
+        self.constraints = {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'variable type': float},
+                            'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
+                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
+        
+        self.objectives_ll = []
+        self.objectives_ul = []
+        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
+
+        self.hv_list = [0.0]
+        self._sm = None
+        self.sm_type = 'interpolate'
+        self._nadir_point = {}
+        self._ideal_point = {}
+        self._pareto_level = ['level 1']
+        self.previous_pf = {}
+        self.dci_convergence_list = [0.0]
+        self.random_seed = None
+        random.seed(a=self.random_seed)
+        
+        # Initialize an abstract level which holds meta-data about the problem
+        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+
+class SubBbOpt(BbOpt):
+    
+    def on_init(self):
+        super().on_init()
+        self._complete = False
+        self.problem = 'basic'
+        self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
+        self.add_abstract_lvl(2, {'valid': bool})
+        self.add_panel(2, ['new', 'old'])
+
+        self.objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
+                           'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},}
+        self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
+
+        self.constraints = {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'variable type': float},
+                            'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
+        
+        self.objectives_ll = []
+        self.objectives_ul = []
+        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
+
+        self.hv_list = [0.0]
+        self._sm = None
+        self.sm_type = 'interpolate'
+        self._nadir_point = {}
+        self._ideal_point = {}
+        self._pareto_level = ['level 1']
+        self.previous_pf = {}
+        self.dci_convergence_list = [0.0]
+        self.random_seed = None
+        random.seed(a=self.random_seed)
+        
+        # Initialize an abstract level which holds meta-data about the problem
+        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})

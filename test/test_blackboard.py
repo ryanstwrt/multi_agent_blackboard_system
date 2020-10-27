@@ -514,3 +514,17 @@ def test_h5_group_writer():
   #  os.remove('blackboard_archive.h5')
     
    # time.sleep(0.05)
+
+def test_connect_sub_blackboard():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    
+    bb.connect_sub_blackboard('sub_bb', blackboard.Blackboard)
+    sub_bb = bb.get_attr('_sub_bbs')
+    assert [x for x in sub_bb.keys()] == ['sub_bb']
+    sub_bb = sub_bb['sub_bb']
+    assert sub_bb.get_attr('name') == 'sub_bb'
+    assert sub_bb.get_attr('archive_name') == 'sub_bb.h5'
+    
+    ns.shutdown()       
+    time.sleep(0.05)

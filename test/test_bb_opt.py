@@ -490,3 +490,26 @@ def test_read_from_h5():
     os.remove('blackboard_archive.h5')
     ns.shutdown()
     time.sleep(0.05)
+
+    
+def test_connect_sub_bb():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    
+    bb.connect_sub_blackboard('sub_bb', bb_opt.SubBbOpt)
+    sub_bb = bb.get_attr('_sub_bbs')
+    assert [x for x in sub_bb.keys()] == ['sub_bb']
+    sub_bb = sub_bb['sub_bb']
+    assert sub_bb.get_attr('name') == 'sub_bb'
+    assert sub_bb.get_attr('archive_name') == 'sub_bb.h5'
+    assert sub_bb.get_attr('design_variables') == {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+                                                   'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+                                                   'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
+    assert sub_bb.get_attr('objectives') == {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
+                                             'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
+    assert sub_bb.get_attr('constraints') == {'eol keff': {'ll': 1.0, 'ul': 2.5, 'variable type': float},
+                                              'pu mass':  {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
+    assert sub_bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
+    
+    ns.shutdown()       
+    time.sleep(0.05)    

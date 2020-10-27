@@ -1088,49 +1088,151 @@ def test_kabr_lvl3_determine_validity_list():
 
     ns.shutdown()
     time.sleep(0.1)
+
+
+#-----------------------------------------
+# Test of KaBr_interBB
+#-----------------------------------------
+
+def test_kabr_interBB_add_bb():
+    ns = run_nameserver()
+    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
+    bb.initialize_abstract_level_3()
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter')    
+    bb2 = run_agent(name='bb', base=bb_opt.BbOpt)
+    bb2.initialize_abstract_level_3()    
+
+    ka = bb.get_attr('_proxy_server')
+    br = ka.proxy('ka_br_inter')    
+    br.connect_bb_to_write(bb2)    
+    bb_writer = bb2.get_attr('agent_addrs')['ka_br_inter']['writer']
     
-#def test_timing():
-#    import src.ka_rp as ka_rp
-#
-#    with open('./sm_gpr.pkl', 'rb') as pickle_file:
-#        sm_ga = pickle.load(pickle_file)
+    assert br.get_attr('_writer_alias') == 'writer_ka_br_inter'
+    assert br.get_attr('_writer_alias') == bb_writer[0]
+    assert br.get_attr('_writer_addr') == bb_writer[1]
+    assert br.get_attr('_writer_addr') != bb.get_attr('agent_addrs')['ka_br_inter']['writer'][1]
+
+    ns.shutdown()
+    time.sleep(0.05) 
+
+def test_kabr_interBB_write_to_bb():
+    ns = run_nameserver()
+    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
+    bb.initialize_abstract_level_3()
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter')    
+    bb2 = run_agent(name='bb', base=bb_opt.MasterBbOpt)
+    bb2.initialize_abstract_level_3()    
+
+    ka = bb.get_attr('_proxy_server')
+    br = ka.proxy('ka_br_inter')    
+    br.connect_bb_to_write(bb2)    
+    bb_writer = bb2.get_attr('agent_addrs')['ka_br_inter']['writer']
+    
+    name = 'core_1'
+    entry = {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+             'objective functions': {'pu mass': 290.2},
+             'constraints': {'eol keff': 1.1,
+                             'burnup': 69.0,
+                             'reactivity swing': 1000.0}}
+    
+    br.write_to_bb(3, name, entry, panel='new')
+    br.get_attr('name')
+    assert bb2.get_attr('abstract_lvls')['level 3']['new']['core_1'] == {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+             'objective functions': {'pu mass': 290.2},
+             'constraints': {'eol keff': 1.1,
+                             'burnup': 69.0,
+                             'reactivity swing': 1000.0}}
+    ns.shutdown()
+    time.sleep(0.05) 
+    
+def test_kabr_interBB_format_entry():
+    ns = run_nameserver()
+    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
+    bb.initialize_abstract_level_3()
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter')    
+    bb2 = run_agent(name='bb', base=bb_opt.MasterBbOpt)
+    bb2.initialize_abstract_level_3()    
+
+    ka = bb.get_attr('_proxy_server')
+    br = ka.proxy('ka_br_inter')    
+    br.connect_bb_to_write(bb2)
+    
+    data = {'core_[65.0,65.0,0.4]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+             'objective functions': {'burnup': 69.0,
+                                     'reactivity swing': 1000.0},
+             'constraints': {'eol keff': 1.1,
+                             'pu mass': 290.2}}}
+    
+    br.set_attr(_lvl_data=data)
+    entry = br.format_entry('core_[65.0,65.0,0.4]')
+    assert entry == {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                     'objective functions': {'pu mass': 290.2},
+                     'constraints': {'eol keff': 1.1,
+                                     'burnup': 69.0,
+                                     'reactivity swing': 1000.0}}
+    ns.shutdown()
+    time.sleep(0.05) 
+    
+def test_kabr_interBB_handler_publish():
+    ns = run_nameserver()
+    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
+    bb.initialize_abstract_level_3()
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter')    
+    bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
+    bb_master.initialize_abstract_level_3()    
+
+    ka = bb.get_attr('_proxy_server')
+    br = ka.proxy('ka_br_inter')    
+    br.connect_bb_to_write(bb_master)
+    
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
+                                                          'constraints': {'eol keff': 1.1, 'pu mass': 1500.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    bb.publish_trigger()
+    time.sleep(0.5)
+    assert bb.get_attr('_kaar') == {1: {'ka_br_inter': 6.00000000001}}
+    br.set_attr(_entries_moved=['core_[65.0, 65.0, 0.42]'])
+    bb.publish_trigger()
+    time.sleep(0.5)
+    assert bb.get_attr('_kaar') == {1: {'ka_br_inter': 6.00000000001},
+                                    2: {'ka_br_inter': 0.0}} 
+    
+    ns.shutdown()
+    time.sleep(0.05) 
+    
+def test_kabr_interBB_handler_executor():
+    ns = run_nameserver()
+    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
+    bb.initialize_abstract_level_3()
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter')    
+    bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
+    bb_master.initialize_abstract_level_3()    
+
+    ka = bb.get_attr('_proxy_server')
+    br = ka.proxy('ka_br_inter')    
+    br.connect_bb_to_write(bb_master)
+    
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
+                                                          'constraints': {'eol keff': 1.1, 'pu mass': 1500.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    bb.publish_trigger()
+    time.sleep(0.5)
+    bb.controller()
+    assert bb.get_attr('_ka_to_execute') == ('ka_br_inter', 6.00000000001)
+    bb.send_executor()
+    time.sleep(1.0) 
+    
+    assert bb_master.get_attr('abstract_lvls')['level 3']['new']['core_[65.0, 65.0, 0.42]'] == {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'pu mass': 1500.0},
+                                                          'constraints': {'eol keff': 1.1, 'reactivity swing' : 750.0, 'burnup' : 75.0}}
+    
+    bb.publish_trigger()
+    time.sleep(0.5)
 
     
-#    ns = run_nameserver()
-#    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-#    bb.set_attr(sm_type='gpr')
-#    bb.set_attr(_sm=sm_ga) 
-#    bb.initialize_abstract_level_3()
- #    bb.connect_agent(ka_br.KaBr_lvl3, 'ka_br3')
-#    bb.connect_agent(ka_rp.KaLocal, 'ka_rp')
-#    ka = bb.get_attr('_proxy_server')
- #    br = ka.proxy('ka_br3')
-#    rp = ka.proxy('ka_rp')
-#    new_list = []
-#    for k in range(0,100):
-#        bb.update_abstract_lvl(1, 'core {}'.format(k), {'pareto type': 'weak', 'fitness function': 1.23})
-#        bb.update_abstract_lvl(2, 'core {}'.format(k), {'valid': True}, panel='new')
-#        bb.update_abstract_lvl(3, 'core {}'.format(k), {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-#                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0},
-#                                                       'constraints': {'eol keff':1.1}}, panel='new')
-        
-#    for k in range(0,100):
-#        bb.update_abstract_lvl(3, 'core {}'.format(k), {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-#                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0},
-#                                                       'constraints': {'eol keff':1.1}}, panel='old')
-#        new_list.append('core {}'.format(k))
-        
-        
- #    br.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 3']['new'])
- #    br.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['new'])
- #    br.set_attr(_entry_name='core_0')
-#    rp.set_attr(new_designs=new_list)
-#    a = time.time()
-#    bb.set_attr(_ka_to_execute=('ka_rp', 1))
-#    bb.send_executor()
- #   print(time.time()-a)
-  #  br.handler_trigger_publish('test')
-#    time.sleep(2)
-#    ns.shutdown()
-#    time.sleep(0.05) 
-#    assert 1 > 2
+    ns.shutdown()
+    time.sleep(0.05) 

@@ -66,6 +66,8 @@ class Blackboard(Agent):
         
         self._panels = {}
         
+        self._sub_bbs = {}
+        
     def add_abstract_lvl(self, level, entry):
         """
         Add an abstract level to the blackboard.
@@ -233,7 +235,15 @@ class Blackboard(Agent):
     def connect_ka_specific(self, agent):
         """Holder for implementing and connect a specific knowledge agent."""
         pass
-        
+
+    def connect_sub_blackboard(self, name, bb_type):
+        """
+        Add a sub blackboard for a multi-tiered optimization problem
+        """
+        sub_bb = run_agent(name=name,base=bb_type)
+        sub_bb.set_attr(archive_name='{}.h5'.format(name))
+        self._sub_bbs[name] = sub_bb
+    
     def controller(self):
         """Determines which KA to select after a trigger event."""
         self.log_debug('Determining which KA to execute')
