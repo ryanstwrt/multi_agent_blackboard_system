@@ -52,10 +52,16 @@ class BbOpt(blackboard.Blackboard):
         self.previous_pf = {}
         self.dci_convergence_list = [0.0]
         self.random_seed = None
-        random.seed(a=self.random_seed)
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+        
+    def set_random_seed(self, seed=None):
+        """
+        Sets the random seed number to provide a reproducabel result
+        """
+        random.seed(a=seed)
+        self.random_seed = seed
 
     def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
         """
@@ -100,7 +106,7 @@ class BbOpt(blackboard.Blackboard):
         """
         pass
         
-    def connect_ka_specific(self, agent):
+    def connect_ka_specific(self, agent, attr={}):
         """
         Assigns specific variables for each KA type in the SFR optimization problem.
         
@@ -130,8 +136,9 @@ class BbOpt(blackboard.Blackboard):
                 ka.set_attr(_upper_objective_reference_point=[1 for x in self.objectives.keys()])
                 ka.set_attr(_nadir_point=self._nadir_point)
                 ka.set_attr(_ideal_point=self._ideal_point)
-            elif 'inter bb' in agent_class:
+            elif 'inter' in agent_class:
                 ka.set_attr(_design_variables=self.design_variables)
+                ka.connect_bb_to_write(attr[ka.get_attr('name')]['bb'])
                 
         else:
             self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
@@ -167,10 +174,12 @@ class BbOpt(blackboard.Blackboard):
             self.log_info('convergence_model ({}) not recognized, reverting to hvi'.format(self.convergence_model['type']))
             pass           
         # Determine if the problem is over our trigger value limit
-        if len(self._kaar) >= self.convergence_model['total tvs']:
+        if len(self._kaar) >= self.convergence_model['total tvs'] and self._complete == False:
             self.log_info('Problem is over total allowable TVs, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
-                self.send(connections['shutdown'][0], "shutdown")
+                # If statement is for inter_BB agent who only have a write function assocaiated with the BB
+                if 'shutdown' in list(connections.keys()):
+                    self.send(connections['shutdown'][0], "shutdown")
             self._complete = True
         
         
@@ -242,7 +251,12 @@ class BbOpt(blackboard.Blackboard):
         if hv_indicator < self.convergence_model['convergence rate'] and len(self.abstract_lvls['level 1']) > self.convergence_model['pf size']:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
-                self.send(connections['shutdown'][0], "shutdown")
+                # If statement is for inter_BB agent who only have a write function assocaiated with the BB
+                if 'shutdown' in list(connections.keys()):
+                    try:
+                        self.send(connections['shutdown'][0], "shutdown")
+                    except value_error:
+                        print(asd)
             self._complete = True
     
     def hv_indicator(self):
@@ -448,12 +462,13 @@ class MasterBbOpt(BbOpt):
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
 
-        self.objectives = {'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
+        self.objectives = {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'goal': 'gt', 'variable type': float},
+                           'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
         self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
                                  'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
                                  'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
 
-        self.constraints = {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'variable type': float},
+        self.constraints = {
                             'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                             'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
         

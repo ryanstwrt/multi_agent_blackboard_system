@@ -143,7 +143,7 @@ class Blackboard(Agent):
         ka.connect_executor()
         ka.connect_shutdown()
         ka.connect_complete()
-        self.connect_ka_specific(agent_alias)
+        self.connect_ka_specific(agent_alias, attr=attr)
         self.agent_addrs[agent_alias].update({'class': agent_type})
         self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
 
@@ -232,7 +232,7 @@ class Blackboard(Agent):
         self.agent_addrs[agent_name].update({'shutdown': (alias_name, shutdown_addr)})
         return (alias_name, shutdown_addr)
     
-    def connect_ka_specific(self, agent):
+    def connect_ka_specific(self, agent, attr={}):
         """Holder for implementing and connect a specific knowledge agent."""
         pass
 

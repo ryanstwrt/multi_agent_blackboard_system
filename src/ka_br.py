@@ -515,9 +515,9 @@ class KaBr_interBB(KaBr):
         self.bb_lvl_write = 3
         self.bb_lvl_read = 1
         self._trigger_val_base = 6.00000000001
-        self._class = 'reader level 3'
+        self._class = 'reader inter'
         self._entries_moved = []
-        self._design_variables = {}
+        self._design_variables = None
         self._new_entry_format = {}
 
     def add_entry(self, core_name, entry):
