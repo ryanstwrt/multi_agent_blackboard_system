@@ -721,10 +721,10 @@ class KaLocalGA(KaLocal):
         
         if mutation_direction == 'up':
             new_gene = genotype[dv_mutate] + delta_k
-            genotype[dv_mutate] = min(new_gene, self.design_variables[dv_mutate]['ul'])
+            genotype[dv_mutate] = round(min(new_gene, self.design_variables[dv_mutate]['ul']), self._design_accuracy)
         else:
             new_gene = genotype[dv_mutate] - delta_k
-            genotype[dv_mutate] = max(new_gene, self.design_variables[dv_mutate]['ll'])
+            genotype[dv_mutate] = round(max(new_gene, self.design_variables[dv_mutate]['ll']), self._design_accuracy)
         return genotype
 
     

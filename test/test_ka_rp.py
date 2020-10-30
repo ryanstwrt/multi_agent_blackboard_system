@@ -1022,7 +1022,57 @@ def test_kaga_non_uniform_mutation():
 
     ns.shutdown()
     time.sleep(0.05)
+    
+def test_KaLocalGA_crossover_mutate():
+    ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga)
+    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3()
+
+    bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_exploit')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_exploit')
+    rp.set_random_seed(seed=1073)
+    rp.set_attr(mutation_rate=1.0)
+    rp.set_attr(pf_trigger_number=2)
+    rp.set_attr(crossover_type='nonsense')
+    rp.set_attr(mutation_type='random')
+    bb.update_abstract_lvl(3, 'core_[50.0, 60.0, 0.1]', {'design variables': {'height': 50.0, 'smear': 60.0, 'pu_content': 0.1}, 
+                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[50.0, 60.0, 0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 70.0, 0.2]', {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2}, 
+                                                          'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[70.0, 70.0, 0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.search_method()
+    time.sleep(2)
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[70.0, 60.0, 0.09571]', 'core_[50.0, 70.0, 0.2]']
+    rp.set_random_seed(seed=1073)
+    rp.set_attr(crossover_type='nonsense')
+    rp.set_attr(mutation_type='non-uniform')    
+    rp.search_method()
+    time.sleep(2)
+    print([x for x in bb.get_attr('abstract_lvls')['level 3']['new']])
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[70.0, 60.0, 0.09571]', 'core_[50.0, 70.0, 0.2]', 'core_[70.0, 60.0, 0.14235]']
+    rp.set_random_seed(seed=1073)
+    rp.set_attr(crossover_type='nonsense')
+    rp.set_attr(mutation_type='nonsense')    
+    rp.search_method()
+    time.sleep(2)
+    print([x for x in bb.get_attr('abstract_lvls')['level 3']['new']])
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[70.0, 60.0, 0.09571]', 'core_[50.0, 70.0, 0.2]', 'core_[70.0, 60.0, 0.14235]']
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
 #----------------------------------------------------------
 # Tests fopr KA-SM
 #----------------------------------------------------------
