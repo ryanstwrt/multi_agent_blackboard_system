@@ -767,10 +767,10 @@ def test_kabr_lvl2_handler_trigger_publish():
     
     bb.update_abstract_lvl(2, 'core 1', {'valid' : True}, panel='new')
     bb.publish_trigger()
-    time.sleep(1.25)
+    time.sleep(1.0)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br2': 0}, 2: {'ka_br2': 5.00000000002}}   
-    assert bb.get_attr('_ka_to_execute') == ('ka_br2', 5.00000000002)
+    assert bb.get_attr('_kaar') == {1: {'ka_br2': 0}, 2: {'ka_br2': 4.00000000002}}   
+    assert bb.get_attr('_ka_to_execute') == ('ka_br2', 4.00000000002)
     
     ns.shutdown()
     time.sleep(0.05)
@@ -997,8 +997,8 @@ def test_kabr_lvl3_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.1)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 4.00000000001}}   
-    assert bb.get_attr('_ka_to_execute') == ('ka_br3', 4.00000000001)
+    assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 3.00000000001}}   
+    assert bb.get_attr('_ka_to_execute') == ('ka_br3', 3.00000000001)
 
     bb.remove_bb_entry(3, 'core_1', panel='new')
     bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
@@ -1008,7 +1008,7 @@ def test_kabr_lvl3_handler_trigger_publish():
     bb.publish_trigger()
     time.sleep(0.1)
     bb.controller()
-    assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 4.00000000001}, 3:{'ka_br3':0}}   
+    assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 3.00000000001}, 3:{'ka_br3':0}}   
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     
     ns.shutdown()

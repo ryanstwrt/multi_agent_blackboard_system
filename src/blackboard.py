@@ -314,10 +314,14 @@ class Blackboard(Agent):
             return [np.string_(data_val)]
         elif data_type in (bool, int, float, tuple):
             return [data_val]
-        elif data_type in (list, dict):
+        elif data_type == list:
+            if type(data_val[0]) == str:
+                data_val == [np._string(x) for x in data_val]
+            return data_val
+        elif data_type == dict:
             return data_val
         else:
-            self.log_warning('Data {} was not a recongnized data type ({}), please add statment requiring how to store it.'.format(data_name, data_type))
+            self.log_warning('Data {} was not a recongnized data type ({}), please add statment requiring how to store it.'.format(data_val, data_type))
             return None
 
     def dict_writer(self, data_name, data_dict, group_level):
@@ -634,7 +638,7 @@ class Blackboard(Agent):
         Each abstract level will then have a number of subdirectories, based on what results are written to them.
         """
         if not os.path.isfile(self.archive_name):
-            self.log_info('Creating New Database: {}'.format(self.archive_name))
+  #          self.log_info('Creating New Database: {}'.format(self.archive_name))
             h5 = h5py.File(self.archive_name, 'w')
             for level, entry in self.abstract_lvls.items():
                 h5.create_group(level)
@@ -643,7 +647,7 @@ class Blackboard(Agent):
                         h5[level].create_group(panel_name)
             h5.close()
                 
-        self.log_info("Writing blackboard to archive")
+ #       self.log_info("Writing blackboard to archive")
                     
         h5 = h5py.File(self.archive_name, 'r+')
         self.h5_delete_entries(h5)
@@ -659,7 +663,7 @@ class Blackboard(Agent):
                             self.h5_group_writer(panel_group, panel_data_name, panel_data)               
                 elif name not in group_level.keys():
                     self.h5_group_writer(group_level, name, data)
-        self.log_info("Finished writing to archive")
+  #      self.log_info("Finished writing to archive")
         h5.close()
     
     def h5_delete_entries(self, h5):

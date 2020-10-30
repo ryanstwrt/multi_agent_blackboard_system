@@ -376,10 +376,14 @@ class BbOpt(blackboard.Blackboard):
         self._ka_to_execute = (None, 0)
         cur_tv = self._kaar[self._trigger_event]
         if cur_tv:
+            # We sort the current trigger values into alphabetical order and recreate the dictionary
+            # This is done to allow for reproducability, due to the fact that the KAs respond at different times which can change the order of the current trigger values
+            cur_tv = {k: cur_tv[k] for k in sorted(cur_tv)}
             max_ka = max(cur_tv, key=cur_tv.get)
             if cur_tv[max_ka] > 0:
                 equal_vals = [(k,v) for k,v in cur_tv.items() if v == cur_tv[max_ka]]
                 self._ka_to_execute = random.choice(equal_vals)
+
         
     def publish_trigger(self):
         """Send a trigger event message to all KAs."""
@@ -446,7 +450,6 @@ class BbOpt(blackboard.Blackboard):
         """
         entry_name = str(self._trigger_event)
         entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[self._trigger_event]}
-#        entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[-1]}
 
         
         self.update_abstract_lvl(100, entry_name, entry)
@@ -456,12 +459,6 @@ class MasterBbOpt(BbOpt):
     
     def on_init(self):
         super().on_init()
-        self._complete = False
-        self.problem = 'basic'
-        self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
-        self.add_abstract_lvl(2, {'valid': bool})
-        self.add_panel(2, ['new', 'old'])
-
         self.objectives = {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'goal': 'gt', 'variable type': float},
                            'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
         self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
@@ -472,34 +469,14 @@ class MasterBbOpt(BbOpt):
                             'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                             'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
         
-        self.objectives_ll = []
-        self.objectives_ul = []
         self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
 
-        self.hv_list = [0.0]
-        self._sm = None
-        self.sm_type = 'interpolate'
-        self._nadir_point = {}
-        self._ideal_point = {}
-        self._pareto_level = ['level 1']
-        self.previous_pf = {}
-        self.dci_convergence_list = [0.0]
-        self.random_seed = None
-        random.seed(a=self.random_seed)
-        
-        # Initialize an abstract level which holds meta-data about the problem
-        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+
 
 class SubBbOpt(BbOpt):
     
     def on_init(self):
         super().on_init()
-        self._complete = False
-        self.problem = 'basic'
-        self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
-        self.add_abstract_lvl(2, {'valid': bool})
-        self.add_panel(2, ['new', 'old'])
-
         self.objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},}
         self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
@@ -511,18 +488,45 @@ class SubBbOpt(BbOpt):
         
         self.objectives_ll = []
         self.objectives_ul = []
-        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
+        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 200, 'total tvs': 2E4}
 
-        self.hv_list = [0.0]
-        self._sm = None
-        self.sm_type = 'interpolate'
-        self._nadir_point = {}
-        self._ideal_point = {}
-        self._pareto_level = ['level 1']
-        self.previous_pf = {}
-        self.dci_convergence_list = [0.0]
-        self.random_seed = None
-        random.seed(a=self.random_seed)
+class BenchmarkBbOpt(BbOpt):
+    
+    def on_init(self):
+        super().on_init()
+        self._complete = False
+        self.problem = 'benchmark'
+        self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
+        self.add_abstract_lvl(2, {'valid': bool})
+        self.add_panel(2, ['new', 'old'])
+
+        self.objectives = {}
+        self.design_variables =  {}
+        self.constraints = {}
+                
+    def plot_progress(self):
         
-        # Initialize an abstract level which holds meta-data about the problem
-        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+        try:
+            lvls = self.get_attr('abstract_lvls')
+            objectives = self.get_attr('objectives')
+            lvl_3 = {}
+            for panel in lvls['level 3'].values():
+                lvl_3.update(panel)    
+            lvl_1 = lvls['level 1']
+
+            obj_dict = {}
+            objs = [x for x in objectives.keys()]
+            for entry_name, entry in lvl_1.items():
+                val = lvl_3[entry_name]['objective functions']
+                for obj in objectives.keys():
+                    if obj in obj_dict.keys():
+                        obj_dict[obj].append(val[obj])
+                    else:
+                        obj_dict[obj] = [val[obj]]
+
+            fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':'f1', 'y':'f2'})
+            fig1.show()
+        except KeyError:
+            pass
+        fig2 = px.line(x=[x for x in range(len(self.hv_list))], y=self.hv_list, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
+        fig2.show()

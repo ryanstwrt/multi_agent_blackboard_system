@@ -509,8 +509,19 @@ def test_connect_sub_bb():
                                              'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
     assert sub_bb.get_attr('constraints') == {'eol keff': {'ll': 1.0, 'ul': 2.5, 'variable type': float},
                                               'pu mass':  {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
-    assert sub_bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
+    assert sub_bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 200, 'total tvs': 2E4}
     
     ns.shutdown()       
     time.sleep(0.05)    
     
+def test_BenchmarkBB_init():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)   
+    
+    assert bb.get_attr('problem') == 'benchmark'
+    assert bb.get_attr('objectives') == {}
+    assert bb.get_attr('design_variables') == {}
+    assert bb.get_attr('constraints') == {}
+
+    ns.shutdown()       
+    time.sleep(0.05) 

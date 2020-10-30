@@ -7,7 +7,6 @@ import src.blackboard as blackboard
 import time
 import src.bb_opt as bb_opt
 import src.moo_benchmarks as mb
-import src.bb_benchmark as bb_benchmark
 import src.ka_br as kabr
 import pickle
 
@@ -58,11 +57,6 @@ class Controller(object):
                 self.bb.set_attr(_sm=sm)            
             else:
                 self.bb.generate_sm()
-        
-        elif bb_type == bb_benchmark.BenchmarkBB:
-            self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables,constraints=constraints)
-            self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
-            self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))
         
         ka_attributes = {}
         for ka_name, ka_type in ka.items():
@@ -150,6 +144,50 @@ class Controller(object):
         
     def shutdown(self):
         self._ns.shutdown()
+        
+class BenchmarkController(Controller):
+    """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
+    
+    The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
+    
+    def __init__(self, bb_name='bb', 
+                 benchmark=None,
+                 bb_type=bb_opt.BenchmarkBbOpt, 
+                 ka={}, 
+                 objectives=None, 
+                 design_variables=None,
+                 constraints=None,
+                 archive='bb_benchmark', 
+                 agent_wait_time=30, 
+                 plot_progress=False,
+                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'total tvs': 1E6},
+                 random_seed=None):
+
+        self.bb_name = bb_name
+        self.bb_type = bb_type
+        self.agent_wait_time = agent_wait_time
+        self._ns = run_nameserver()
+        self._proxy_server = proxy.NSProxy()
+        self.bb = run_agent(name=self.bb_name, base=self.bb_type)
+        self.bb.set_attr(archive_name='{}.h5'.format(archive))
+        self.bb.set_attr(convergence_model=convergence_model)
+        
+        self.agent_time = 0
+        self.progress_rate = convergence_model['interval']
+        self.plot_progress = plot_progress
+        self.time = [time.time()]
+ 
+        self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables,constraints=constraints)
+        self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
+        self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))
+        
+        ka_attributes = {}
+        for ka_name, ka_type in ka.items():
+            self.bb.connect_agent(ka_type, ka_name, attr=ka_attributes)
+            
+
+        
+        
         
 class Multi_Tiered_Controller(Controller):
     """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
@@ -239,6 +277,7 @@ class Multi_Tiered_Controller(Controller):
                 if time.time() - agent_time > bb_attr['wait time']:
                     break
             agent_time = time.time() - agent_time
+
             if len(bb.get_attr('_kaar')) % conv_criteria['interval'] == 0:
                 bb.convergence_indicator()
                 bb.meta_data_entry(agent_time)

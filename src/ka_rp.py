@@ -505,7 +505,6 @@ class KaLocalRW(KaLocal):
             direction = random.choice(['+','-'])
             design[dv] = design[dv] + step if direction == '+' else design[dv] - step
             design[dv] = round(design[dv], self._design_accuracy)
-            self.log_debug('Design Variable: {} Step: {} {}\n New Design: {}'.format(dv, direction, step, design))
             self.current_design_variables = design
             self.determine_model_applicability(dv)
         self.analyzed_design[core] = {'Analyzed': True, 'HV': 0.0}
