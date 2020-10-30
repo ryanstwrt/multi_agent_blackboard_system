@@ -1,9 +1,12 @@
 import src.h5Interface as h5i
 import src.reactorInterface as RI
 
-def get_data(design_variables, objective_variables, database_name='SFR_DB', fixed_cycle_length=120, num_cycles=4):
+def get_data(design_variables, objective_variables, database_name='SFR_DB', fixed_cycle_length=120, num_cycles=4, path=None):
     h5_interface = h5i.h5Interface()
-    h5_interface.read_h5('/Users/ryanstewart/projects/sfr_database/{}.h5'.format(database_name))
+    if path:
+        h5_interface.read_h5('{}/{}.h5'.format(path,database_name))        
+    else:
+        h5_interface.read_h5('/Users/ryanstewart/projects/sfr_database/{}.h5'.format(path,database_name))
     ind_var_array = []
     obj_var_array = []
     data_dict = {}

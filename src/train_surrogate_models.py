@@ -138,29 +138,6 @@ class Surrogate_Models(object):
     return best_model
 
 
-
-  def plot_validation_curve(self, model_type, hyper_parameter, hp_range):
-      """Plot the validation curve for a model_type, given a particular hyper-parameter"""
-      model = self.models[model_type]['model']
-
-      train, test = model_selection.validation_curve(model, self.scaled_var_train, self.scaled_obj_train,
-                                                     param_name=hyper_parameter, param_range=hp_range,n_jobs=20)
-      tr_m = np.mean(train, axis = 1)
-      tr_s = np.std(train, axis = 1)
-      ts_m = np.mean(test, axis = 1)
-      ts_s = np.std(test, axis = 1)
-
-      plt.title("Validation Curve for {} with {}".format(model_type,hyper_parameter))
-      plt.xlabel("{}".format(hyper_parameter))
-      plt.ylabel("Score")
-      lw = 2
-      plt.plot(hp_range, tr_m, label="Training score", color="darkorange", lw=lw)
-      plt.fill_between(hp_range, tr_m - tr_s, tr_m + tr_s, alpha=0.2, color="darkorange", lw=lw)
-      plt.plot(hp_range, ts_m, label="Cross-validation score", color="navy", lw=lw)
-      plt.fill_between(hp_range, ts_m - ts_s, ts_m + ts_s, alpha=0.2, color="navy", lw=lw)
-      plt.legend(loc="best")
-      plt.show()
-
   def set_model(self, model_type, hyper_parameters=None):
     """Create a surrogate model"""
     base_model = self.models[model_type]['model']

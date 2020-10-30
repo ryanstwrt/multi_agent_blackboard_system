@@ -187,6 +187,7 @@ def test_convert_assembly_parameters():
     assert assem_1['burnup'][0] == 3.164E1
     assert assem_1['actinide inventory']['92235'][0] == 1.047E3
     assert assem_1['actinide inventory']['92235'][-1] == 3.116E-2
+    os.remove('FS65_H75_23Pu4U10Zr_BU.h5')
     
 def test_create_database():
     h5_interface = h5I.h5Interface(output_name='db_test')
