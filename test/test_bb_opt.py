@@ -514,6 +514,41 @@ def test_connect_sub_bb():
     ns.shutdown()       
     time.sleep(0.05)    
     
+def test_MasterBbOpt_init():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.MasterBbOpt)   
+    
+    assert bb.get_attr('objectives') == {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'goal': 'gt', 'variable type': float},
+                           'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
+    assert bb.get_attr('design_variables') == {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
+    assert bb.get_attr('constraints') == {
+                            'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
+                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
+    
+    assert bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
+
+    ns.shutdown()       
+    time.sleep(0.05)    
+    
+def test_SubBbOpt_init():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.SubBbOpt)   
+    
+    assert bb.get_attr('objectives') == {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
+                           'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},}
+    assert bb.get_attr('design_variables') == {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
+    assert bb.get_attr('constraints') == {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'variable type': float},
+                            'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
+    
+    assert bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 200, 'total tvs': 2E4}
+    
+    ns.shutdown()       
+    time.sleep(0.05)     
+    
 def test_BenchmarkBB_init():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)   

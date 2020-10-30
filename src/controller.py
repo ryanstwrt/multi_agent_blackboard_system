@@ -169,6 +169,7 @@ class BenchmarkController(Controller):
         self._ns = run_nameserver()
         self._proxy_server = proxy.NSProxy()
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
+        self.bb.set_random_seed(seed=random_seed)
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
         self.bb.set_attr(convergence_model=convergence_model)
         

@@ -425,25 +425,25 @@ class BbOpt(blackboard.Blackboard):
 #                del h5[entry[0]][entry[1]]          
 #                self.log_debug('Removing entry {} on level {}'.format(entry[1],entry[0]))
                 
-    def delete_data_entries(self):
-        pf = [x for x in self.abstract_lvls['level 1'].keys()]
-        lvl2 = self.abstract_lvls['level 2']['old']
-        lvl3 = self.abstract_lvls['level 3']['old']
+#    def delete_data_entries(self):
+#        pf = [x for x in self.abstract_lvls['level 1'].keys()]
+#        lvl2 = self.abstract_lvls['level 2']['old']
+#        lvl3 = self.abstract_lvls['level 3']['old']
         
-        lvl2_list = []
-        lvl3_list = []
-        for core, entry in lvl2.items():
-            if core not in pf:
-                lvl2_list.append(core)
-        for core in lvl2_list:
-            self.remove_bb_entry(2, core, 'old')
-
-        for core, entry in lvl3.items():
-            if core not in pf:
-                lvl3_list.append(core)
-        for core in lvl3_list:
-            self.remove_bb_entry(3, core, 'old')
-        
+#        lvl2_list = []
+#        lvl3_list = []
+#        for core, entry in lvl2.items():
+#            if core not in pf:
+#                lvl2_list.append(core)
+#        for core in lvl2_list:
+#            self.remove_bb_entry(2, core, 'old')
+#
+#        for core, entry in lvl3.items():
+#            if core not in pf:
+#                lvl3_list.append(core)
+#        for core in lvl3_list:
+#            self.remove_bb_entry(3, core, 'old')
+#        
     def meta_data_entry(self, time):
         """
         Add an entry to abstract level 100 for meta-data

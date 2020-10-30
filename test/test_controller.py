@@ -105,7 +105,55 @@ def test_run_single_agent_bb():
     bb_controller.shutdown()
     os.remove('sfr_opt.h5')
     time.sleep(0.05)
+
+#------------------------------------------------
+# Test of Benchmark Controller
+#------------------------------------------------
     
+def test_BenchmarkController():
+    model = 'sf2'
+    objs = {'f1': {'ll':0, 'ul':4, 'goal':'lt', 'variable type': float},
+            'f2': {'ll':0, 'ul':4, 'goal':'lt', 'variable type': float}}
+    dvs =  {'x1':  {'ll':-10, 'ul':10, 'variable type': float}}
+    const = {}
+
+    kas = {'ka_rp_explore': karp.KaGlobal, 
+           'ka_rp_hc': karp.KaLocalHC,
+           'ka_rp_pert': karp.KaLocal,
+           'ka_br_lvl3': kabr.KaBr_lvl3,
+           'ka_br_lvl2': kabr.KaBr_lvl2,
+           'ka_br_lvl1': kabr.KaBr_lvl1}
+
+    bb_controller = controller.BenchmarkController(bb_name=model, 
+                                      bb_type=bb_opt.BenchmarkBbOpt, 
+                                      ka=kas, 
+                                      archive='{}_benchmark'.format(model),
+                                      objectives=objs, 
+                                      design_variables=dvs,
+                                      benchmark=model, 
+                                      convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 
+                                                         'interval': 5, 'pf size': 10, 'total tvs': 10},
+                                      random_seed=10987)
+    bb = bb_controller.bb
+    ka = bb.get_attr('_proxy_server')
+    ka2 = ka.proxy('ka_rp_hc')
+    ka2.set_attr(step_limit=15)
+
+    br1 = ka.proxy('ka_br_lvl1')
+    br1.set_attr(total_pf_size = 100)
+    br1.set_attr(pareto_sorter='dci')
+    br1.set_attr(dci_div={'f1': 80, 'f2': 80})
+
+    bb_controller.run_single_agent_bb()    
+    assert bb_controller.bb.get_attr('_complete') == True
+    
+    assert bb_controller.bb.get_attr('_kaar') == {1: {'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0, 'ka_rp_explore': 0.250001, 'ka_rp_hc': 0, 'ka_rp_pert': 0}, 2: {'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0, 'ka_rp_explore': 0.250001, 'ka_rp_hc': 0, 'ka_rp_pert': 0}, 3: {'ka_br_lvl3': 0, 'ka_br_lvl2': 4.00000000002, 'ka_br_lvl1': 0, 'ka_rp_explore': 0.500002, 'ka_rp_hc': 0, 'ka_rp_pert': 0}, 4: {'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0, 'ka_rp_explore': 0.750003, 'ka_rp_hc': 5.00001, 'ka_rp_pert': 5.00001}, 5: {'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0, 'ka_rp_explore': 1.000004, 'ka_rp_hc': 5.00001, 'ka_rp_pert': 0}, 6: {'ka_rp_explore': 1.2500049999999998, 'ka_rp_hc': 0, 'ka_rp_pert': 0, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 7: {'ka_br_lvl3': 0, 'ka_br_lvl1': 0, 'ka_rp_explore': 1.5000059999999997, 'ka_rp_hc': 0, 'ka_rp_pert': 0, 'ka_br_lvl2': 4.00000000002}, 8: {'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 6.00000000003, 'ka_rp_explore': 1.7500069999999996, 'ka_rp_hc': 5.00001, 'ka_rp_pert': 5.00001}, 9: {'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0, 'ka_rp_explore': 2.000008, 'ka_rp_hc': 5.00001, 'ka_rp_pert': 5.00001}, 10: {'ka_br_lvl1': 0, 'ka_rp_explore': 2.250009, 'ka_rp_hc': 5.00001, 'ka_rp_pert': 5.00001, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0}}
+    
+    assert bb_controller.bb.get_attr('abstract_lvls')['level 100']['final']['hvi'] == 0.9639145123375
+
+    bb_controller.shutdown()
+    os.remove('sf2_benchmark.h5')
+    time.sleep(0.05)
     
 #------------------------------------------------
 # Test of Multi_Tiered_Controller
