@@ -7,6 +7,7 @@ import time
 import os
 import src.ka_rp as karp
 import src.ka_br as kabr
+import src.ka as ka
 
     
 #----------------------------------------------------------
@@ -120,11 +121,12 @@ def test_connect_agent():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(karp.KaGlobal, 'ka_rp')
     bb.connect_agent(kabr.KaBr_lvl3, 'ka_br')
+    bb.connect_agent(ka.KaBase, 'ka')
     
     agents = bb.get_attr('agent_addrs')
     
-    assert [x for x in agents.keys()] == ['ka_rp', 'ka_br']
-    assert ns.agents() == ['blackboard', 'ka_rp', 'ka_br']
+    assert [x for x in agents.keys()] == ['ka_rp', 'ka_br', 'ka']
+    assert ns.agents() == ['blackboard', 'ka_rp', 'ka_br', 'ka']
 
     rp = ns.proxy('ka_rp')
     br = ns.proxy('ka_br')
@@ -490,7 +492,7 @@ def test_read_from_h5():
     os.remove('blackboard_archive.h5')
     ns.shutdown()
     time.sleep(0.05)
-
+    
     
 def test_connect_sub_bb():
     ns = run_nameserver()

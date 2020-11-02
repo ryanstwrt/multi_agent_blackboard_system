@@ -102,7 +102,25 @@ def test_connect_writer():
     assert bb.get_attr('agent_addrs')['ka_base']['writer'] == (ka_b.get_attr('_writer_alias'), ka_b.get_attr('_writer_addr'))
     ns.shutdown()
     time.sleep(0.05)
-
+    
+def test_fail_to_connect():
+    ns = run_nameserver()
+    ka_b = run_agent(name='ka_base', base=ka.KaBase)
+    ka_b.connect_writer()
+    ka_b.connect_executor()
+    ka_b.connect_shutdown()
+    ka_b.connect_trigger()
+    ka_b.connect_complete()
+    
+    assert ka_b.get_attr('_executor_alias') != 'executor_ka_base'
+    assert ka_b.get_attr('_trigger_publish_alias') != 'trigger'
+    assert ka_b.get_attr('_trigger_publish_alias') != 'trigger'
+    assert ka_b.get_attr('_shutdown_alias') != 'shutdown_ka_base'
+    assert ka_b.get_attr('_writer_alias') != 'writer_ka_base'
+    ns.shutdown()
+    time.sleep(0.05)
+    assert 1 > 2
+        
 def test_move_curent_entry():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)

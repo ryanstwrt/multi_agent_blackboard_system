@@ -141,7 +141,7 @@ class BbOpt(blackboard.Blackboard):
                 ka.connect_bb_to_write(attr[ka.get_attr('name')]['bb'])
                 
         else:
-            self.log_info('Agent type ({}) does not match a known agent type.'.format(agent))
+            self.log_info('Agent type ({}) does not match a known agent type of BbOpt, no specific KA attributes'.format(agent))
             return
         
     def convergence_indicator(self):
@@ -253,10 +253,7 @@ class BbOpt(blackboard.Blackboard):
             for agent_name, connections in self.agent_addrs.items():
                 # If statement is for inter_BB agent who only have a write function assocaiated with the BB
                 if 'shutdown' in list(connections.keys()):
-                    try:
-                        self.send(connections['shutdown'][0], "shutdown")
-                    except value_error:
-                        print(asd)
+                    self.send(connections['shutdown'][0], "shutdown")
             self._complete = True
     
     def hv_indicator(self):
@@ -343,7 +340,6 @@ class BbOpt(blackboard.Blackboard):
         except UnboundLocalError:
             pass
         
-#        fig2 = px.scatter_3d(x=ind_dict[dvs[0]], y=ind_dict[dvs[1]], z=ind_dict[dvs[2]], color=fitness, labels={'x':dv_labels[dvs[0]], 'y': dv_labels[dvs[1]], 'z': dv_labels[dvs[2]], 'color':'fitness'})
         fig2 = px.scatter_3d(x=ind_dict[dvs[0]], y=ind_dict[dvs[1]], z=ind_dict[dvs[2]], labels={'x':dv_labels[dvs[0]], 'y': dv_labels[dvs[1]], 'z': dv_labels[dvs[2]]})
         try:
             fig2.show()
