@@ -119,7 +119,6 @@ def test_fail_to_connect():
     assert ka_b.get_attr('_writer_alias') != 'writer_ka_base'
     ns.shutdown()
     time.sleep(0.05)
-    assert 1 > 2
         
 def test_move_curent_entry():
     ns = run_nameserver()
