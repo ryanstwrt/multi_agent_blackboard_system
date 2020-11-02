@@ -3,11 +3,11 @@ import src.performance_measure as pm
 import src.train_surrogate_models as tm
 import copy
 import time
-#import random
+import random
 import time
 import numpy as np
 from math import factorial
-from numpy import random
+#from numpy import random
 
 class KaRp(ka.KaBase):
     """
