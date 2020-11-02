@@ -124,7 +124,7 @@ class Controller(object):
                 
             self.bb.controller()
             print(self.bb.get_attr('_kaar')[trig_num])
-            print(self.bb.get_attr('_ka_to_execute'))
+            print(self.bb.get_attr('_ka_to_execute'), trig_num)
             print('Time Waited: {}'.format(time_wait_2 - time_wait))
             print()
             self.bb.send_executor()

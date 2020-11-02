@@ -480,6 +480,7 @@ class KaLocalBnB(KaLocal):
         self._class = 'local search branch and bound'
         
         
+        
 class KaLocalHC(KaLocal):
     
     def on_init(self):
