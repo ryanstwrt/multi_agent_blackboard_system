@@ -106,14 +106,20 @@ class Controller(object):
         
     def run_multi_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
+        num_agents = len(self.bb.get_attr('agent_addrs'))
         
         while not self.bb.get_attr('_complete'):
             self.bb.publish_trigger()
             trig_num = self.bb.get_attr('_trigger_event')
             responses = False
             # Wait until a response has been recieved
-            while len(self.bb.get_attr('_kaar')[trig_num]) < 1:
-                pass
+            time_wait = time.time()
+            while time_wait - time.time() < self.agent_wait_time:
+                try:
+                    if len(self.bb.get_attr('_kaar')[trig_num]) == num_agents:
+                        break
+                except RuntimeError:
+                    pass
             
             self.bb.controller()
             self.bb.send_executor()

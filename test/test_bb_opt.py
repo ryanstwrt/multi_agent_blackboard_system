@@ -491,8 +491,7 @@ def test_read_from_h5():
     
     os.remove('blackboard_archive.h5')
     ns.shutdown()
-    time.sleep(0.05)
-    
+    time.sleep(0.05)    
     
 def test_connect_sub_bb():
     ns = run_nameserver()
