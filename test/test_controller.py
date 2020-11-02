@@ -120,7 +120,7 @@ def test_multi_agent_Bb():
                                           ka=kas,
                                           objectives=objectives,
                                           archive='sfr_opt', 
-                                          agent_wait_time=1.0,
+                                          agent_wait_time=5.0,
                                           convergence_model={'type': 'hvi', 
                                                              'convergence rate': 1E-3, 
                                                              'interval':5, 

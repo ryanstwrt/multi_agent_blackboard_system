@@ -3,9 +3,12 @@ import src.performance_measure as pm
 import src.train_surrogate_models as tm
 import copy
 import time
-import random
-from pyDOE import lhs
+#import random
 import time
+import numpy as np
+from math import factorial
+from numpy import random
+
 class KaRp(ka.KaBase):
     """
     Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
@@ -189,12 +192,31 @@ class KaLHC(KaRp):
         self.lhc_criterion = 'corr'
         self.samples = 50
         self.lhd = []
-        self._class = 'global search lhc'
-    
+        self._class = 'global search lhc'        
+
+    def set_random_seed(self, seed=None):
+        """
+        Sets the random seed number to provide a reproducabel result
+        """
+        random.seed(a=seed)
+        np.random.seed(seed=seed)
+        
     def generate_lhc(self):
         """
-        Generate a set of samples to select from.
+        The codes used to generate a latin hybercube was originally published by the following individuals for use with
+        Scilab:
+            Copyright (C) 2012 - 2013 - Michael Baudin
+            Copyright (C) 2012 - Maria Christopoulou
+            Copyright (C) 2010 - 2011 - INRIA - Michael Baudin
+            Copyright (C) 2009 - Yann Collette
+            Copyright (C) 2009 - CEA - Jean-Marc Martinez
+    
+            website: forge.scilab.org/index.php/p/scidoe/sourcetree/master/macros
+        This was translated into python in the pyDOE.
+        
+            website: https://pythonhosted.org/pyDOE/#source-code
         """
+        
         length = 0
         for k,v in self.design_variables.items():
             if v['variable type'] == dict:
@@ -202,8 +224,92 @@ class KaLHC(KaRp):
             else:
                 length += 1
             
-        lhd = lhs(length, samples=self.samples, criterion=self.lhc_criterion)
+        lhd = self.lhs(length, samples=self.samples, criterion=self.lhc_criterion)
         self.lhd = lhd.tolist()
+
+
+    def lhs(self, n, samples=None, criterion=None, iterations=None):
+        """
+        Generate a latin-hypercube design
+    
+        Parameters
+        ----------
+        n : int
+            The number of factors to generate samples for
+    
+        Optional
+        --------
+        samples : int
+            The number of samples to generate for each factor (Default: n)
+        criterion : str
+            Allowable values are "center" or "c", "maximin" or "m", 
+            "centermaximin" or "cm", and "correlation" or "corr". If no value 
+            given, the design is simply randomized.
+        iterations : int
+            The number of iterations in the maximin and correlations algorithms
+            (Default: 5).
+    
+        Returns
+        -------
+        H : 2d-array
+            An n-by-samples design matrix that has been normalized so factor values
+            are uniformly spaced between zero and one.
+        """
+        print(samples, criterion, iterations)
+        H = None
+    
+        if samples is None:
+            samples = n
+    
+        if criterion is not None:
+            assert criterion.lower() in ('correlation', 
+                'corr'), 'Invalid value for "criterion": {}'.format(criterion)
+        else:
+            H = _lhsclassic(n, samples)
+    
+        if iterations is None:
+            iterations = 5
+        
+        if H is None:
+            H = self._lhscorrelate(n, samples, iterations)
+    
+        return H
+
+    def _lhsclassic(self, n, samples):
+        # Generate the intervals
+        cut = np.linspace(0, 1, samples + 1)    
+        
+        # Fill points uniformly in each interval
+        u = np.random.rand(samples, n)
+        a = cut[:samples]
+        b = cut[1:samples + 1]
+        rdpoints = np.zeros_like(u)
+        for j in range(n):
+            rdpoints[:, j] = u[:, j]*(b-a) + a
+        
+        # Make the random pairings
+        H = np.zeros_like(rdpoints)
+        for j in range(n):
+            order = np.random.permutation(range(samples))
+            H[:, j] = rdpoints[order, j]
+        
+        return H
+
+    def _lhscorrelate(self, n, samples, iterations):
+        mincorr = np.inf
+        
+        # Minimize the components correlation coefficients
+        for i in range(iterations):
+            # Generate a random LHS
+            Hcandidate = self._lhsclassic(n, samples)
+            R = np.corrcoef(Hcandidate)
+            if np.max(np.abs(R[R!=1]))<mincorr:
+                mincorr = np.max(np.abs(R-np.eye(R.shape[0])))
+                self.log_debug('new candidate solution found with max,abs corrcoef = {}'.format(mincorr))
+                H = Hcandidate.copy()
+        
+        return H
+        
         
     def search_method(self):
         """
