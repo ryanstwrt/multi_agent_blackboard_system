@@ -771,7 +771,7 @@ def test_kabr_lvl2_handler_trigger_publish():
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br2': 0}, 2: {'ka_br2': 4.00000000002}}   
     assert bb.get_attr('_ka_to_execute') == ('ka_br2', 4.00000000002)
-    
+        
     ns.shutdown()
     time.sleep(0.05)
 

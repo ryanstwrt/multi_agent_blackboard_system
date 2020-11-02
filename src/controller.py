@@ -118,10 +118,13 @@ class Controller(object):
                 time_wait_2 = time.time()
                 try:
                     if len(self.bb.get_attr('_kaar')[trig_num]) == num_agents:
+                        print('test')
                         break
                 except RuntimeError:
                     pass
                 
+            print(self.bb.get_attr('_ka_to_execute'), trig_num)                
+            print(self.bb.get_attr('_kaar')[trig_num])
             self.bb.controller()
             print(self.bb.get_attr('_kaar')[trig_num])
             print(self.bb.get_attr('_ka_to_execute'), trig_num)
@@ -129,6 +132,7 @@ class Controller(object):
             print()
             self.bb.send_executor()
 
+            
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
                 self.bb.convergence_indicator()
            #     self.bb.meta_data_entry(agent_time)
