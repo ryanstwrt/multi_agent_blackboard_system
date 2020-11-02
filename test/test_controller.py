@@ -138,6 +138,7 @@ def test_multi_agent_Bb():
     bb_controller.shutdown()    
     os.remove('sfr_opt.h5')
     time.sleep(0.05)    
+    assert 1 > 2
     
 #------------------------------------------------
 # Test of Benchmark Controller

@@ -114,14 +114,19 @@ class Controller(object):
             responses = False
             # Wait until a response has been recieved
             time_wait = time.time()
-            while time_wait - time.time() < self.agent_wait_time:
+            while time.time() - time_wait  < self.agent_wait_time:
+                time_wait_2 = time.time()
                 try:
                     if len(self.bb.get_attr('_kaar')[trig_num]) == num_agents:
                         break
                 except RuntimeError:
                     pass
-            
+                
             self.bb.controller()
+            print(self.bb.get_attr('_kaar')[trig_num])
+            print(self.bb.get_attr('_ka_to_execute'))
+            print('Time Waited: {}'.format(time_wait_2 - time_wait))
+            print()
             self.bb.send_executor()
 
             if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:

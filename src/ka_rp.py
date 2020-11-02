@@ -471,6 +471,15 @@ class KaLocal(KaRp):
         self.new_designs = [key for key in lvl if not key in self.analyzed_design]
         return True if self.new_designs else False    
     
+class KaLocalBnB(KaLocal):
+    
+    def on_init():
+        super().init()
+        self._base_trigger_val = 5.00001
+        self.hc_type = 'simple'
+        self._class = 'local search branch and bound'
+        
+        
 class KaLocalHC(KaLocal):
     
     def on_init(self):
