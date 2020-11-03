@@ -3,11 +3,11 @@ import src.performance_measure as pm
 import src.train_surrogate_models as tm
 import copy
 import time
-import random
+#import random
 import time
 import numpy as np
 from math import factorial
-#from numpy import random
+from numpy import random
 
 class KaRp(ka.KaBase):
     """
@@ -46,7 +46,7 @@ class KaRp(ka.KaBase):
         """
         Sets the random seed number to provide a reproducabel result
         """
-        random.seed(a=seed)
+        random.seed(seed=seed)
 
     def calc_objectives(self):
         """
@@ -198,8 +198,8 @@ class KaLHC(KaRp):
         """
         Sets the random seed number to provide a reproducabel result
         """
-        random.seed(a=seed)
-        np.random.seed(seed=seed)
+        random.seed(seed=seed)
+   #     np.random.seed(seed=seed)
         
     def generate_lhc(self):
         """

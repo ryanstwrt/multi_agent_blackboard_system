@@ -169,7 +169,7 @@ def test_controller():
     ka_b1.connect_trigger()
     ka_b1.set_attr(_trigger_val=2)
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.05)
     bb.controller()
     assert bb.get_attr('_kaar') == {0: {}, 1: {'ka_b': 0, 'ka_b1': 2}}
     assert bb.get_attr('_ka_to_execute') == ('ka_b1', 2)
@@ -441,7 +441,7 @@ def test_write_to_h5():
     bb.update_abstract_lvl(4, 'core_4', {'entry 1': {'test 1': {'nested_test': 3}}})
 
     
-    time.sleep(0.1)
+    time.sleep(0.05)
     bb.write_to_h5()
     
     abs_lvls = bb.get_attr('abstract_lvls')
@@ -469,7 +469,7 @@ def test_write_to_h5():
     bb_archive.close()
     os.remove('blackboard_archive.h5')
     ns.shutdown()    
-    time.sleep(0.1) 
+    time.sleep(0.05) 
 
 def test_load_h5():
     ns = run_nameserver()

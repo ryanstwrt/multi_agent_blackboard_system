@@ -175,13 +175,13 @@ def test_trigger_event():
     
     bb.publish_trigger()
     bb.controller()
-    time.sleep(0.5)
+    time.sleep(0.05)
     assert bb.get_attr('_kaar') == {1: {'ka_base': 0, 'ka_base1': 0, 'ka_base2': 0}}
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     ka_b1.set_attr(_trigger_val=1)
     bb.publish_trigger()
     bb.controller()
-    time.sleep(1.25)
+    time.sleep(0.05)
     assert bb.get_attr('_kaar') == {1: {'ka_base': 0, 'ka_base1': 0, 'ka_base2': 0},
                                     2: {'ka_base': 0, 'ka_base1': 1, 'ka_base2': 0}}
     assert bb.get_attr('_ka_to_execute') == ('ka_base1', 1)
@@ -197,7 +197,7 @@ def test_shutdown():
     ka_b.connect_shutdown()
     assert ns.agents() == ['blackboard', 'ka_base']
     bb.send('shutdown_ka_base', 'message')
-    time.sleep(0.1)
+    time.sleep(0.05)
     assert ns.agents() ==['blackboard']
 
     ns.shutdown()
@@ -211,7 +211,7 @@ def test_complete():
     ka_b.connect_complete()
     assert bb.get_attr('_new_entry') == False
     ka_b.action_complete()
-    time.sleep(0.1)
+    time.sleep(0.05)
     assert bb.get_attr('_new_entry') == True
     ns.shutdown()
     time.sleep(0.05)  

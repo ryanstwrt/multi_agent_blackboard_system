@@ -195,7 +195,7 @@ def test_kabr_lvl1_publish():
     bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.05)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br_lvl1': 6.00000000003}}
     assert bb.get_attr('_ka_to_execute') == ('ka_br_lvl1', 6.00000000003)
@@ -230,10 +230,10 @@ def test_kabr_lvl1_executor():
     bb.update_abstract_lvl(1, 'core_[75.0, 55.0, 0.30]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     bb.publish_trigger()
-    time.sleep(0.5)
+    time.sleep(0.05)
     bb.controller()
     bb.send_executor()
-    time.sleep(2.5) 
+    time.sleep(0.05) 
     assert br.get_attr('_pf_size') == 3
     assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
                                        'core_[75.0, 55.0, 0.30]': 0.0625}
@@ -243,10 +243,10 @@ def test_kabr_lvl1_executor():
     bb.update_abstract_lvl(1, 'core_[55.0, 55.0, 0.30]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     bb.publish_trigger()
-    time.sleep(0.5)
+    time.sleep(0.05)
     bb.controller()
     bb.send_executor()
-    time.sleep(0.5) 
+    time.sleep(0.05) 
     assert br.get_attr('_pf_size') == 3
     
     assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
@@ -364,7 +364,7 @@ def test_kabr_lvl1_remove_dominated_entries():
     ka_br1.set_attr(_hvi_dict ={'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625, 'core_[75.0, 55.0, 0.30]': 0.0})
     ka_br1.set_attr(_pf_size = 3)
     ka_br1.remove_dominated_entries(['core_[75.0, 55.0, 0.30]'])
-    time.sleep(0.1)
+    time.sleep(0.05)
     
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                                                        'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}}
@@ -640,7 +640,7 @@ def test_kabr_lvl2_determine_validity():
     bb.update_abstract_lvl(2, 'core_4', {'valid': True}, panel='new')
     
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.05)
     
     bol, p_type = ka_br2.determine_validity('core_1')
     assert p_type == 'pareto'
@@ -648,21 +648,21 @@ def test_kabr_lvl2_determine_validity():
 
     bb.update_abstract_lvl(1, 'core_1', {'pareto type': 'pareto', 'fitness function': 1.0})
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.05)
     bol, p_type = ka_br2.determine_validity('core_2')
     assert p_type == 'pareto'
     assert bol == True
 
     bb.update_abstract_lvl(1, 'core_2', {'pareto type': 'pareto', 'fitness function': 1.0})
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.05)
     bol, p_type = ka_br2.determine_validity('core_3')
     assert p_type == 'weak'
     assert bol == True
 
     bb.update_abstract_lvl(1, 'core_3', {'pareto type': 'weak', 'fitness function': 1.0})
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.05)
     bol, p_type = ka_br2.determine_validity('core_4')
     assert p_type == None
     assert bol == False
@@ -760,14 +760,14 @@ def test_kabr_lvl2_handler_trigger_publish():
     bb.update_abstract_lvl(3, 'core 1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
                                          'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')    
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.05)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br2': 0}}
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     
     bb.update_abstract_lvl(2, 'core 1', {'valid' : True}, panel='new')
     bb.publish_trigger()
-    time.sleep(1.0)
+    time.sleep(0.05)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br2': 0}, 2: {'ka_br2': 4.00000000002}}   
     assert bb.get_attr('_ka_to_execute') == ('ka_br2', 4.00000000002)
@@ -809,9 +809,9 @@ def test_kabr_lvl2_handler_executor():
     
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
     bb.publish_trigger()
-    time.sleep(0.5)
+    time.sleep(0.05)
     bb.send_executor()
-    time.sleep(0.5)    
+    time.sleep(0.05)    
 
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.35},
                                                        'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.43},
@@ -824,9 +824,9 @@ def test_kabr_lvl2_handler_executor():
                                                                'core_4' : {'valid' : True}}}
     bb.set_attr(_ka_to_execute=('ka_br', 10.0))
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.05)
     bb.send_executor()
-    time.sleep(0.25) 
+    time.sleep(0.05) 
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 
                                                        'old': {'core_1' : {'valid' : True}, 
                                                                'core_2' : {'valid' : True},
@@ -919,7 +919,7 @@ def test_kabr_lvl3_determine_validity():
     assert bool_ == (False, None)
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_kabr_lvl3_determine_validity_constraint():
     ns = run_nameserver()
@@ -945,7 +945,7 @@ def test_kabr_lvl3_determine_validity_constraint():
     assert bool_ == (False, None)
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_kabr_lvl3_read_bb_lvl():
     ns = run_nameserver()
@@ -962,7 +962,7 @@ def test_kabr_lvl3_read_bb_lvl():
                                                           'constraints': {'eol keff': 1.1}}, panel='new')
     
     bb.publish_trigger()
-    time.sleep(0.5)
+    time.sleep(0.05)
     br.read_bb_lvl()
     
     assert br.get_attr('_entry') == {'valid': True}
@@ -986,7 +986,7 @@ def test_kabr_lvl3_handler_trigger_publish():
     br.set_attr(_num_allowed_entries=1)
 
     bb.publish_trigger()
-    time.sleep(0.1)
+    time.sleep(0.05)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}}
     assert bb.get_attr('_ka_to_execute') == (None, 0)
@@ -995,7 +995,7 @@ def test_kabr_lvl3_handler_trigger_publish():
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
                                          'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='new')
     bb.publish_trigger()
-    time.sleep(0.1)
+    time.sleep(0.05)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 3.00000000001}}   
     assert bb.get_attr('_ka_to_execute') == ('ka_br3', 3.00000000001)
@@ -1006,7 +1006,7 @@ def test_kabr_lvl3_handler_trigger_publish():
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
                                          'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     bb.publish_trigger()
-    time.sleep(0.1)
+    time.sleep(0.05)
     bb.controller()
     assert bb.get_attr('_kaar') == {1: {'ka_br3': 0}, 2: {'ka_br3': 3.00000000001}, 3:{'ka_br3':0}}   
     assert bb.get_attr('_ka_to_execute') == (None, 0)
@@ -1037,9 +1037,9 @@ def test_kabr_lvl3_handler_executor():
 
     bb.set_attr(_ka_to_execute=('ka_br3', 10.0))
     bb.publish_trigger()
-    time.sleep(0.1)
+    time.sleep(0.05)
     bb.send_executor()
-    time.sleep(1.5)    
+    time.sleep(0.05)    
     
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new':{'core_1': {'valid': True},
                                                               'core_2': {'valid': True}}, 'old': {}}
@@ -1087,7 +1087,7 @@ def test_kabr_lvl3_determine_validity_list():
     assert bool_ == (False, None)
 
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
 
 
 #-----------------------------------------
@@ -1246,11 +1246,11 @@ def test_kabr_interBB_handler_publish():
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     bb.publish_trigger()
-    time.sleep(0.5)
+    time.sleep(0.05)
     assert bb.get_attr('_kaar') == {1: {'ka_br_inter': 6.00000000001}}
     br.set_attr(_entries_moved=['core_[65.0, 65.0, 0.42]'])
     bb.publish_trigger()
-    time.sleep(0.5)
+    time.sleep(0.05)
     assert bb.get_attr('_kaar') == {1: {'ka_br_inter': 6.00000000001},
                                     2: {'ka_br_inter': 0.0}} 
     
@@ -1274,18 +1274,18 @@ def test_kabr_interBB_handler_executor():
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     bb.publish_trigger()
-    time.sleep(0.5)
+    time.sleep(0.05)
     bb.controller()
     assert bb.get_attr('_ka_to_execute') == ('ka_br_inter', 6.00000000001)
     bb.send_executor()
-    time.sleep(1.0) 
+    time.sleep(0.05) 
     
     assert bb_master.get_attr('abstract_lvls')['level 3']['new']['core_[65.0, 65.0, 0.42]'] == {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
                                                           'objective functions': {'eol keff': 1.1, 'pu mass': 1500.0},
                                                           'constraints': { 'reactivity swing' : 750.0, 'burnup' : 75.0}}
     
     bb.publish_trigger()
-    time.sleep(0.5)
+    time.sleep(0.05)
 
     
     ns.shutdown()

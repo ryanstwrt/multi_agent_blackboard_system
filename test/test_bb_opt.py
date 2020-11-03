@@ -114,7 +114,7 @@ def test_BbOpt_initalize_abstract_level_3():
                                             'level 3': {'new': {}, 'old': {}},
                                             'level 100': {}}
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_connect_agent():
     ns = run_nameserver()
@@ -141,7 +141,7 @@ def test_connect_agent():
     assert bb.get_attr('agent_addrs')['ka_br']['writer'] == (br.get_attr('_writer_alias'), br.get_attr('_writer_addr'))
     
     ns.shutdown()
-    time.sleep(0.1)
+    time.sleep(0.05)
     
 def test_add_ka_specific():
     ns = run_nameserver()

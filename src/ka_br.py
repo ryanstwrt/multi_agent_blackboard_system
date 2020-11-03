@@ -77,14 +77,13 @@ class KaBr(ka.KaBase):
         
         self._num_entries = len(self.lvl_read)
         
-        new_entry = self.read_bb_lvl()
-        trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
-        self._trigger_val = self._trigger_val_base if trig_prob > 0 else 0
-        print('New Entry: {}    trig prob: {}    Num Entries: {}'.format(new_entry, trig_prob, self._num_entries))
+ #       trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
+ #       self._trigger_val = self._trigger_val_base if trig_prob > 0 else 0
+#        print('New Entry: {}    trig prob: {}    Num Entries: {}'.format(new_entry, trig_prob, self._num_entries))
         
-#        self._trigger_val = 0
-#        if new_entry:
-#            self._trigger_val = self._num_entries / self._num_allowed_entries * self._trigger_val_base if self._num_entries > self._num_allowed_entries else self._trigger_val_base
+        self._trigger_val = 0
+        if self.read_bb_lvl():
+            self._trigger_val = self._num_entries / self._num_allowed_entries * self._trigger_val_base if self._num_entries > self._num_allowed_entries else self._trigger_val_base
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
@@ -406,9 +405,10 @@ class KaBr_lvl2(KaBr):
         self._lvl_data = lvl        
         self._num_entries = len(self.lvl_read)
 
-        new_entry = self.read_bb_lvl()
-        trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
-        self._trigger_val = self._trigger_val_base if trig_prob > 0 else 0
+        self._trigger_val = 0
+        if self.read_bb_lvl():
+            self._trigger_val = self._num_entries / self._num_allowed_entries * self._trigger_val_base if self._num_entries > self._num_allowed_entries else self._trigger_val_base
+            
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
