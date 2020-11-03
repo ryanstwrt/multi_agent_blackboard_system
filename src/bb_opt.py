@@ -6,7 +6,6 @@ from osbrain import proxy
 from osbrain import run_agent
 import time
 import os 
-import glob
 import src.database_generator as dg
 import numpy as np
 import src.train_surrogate_models as tm

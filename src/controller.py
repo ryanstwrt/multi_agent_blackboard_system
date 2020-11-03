@@ -3,12 +3,12 @@ from osbrain import Agent
 from osbrain import run_agent
 from osbrain import proxy
 from osbrain import run_nameserver
-import src.blackboard as blackboard
 import time
+import pickle
 import src.bb_opt as bb_opt
 import src.moo_benchmarks as mb
 import src.ka_br as kabr
-import pickle
+import src.blackboard as blackboard
 
 # Can the controller keep track of the BB levels and update the trigger values of different agents as needed?
 

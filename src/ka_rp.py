@@ -3,11 +3,9 @@ import src.performance_measure as pm
 import src.train_surrogate_models as tm
 import copy
 import time
-#import random
-import time
 import numpy as np
-from math import factorial
 from numpy import random
+from math import factorial
 
 class KaRp(ka.KaBase):
     """
@@ -66,10 +64,25 @@ class KaRp(ka.KaBase):
         else:
             self.get_sm_objectives()
                 
-        self._entry_name = 'core_{}'.format([x for x in self.current_design_variables.values()])
+        self._entry_name = self.get_design_name(self.current_design_variables)
         self._entry = {'design variables': self.current_design_variables, 
                        'objective functions': self.objective_functions,
                        'constraints': self.current_constraints}
+        
+    def get_design_name(self, design):
+        """
+        Generate the design name given the multiple dv options
+        """
+        name = 'core_'
+        dv_ = []
+        for dv, dv_data in self.design_variables.items():
+            if dv_data['variable type'] == dict:
+                dv_.extend(list(design[dv].values()))
+            else:
+                dv_.append(design[dv])
+        name += str(dv_).replace("'", "")
+        return name
+        
 
     def get_interpolate_objectives(self, design):
         """
@@ -199,7 +212,6 @@ class KaLHC(KaRp):
         Sets the random seed number to provide a reproducabel result
         """
         random.seed(seed=seed)
-   #     np.random.seed(seed=seed)
         
     def generate_lhc(self):
         """
@@ -228,7 +240,7 @@ class KaLHC(KaRp):
         self.lhd = lhd.tolist()
 
 
-    def lhs(self, n, samples=None, criterion=None, iterations=None):
+    def lhs(self, n, samples=None, criterion=None, iterations=5):
         """
         Generate a latin-hypercube design
     
@@ -255,23 +267,9 @@ class KaLHC(KaRp):
             An n-by-samples design matrix that has been normalized so factor values
             are uniformly spaced between zero and one.
         """
-        print(samples, criterion, iterations)
-        H = None
-    
-        if samples is None:
-            samples = n
-    
-        if criterion is not None:
-            assert criterion.lower() in ('correlation', 
-                'corr'), 'Invalid value for "criterion": {}'.format(criterion)
-        else:
-            H = _lhsclassic(n, samples)
-    
-        if iterations is None:
-            iterations = 5
+        samples = self.samples
         
-        if H is None:
-            H = self._lhscorrelate(n, samples, iterations)
+        H = self._lhscorrelate(n, samples, iterations)
     
         return H
 
@@ -387,16 +385,21 @@ class KaLocal(KaRp):
         """
         dv_dict = self.design_variables[dv]
         dv_cur_val = self.current_design_variables[dv]
+        core_name = self.get_design_name(self.current_design_variables)
+        print(dv_cur_val,dv_dict['ll'], dv_dict['ul'])
+
+        if core_name in self.lvl_data.keys():
+            self.log_debug('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl))
+            return
+        if dv_dict['variable type'] == float:
+            if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
+                self.log_debug('Core {} not examined; design outside design variables.'.format(core_name))
+                return
         
-        if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
-            self.log_debug('Core {} not examined; design outside design variables.'.format([x for x in self.current_design_variables.values()]))
-        elif 'core_{}'.format([x for x in self.current_design_variables.values()]) in self.lvl_data.keys():
-            self.log_debug('Core {} not examined; found same core in Level {}'.format([x for x in self.current_design_variables.values()], self.bb_lvl))
-        else:
-            self.calc_objectives()
-            self.generated_designs = {'HV': 0}
-            self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
-            self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
+        self.calc_objectives()
+        self.generated_designs = {'HV': 0}
+        self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
+        self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
         
     def handler_executor(self, message):
         """
@@ -449,12 +452,21 @@ class KaLocal(KaRp):
         pert = self.perturbation_size if self.neighboorhod_search == 'fixed' else random.uniform(0,self.perturbation_size)
         perts = [1.0 - pert, 1.0 + pert]
             
+            
         for dv, dv_value in design_.items():
-            for pert in perts:
-                design = copy.copy(design_)
-                design[dv] = round(dv_value * pert, self._design_accuracy)
+            design = copy.copy(design_)
+            if self.design_variables[dv]['variable type'] == str:
+                options = self.design_variables[dv]['options']
+                options.remove(design[dv])
+                design[dv] = random.choice(options)
                 self.current_design_variables = design
                 self.determine_model_applicability(dv)
+            else:
+                for pert in perts:
+                    design[dv] = round(dv_value * pert, self._design_accuracy)
+                    self.current_design_variables = design
+                    self.determine_model_applicability(dv)
+                    design = copy.copy(design_)
         self.analyzed_design[core] = {'Analyzed': True}
 
     def read_bb_lvl(self, lvl):

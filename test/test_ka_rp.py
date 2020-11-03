@@ -127,7 +127,29 @@ def test_explore_handler_trigger_publish():
     
     ns.shutdown()
     time.sleep(0.05)
+
+def test_get_design_name():
+    ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
+    rp.set_random_seed(seed=1)
+    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                  'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+                                  'experiments': {'length':         2, 
+                                                  'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+                                                                'random variable': {'ll': 0,  'ul': 2,  'variable type': float}},
+                                                  'variable type': dict}})
     
+    current_design_variables={'height': 62.51066, 'smear': 64.40649, 'pu_content': 0.00011, 'position': 'exp_d', 'experiments': {'0':'exp_a', 'random variable': 0.18468}}
+    name = rp.get_design_name(current_design_variables)
+    assert name == 'core_[62.51066, 64.40649, 0.00011, exp_d, exp_a, 0.18468]'
+    
+    
+    ns.shutdown()
+    time.sleep(0.05)    
+    
+
 def test_explore_search_method():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
@@ -276,12 +298,26 @@ def test_kalhc_search_method():
     
     rp.search_method()
     design = rp.get_attr('current_design_variables')
-    print(design)
     assert lhd == [0.49289349476842825, 0.27333988805820186, 0.6094827107430164, 0.28938241131245845, 0.7480195854625139, 0.1395797709205764]
     assert design == {'height': 64.7868, 'smear': 55.4668, 'pu_content': 0.60948, 'position': 'exp_b', 'experiments': {'0': 'exp_b', 'random variable': 0.27916}}
     ns.shutdown()
     time.sleep(0.05) 
-        
+
+    
+def test_kalocal_search_method_discrete():
+    ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
+    rp.set_random_seed(seed=10997)
+    
+    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                  'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+                                   })   
+
+    ns.shutdown()
+    time.sleep(0.05)     
+
 def test_kalhc_handler_executor():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
@@ -550,7 +586,7 @@ def test_exploit_perturb_design():
 
     rp = ns.proxy('ka_rp_exploit')
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-                                         'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
+                              'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
  
@@ -570,6 +606,24 @@ def test_exploit_perturb_design():
 
     ns.shutdown()
     time.sleep(0.05)
+    
+    
+#def test_exploit_perturb_design_test():
+#    ns = run_nameserver()
+#    rp = run_agent(name='ka_rp', base=ka_rp.KaLocal)
+#    rp.set_random_seed(seed=1)
+#    rp.set_attr(design_variables={'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+#                                  'position2' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}})
+    
+#    rp.set_attr(new_designs=['core_1'])
+#    rp.set_attr(lvl_data={'core_1': {'design variables': {'position': 'exp_d', 'position2': 'exp_a'}}})
+#    rp.search_method()
+#    assert rp.get_attr('current_design_variables') == {'position': 'exp_d', 'height': 62.51066, 'smear': 64.40649, 'pu_content': 0.00011, 'experiments': {'0':'exp_a', 'random variable': 0.18468}}
+#    rp.search_method()
+    
+#    ns.shutdown()
+#    time.sleep(0.05)
+
     
 def test_exploit_write_to_bb():
     ns = run_nameserver()
@@ -598,6 +652,11 @@ def test_exploit_write_to_bb():
     
     ns.shutdown()
     time.sleep(0.05)
+
+
+#----------------------------------------------------------
+# Tests for KA-Local-RW
+#----------------------------------------------------------
     
 def test_kalocalrw():
     ns = run_nameserver()
