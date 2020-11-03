@@ -109,7 +109,7 @@ class Controller(object):
         num_agents = len(self.bb.get_attr('agent_addrs'))
         
         while not self.bb.get_complete_status():
-            print('*************************************************************************************************************************************')
+            #print('*************************************************************************************************************************************')
             self.bb.publish_trigger()
             trig_num = self.bb.get_current_trigger_value()
             responses = False
@@ -123,10 +123,10 @@ class Controller(object):
                     pass
                 
             self.bb.controller()
-            print(self.bb.get_attr('_kaar')[trig_num])
-            print(self.bb.get_attr('_ka_to_execute'), trig_num)
+ #           print(self.bb.get_attr('_kaar')[trig_num])
+ #           print(self.bb.get_attr('_ka_to_execute'), trig_num)
             self.bb.send_executor()
-            print()
+ #           print()
 
             
             if len(self.bb.get_kaar()) % self.progress_rate == 0 or self.bb.get_complete_status() == True:

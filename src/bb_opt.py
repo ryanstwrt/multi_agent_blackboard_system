@@ -384,7 +384,6 @@ class BbOpt(blackboard.Blackboard):
             max_ka = max(cur_tv, key=cur_tv.get)
             if cur_tv[max_ka] > 0:
                 equal_vals = [(k,v) for k,v in cur_tv.items() if v == cur_tv[max_ka]]
-#                self.log_info(equal_vals)
                 self._ka_to_execute = random.choice(equal_vals)
 
         
