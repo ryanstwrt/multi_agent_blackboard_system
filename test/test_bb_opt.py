@@ -178,6 +178,27 @@ def test_add_ka_specific():
     ns.shutdown()
     time.sleep(0.05)  
 
+def test_get_hv_list():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)   
+    bb.set_attr(hv_list=[0.0,0.5,0.6])
+    
+    assert bb.get_hv_list() == [0, 0.5, 0.6]
+    
+    ns.shutdown()
+    time.sleep(0.05) 
+    
+def test_get_complete_status():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)  
+    assert bb.get_complete_status() == False
+    bb.set_attr(_complete=True)
+    
+    assert bb.get_complete_status() == True
+    
+    ns.shutdown()
+    time.sleep(0.05) 
+    
 def test_hv_indicator():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
@@ -277,7 +298,7 @@ def test_determine_complete_hv():
     ns.shutdown()
     time.sleep(0.05)
 
-def test_meta_data_etry():
+def test_meta_data_entry():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(_trigger_event=3)

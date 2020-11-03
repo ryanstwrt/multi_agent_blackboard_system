@@ -68,14 +68,14 @@ class Controller(object):
     def run_single_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
         num_agents = len(self.bb.get_attr('agent_addrs'))
-        while not self.bb.get_attr('_complete'):
+        while not self.bb.get_complete_status():
             self.bb.publish_trigger()
-            trig_num = self.bb.get_attr('_trigger_event')
+            trig_num = self.bb.get_current_trigger_value()
             responses = False
             # Wait until all responses have been recieved
             while not responses:
                 try:
-                    if len(self.bb.get_attr('_kaar')[trig_num]) == num_agents:
+                    if len(self.bb.get_kaar()[trig_num]) == num_agents:
                         responses = True
                 except RuntimeError:
                     pass
@@ -87,11 +87,11 @@ class Controller(object):
                 if time.time() - agent_time > self.agent_wait_time:
                     break
             agent_time = time.time() - agent_time
-            if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
+            if len(self.bb.get_kaar()) % self.progress_rate == 0 or self.bb.get_complete_status() == True:
                 self.bb.convergence_indicator()
                 self.bb.meta_data_entry(agent_time)
                 self.bb.write_to_h5()
-                if len(self.bb.get_attr('hv_list')) > 2 * self.progress_rate:
+                if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
                     self.bb.determine_complete()
                 if self.plot_progress:
                     self.bb.plot_progress()
@@ -100,7 +100,7 @@ class Controller(object):
                 self.bb.meta_data_entry(agent_time)
 
         self.time.append(time.time())
-        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_attr('hv_list')[-1]})
+        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
         self.bb.write_to_h5()
         
         
@@ -108,37 +108,33 @@ class Controller(object):
         """Run a BB optimization problem single-agent mode."""
         num_agents = len(self.bb.get_attr('agent_addrs'))
         
-        while not self.bb.get_attr('_complete'):
+        while not self.bb.get_complete_status():
+            print('*************************************************************************************************************************************')
             self.bb.publish_trigger()
-            trig_num = self.bb.get_attr('_trigger_event')
+            trig_num = self.bb.get_current_trigger_value()
             responses = False
             # Wait until a response has been recieved
             time_wait = time.time()
             while time.time() - time_wait  < self.agent_wait_time:
-                time_wait_2 = time.time()
                 try:
-                    if len(self.bb.get_attr('_kaar')[trig_num]) == num_agents:
-                        print('test')
+                    if len(self.bb.get_kaar()[trig_num]) == num_agents:
                         break
                 except RuntimeError:
                     pass
                 
-            print(self.bb.get_attr('_ka_to_execute'), trig_num)                
-            print(self.bb.get_attr('_kaar')[trig_num])
             self.bb.controller()
             print(self.bb.get_attr('_kaar')[trig_num])
             print(self.bb.get_attr('_ka_to_execute'), trig_num)
-            print('Time Waited: {}'.format(time_wait_2 - time_wait))
-            print()
             self.bb.send_executor()
+            print()
 
             
-            if len(self.bb.get_attr('_kaar')) % self.progress_rate == 0 or self.bb.get_attr('_complete') == True:
+            if len(self.bb.get_kaar()) % self.progress_rate == 0 or self.bb.get_complete_status() == True:
                 self.bb.convergence_indicator()
            #     self.bb.meta_data_entry(agent_time)
                 self.bb.write_to_h5()
                 self.bb.diagnostics_replace_agent()
-                if len(self.bb.get_attr('hv_list')) > 2 * self.progress_rate:
+                if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
                     self.bb.determine_complete()
                 if self.plot_progress:
                     self.bb.plot_progress()
@@ -146,6 +142,7 @@ class Controller(object):
                 self.bb.convergence_update()
                 agent_time = 0
                # self.bb.meta_data_entry(agent_time)
+            time.sleep(0.05)
                 
     def update_bb_trigger_values(self, trig_num):
         """
@@ -271,14 +268,14 @@ class Multi_Tiered_Controller(Controller):
         if bb_name == 'bb_master':
             num_agents -= 1
             
-        while not bb.get_attr('_complete'):
+        while not bb.get_complete_status():
             bb.publish_trigger()
-            trig_num = bb.get_attr('_trigger_event')
+            trig_num = bb.get_current_trigger_value()
             responses = False
             # Wait until all responses have been recieved
             while not responses:
                 try:
-                    if len(bb.get_attr('_kaar')[trig_num]) == num_agents:
+                    if len(bb.get_kaar()[trig_num]) == num_agents:
                         responses = True
                 except RuntimeError:
                     pass
@@ -294,11 +291,11 @@ class Multi_Tiered_Controller(Controller):
                     break
             agent_time = time.time() - agent_time
 
-            if len(bb.get_attr('_kaar')) % conv_criteria['interval'] == 0:
+            if len(bb.get_kaar()) % conv_criteria['interval'] == 0:
                 bb.convergence_indicator()
                 bb.meta_data_entry(agent_time)
                 bb.write_to_h5()
-                if len(bb.get_attr('hv_list')) > 2 * conv_criteria['interval']:
+                if len(bb.get_hv_list()) > 2 * conv_criteria['interval']:
                     bb.determine_complete()
                 if bb_attr['plot']:
                     bb.plot_progress()
@@ -309,7 +306,7 @@ class Multi_Tiered_Controller(Controller):
 
         time_2 = time.time()
 
-        bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time_2 - time_1, 'hvi': bb.get_attr('hv_list')[-1]})
+        bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time_2 - time_1, 'hvi': bb.get_hv_list()[-1]})
         bb.write_to_h5()
 
         return

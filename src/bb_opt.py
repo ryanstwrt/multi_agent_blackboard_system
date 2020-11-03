@@ -270,6 +270,12 @@ class BbOpt(blackboard.Blackboard):
         else:
             self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
             
+    def get_hv_list(self):
+        return self.hv_list
+    
+    def get_complete_status(self):
+        return self._complete
+            
     def generate_sm(self):
         """
         Generate a surrogate model for the search agents to use.
@@ -378,7 +384,7 @@ class BbOpt(blackboard.Blackboard):
             max_ka = max(cur_tv, key=cur_tv.get)
             if cur_tv[max_ka] > 0:
                 equal_vals = [(k,v) for k,v in cur_tv.items() if v == cur_tv[max_ka]]
-                self.log_info(equal_vals)
+#                self.log_info(equal_vals)
                 self._ka_to_execute = random.choice(equal_vals)
 
         

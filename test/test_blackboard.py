@@ -208,7 +208,41 @@ def test_diagnostics_replace_agent():
     assert ns.agents() == ['blackboard', 'ka_b']
 
     ns.shutdown()
+    time.sleep(0.05)  
+    
+def test_get_blackbaord():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': int})
+    bb.add_panel(1, ['panel_a', 'panel_b', 'panel_c'])
+
+    
+    bb.update_abstract_lvl(1, 'test_name', {'entry 1': 'foo', 'entry 2': 5})
+    bb.update_abstract_lvl(1, 'test_name', {'entry 1': 'foo', 'entry 2': 5}, panel='panel_a')
+    assert bb.get_blackboard() == {'level 1': {'panel_a': {'test_name': {'entry 1': 'foo', 'entry 2': 5}},'panel_b': {},'panel_c': {}}}
+    
+    ns.shutdown()
+    time.sleep(0.05) 
+    
+def test_get_kaar():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.set_attr(_kaar={1: {'ka': 0, 'ka2': 1}})
+    
+    assert bb.get_kaar() == {1: {'ka': 0, 'ka2': 1}}
+    
+    ns.shutdown()
     time.sleep(0.05)    
+    
+def test_get_current_trigger_value():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.set_attr(_trigger_event=10)
+    
+    assert bb.get_current_trigger_value() == 10
+    
+    ns.shutdown()
+    time.sleep(0.05) 
     
 def test_send_executor():
     ns = run_nameserver()

@@ -353,6 +353,24 @@ class Blackboard(Agent):
         self._agent_writing = False
         self.log_debug('Finished writing to BB')
         
+    def get_blackboard(self):
+        """
+        Returns the current state of the blackboard
+        """
+        return self.abstract_lvls
+    
+    def get_current_trigger_value(self):
+        """
+        Returns the current trigger event
+        """
+        return self._trigger_event
+    
+    def get_kaar(self):
+        """
+        Get the KAAR
+        """
+        return self._kaar
+    
     def get_data_types(self, entry_data):
         """
         Determine the data types required for each H5 dataset.
