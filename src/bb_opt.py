@@ -12,7 +12,6 @@ import src.train_surrogate_models as tm
 import scipy.interpolate
 import plotly.express as px
 import src.performance_measure as pm
-#import random
 from numpy import random
 
 
@@ -377,7 +376,7 @@ class BbOpt(blackboard.Blackboard):
             max_ka = max(cur_tv, key=cur_tv.get)
             if cur_tv[max_ka] > 0:
                 equal_vals = [k for k,v in cur_tv.items() if v == cur_tv[max_ka]]
-                ka_ = random.choice(equal_vals) 
+                ka_ = str(random.choice(equal_vals))
                 self._ka_to_execute = (ka_, cur_tv[ka_])
 
         
@@ -446,8 +445,6 @@ class BbOpt(blackboard.Blackboard):
         """
         entry_name = str(self._trigger_event)
         entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[self._trigger_event]}
-
-        
         self.update_abstract_lvl(100, entry_name, entry)
 
 
@@ -466,6 +463,9 @@ class MasterBbOpt(BbOpt):
                             'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
         
         self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
+        # Initialize an abstract level which holds meta-data about the problem
+        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+
 
 
 
@@ -485,6 +485,9 @@ class SubBbOpt(BbOpt):
         self.objectives_ll = []
         self.objectives_ul = []
         self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 200, 'total tvs': 2E4}
+        # Initialize an abstract level which holds meta-data about the problem
+        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+
 
 class BenchmarkBbOpt(BbOpt):
     
@@ -499,6 +502,8 @@ class BenchmarkBbOpt(BbOpt):
         self.objectives = {}
         self.design_variables =  {}
         self.constraints = {}
+        # Initialize an abstract level which holds meta-data about the problem
+        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
                 
     def plot_progress(self):
         

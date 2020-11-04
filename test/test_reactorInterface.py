@@ -23,9 +23,9 @@ def test_init():
     assert round(rx.density,4) == 15.8212
         
 def test_get_assem_avg():
-    avg_pow = rx.get_assembly_average(300, 'power fraction')
+    avg_pow = rx.get_assembly_avg(300, 'power fraction')
     assert round(avg_pow, 6) == 0.012987
-    avg_bu = rx.get_assembly_average(300, 'burnup')
+    avg_bu = rx.get_assembly_avg(300, 'burnup')
     assert round(avg_bu, 6) == 38.055065
 
 def test_get_assem_min():

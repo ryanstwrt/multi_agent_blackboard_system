@@ -109,7 +109,6 @@ class Controller(object):
         num_agents = len(self.bb.get_attr('agent_addrs'))
         
         while not self.bb.get_complete_status():
-            #print('*************************************************************************************************************************************')
             self.bb.publish_trigger()
             trig_num = self.bb.get_current_trigger_value()
             responses = False
@@ -123,15 +122,11 @@ class Controller(object):
                     pass
                 
             self.bb.controller()
- #           print(self.bb.get_attr('_kaar')[trig_num])
- #           print(self.bb.get_attr('_ka_to_execute'), trig_num)
             self.bb.send_executor()
- #           print()
 
             
             if len(self.bb.get_kaar()) % self.progress_rate == 0 or self.bb.get_complete_status() == True:
                 self.bb.convergence_indicator()
-           #     self.bb.meta_data_entry(agent_time)
                 self.bb.write_to_h5()
                 self.bb.diagnostics_replace_agent()
                 if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
@@ -302,7 +297,6 @@ class Multi_Tiered_Controller(Controller):
             else:
                 bb.convergence_update()
                 bb.meta_data_entry(agent_time)
-
 
         time_2 = time.time()
 
