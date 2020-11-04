@@ -89,7 +89,6 @@ class Controller(object):
             agent_time = time.time() - agent_time
             if len(self.bb.get_kaar()) % self.progress_rate == 0 or self.bb.get_complete_status() == True:
                 self.bb.convergence_indicator()
-                self.bb.meta_data_entry(agent_time)
                 self.bb.write_to_h5()
                 if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
                     self.bb.determine_complete()
@@ -97,7 +96,6 @@ class Controller(object):
                     self.bb.plot_progress()
             else:
                 self.bb.convergence_update()
-                self.bb.meta_data_entry(agent_time)
 
         self.time.append(time.time())
         self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
@@ -107,7 +105,6 @@ class Controller(object):
     def run_multi_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
         num_agents = len(self.bb.get_attr('agent_addrs'))
-        
         while not self.bb.get_complete_status():
             self.bb.publish_trigger()
             trig_num = self.bb.get_current_trigger_value()
@@ -136,8 +133,10 @@ class Controller(object):
             else:
                 self.bb.convergence_update()
                 agent_time = 0
-               # self.bb.meta_data_entry(agent_time)
             time.sleep(0.05)
+        self.time.append(time.time())
+        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
+        self.bb.write_to_h5()        
                 
     def update_bb_trigger_values(self, trig_num):
         """
@@ -288,7 +287,6 @@ class Multi_Tiered_Controller(Controller):
 
             if len(bb.get_kaar()) % conv_criteria['interval'] == 0:
                 bb.convergence_indicator()
-                bb.meta_data_entry(agent_time)
                 bb.write_to_h5()
                 if len(bb.get_hv_list()) > 2 * conv_criteria['interval']:
                     bb.determine_complete()
@@ -296,7 +294,6 @@ class Multi_Tiered_Controller(Controller):
                     bb.plot_progress()
             else:
                 bb.convergence_update()
-                bb.meta_data_entry(agent_time)
 
         time_2 = time.time()
 

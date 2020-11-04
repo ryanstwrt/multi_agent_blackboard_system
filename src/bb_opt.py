@@ -124,7 +124,7 @@ class BbOpt(blackboard.Blackboard):
             ka.set_random_seed(seed=self.random_seed)
             ka.set_attr(_sm=self._sm)
             ka.set_attr(sm_type=self.sm_type)
-            ka.set_attr(design_variables=self.design_variables)
+            ka.set_attr(_design_variables=self.design_variables)
             if 'lhc' in agent_class:
                 ka.generate_lhc()
         elif 'reader' in agent_class:
@@ -154,7 +154,7 @@ class BbOpt(blackboard.Blackboard):
         else:
             self.log_info('convergence_model ({}) not recognized, reverting to hvi'.format(self.convergence_model['type']))
             self.hv_indicator()
-
+            
     def convergence_update(self):
         """
         Determine if any values need to be udpated after a trigger event
@@ -354,13 +354,26 @@ class BbOpt(blackboard.Blackboard):
         # Plot HV Convergece
         fig2 = px.line(x=[x for x in range(len(self.hv_list))], y=self.hv_list, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
         fig2.show()
-            
+
+    def handler_agent_complete(self, message):
+        """
+        Handler for KAs complete response, i.e. when a KA has finished their action
+        
+        Parameters
+        ----------
+        agent_name : str
+            Alias for the KA
+        """
+        self._new_entry = True
+        self.log_debug('Logging agent {} complete.'.format(message[0]))
+        self.meta_data_entry(message[0], message[1], message[2])
+        
     def send_executor(self):
         """Send an executor message to the triggered KA."""
         if self._ka_to_execute != (None, 0):
             self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], round(self._ka_to_execute[1],2), self._trigger_event))
             self._new_entry = False
-            self.send('executor_{}'.format(self._ka_to_execute[0]), self.abstract_lvls)
+            self.send('executor_{}'.format(self._ka_to_execute[0]), (self._trigger_event,self.abstract_lvls))
         else:
             self.log_info('No KA to execute, waiting to sends trigger again.')
 
@@ -439,12 +452,15 @@ class BbOpt(blackboard.Blackboard):
 #        for core in lvl3_list:
 #            self.remove_bb_entry(3, core, 'old')
 #        
-    def meta_data_entry(self, time):
+    def meta_data_entry(self, name, time, trigger_event):
         """
         Add an entry to abstract level 100 for meta-data
+        
+        Trigger events start at 1, not 0, so we offset by 1 when looking at the hv list
         """
-        entry_name = str(self._trigger_event)
-        entry = {'agent': self._ka_to_execute[0], 'time': float(time), 'hvi': self.hv_list[self._trigger_event]}
+        entry_name = str(trigger_event)
+
+        entry = {'agent': name, 'time': float(time), 'hvi': self.hv_list[trigger_event-1]}
         self.update_abstract_lvl(100, entry_name, entry)
 
 

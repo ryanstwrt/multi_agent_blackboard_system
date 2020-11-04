@@ -570,7 +570,6 @@ def test_kabr_lvl2_init():
     assert ka_br2.get_attr('_num_allowed_entries') == 10
     assert ka_br2.get_attr('_trigger_val_base') == 4.00000000002
     assert ka_br2.get_attr('_fitness') == 0.0
-    assert ka_br2.get_attr('_update_hv') == True
     
     ns.shutdown()
     time.sleep(0.05)

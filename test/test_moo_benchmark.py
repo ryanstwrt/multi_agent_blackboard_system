@@ -7,7 +7,9 @@ def test_sf_1():
 
 def test_sf_2():
     tsp = moo.optimization_test_functions('sf2')
-    assert tsp.predict('sf2', [0.5]) == [-0.5, 20.25]    
+    assert tsp.predict('sf2', [0.5]) == [-0.5, 20.25]  
+    assert tsp.predict('sf2', [1.5]) == [-0.5, 12.25]  
+    assert tsp.predict('sf2', [3.5]) == [0.5, 2.25]  
 
 def test_zdt_1():
     tsp = moo.optimization_test_functions('zdt1')

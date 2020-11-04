@@ -32,16 +32,16 @@ def test_karp_init():
     
     assert rp.get_attr('_trigger_val') == 0
     assert rp.get_attr('_base_trigger_val') == 0.250001   
-    assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('current_design_variables') == {}
-    assert rp.get_attr('design_variables') == {}    
-    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('_design_variables') == {}    
+    assert rp.get_attr('current_objectives') == {}
     assert rp.get_attr('_objectives') == {}
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5
     assert rp.get_attr('_class') == 'search'
+    assert rp.get_attr('_lvl_data') == {}
     
     ns.shutdown()
     time.sleep(0.05)
@@ -55,7 +55,7 @@ def test_karp_explore_init():
     rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
     
     assert rp.get_attr('bb') == None
-    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('bb_lvl_data') == 3
     assert rp.get_attr('_entry') == None
     assert rp.get_attr('_entry_name') == None
     assert rp.get_attr('_writer_addr') == None
@@ -72,12 +72,11 @@ def test_karp_explore_init():
     assert rp.get_attr('_base_trigger_val') == 0.250001
     
     assert rp.get_attr('current_design_variables') == {}
-    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('current_objectives') == {}
     assert rp.get_attr('_sm') == None
-    assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('_objectives') == {}
-    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('_design_variables') == {}
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5
     ns.shutdown()
@@ -133,7 +132,7 @@ def test_get_design_name():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
     rp.set_random_seed(seed=1)
-    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+    rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
                                   'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
@@ -155,7 +154,7 @@ def test_explore_search_method():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
     rp.set_random_seed(seed=1)
-    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+    rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
                                   'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
@@ -176,7 +175,7 @@ def test_explore_search_method():
 def test_explore_set_random_seed():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaGlobal)
-    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+    rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})    
     rp.set_random_seed(seed=10983)
@@ -232,7 +231,7 @@ def test_kalhc_init():
     rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
     
     assert rp.get_attr('bb') == None
-    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('bb_lvl_data') == 3
     assert rp.get_attr('_entry') == None
     assert rp.get_attr('_entry_name') == None
     assert rp.get_attr('_writer_addr') == None
@@ -248,12 +247,11 @@ def test_kalhc_init():
     assert rp.get_attr('_trigger_val') == 0
     
     assert rp.get_attr('current_design_variables') == {}
-    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('current_objectives') == {}
     assert rp.get_attr('_sm') == None
-    assert rp.get_attr('bb_lvl') == 3
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('_objectives') == {}
-    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('_design_variables') == {}
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5
     assert rp.get_attr('lhc_criterion') == 'corr'
@@ -267,7 +265,7 @@ def test_kalhc_generate_lhc():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
     rp.set_random_seed(seed=10997)
-    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+    rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
                                   'experiment': {'length': 2,
@@ -286,7 +284,7 @@ def test_kalhc_search_method():
     rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
     rp.set_random_seed(seed=10997)
     
-    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+    rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
                                   'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
@@ -310,7 +308,7 @@ def test_kalocal_search_method_discrete():
     rp = run_agent(name='ka_rp', base=ka_rp.KaLHC)
     rp.set_random_seed(seed=10997)
     
-    rp.set_attr(design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+    rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
                                   'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
@@ -377,7 +375,7 @@ def test_karp_exploit_init():
     rp = run_agent(name='ka_rp', base=ka_rp.KaLocal)
     
     assert rp.get_attr('bb') == None
-    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('bb_lvl_data') == 3
     assert rp.get_attr('_entry') == None
     assert rp.get_attr('_entry_name') == None
     assert rp.get_attr('_writer_addr') == None
@@ -392,18 +390,18 @@ def test_karp_exploit_init():
     assert rp.get_attr('_shutdown_addr') == None
     assert rp.get_attr('_trigger_val') == 0.0
     
-    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('current_objectives') == {}
     assert rp.get_attr('bb_lvl_read') == 1
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
     assert rp.get_attr('current_design_variables') == {}
-    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('current_objectives') == {}
     assert rp.get_attr('_objectives') == {}
-    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('_design_variables') == {}
     assert rp.get_attr('perturbation_size') == 0.05
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5
-    assert rp.get_attr('lvl_data') == None
+    assert rp.get_attr('_lvl_data') == None
     assert rp.get_attr('lvl_read') == None
     assert rp.get_attr('analyzed_design') == {}
     assert rp.get_attr('new_designs') == []
@@ -420,7 +418,7 @@ def test_karp_exploit_init_local_hill_climb():
     rp = run_agent(name='ka_rp', base=ka_rp.KaLocalHC)
     
     assert rp.get_attr('bb') == None
-    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('bb_lvl_data') == 3
     assert rp.get_attr('_entry') == None
     assert rp.get_attr('_entry_name') == None
     assert rp.get_attr('_writer_addr') == None
@@ -435,15 +433,15 @@ def test_karp_exploit_init_local_hill_climb():
     assert rp.get_attr('_shutdown_addr') == None
     assert rp.get_attr('_trigger_val') == 0.0
     
-    assert rp.get_attr('lvl_data') == None
+    assert rp.get_attr('_lvl_data') == None
     assert rp.get_attr('lvl_read') == None
     assert rp.get_attr('analyzed_design') == {}
     assert rp.get_attr('new_designs') == []
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5  
-    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('current_objectives') == {}
     assert rp.get_attr('_objectives') == {}
-    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('_design_variables') == {}
     assert rp.get_attr('bb_lvl_read') == 1
     assert rp.get_attr('_sm') == None
     assert rp.get_attr('sm_type') == 'interpolate'
@@ -472,7 +470,7 @@ def test_determine_model_applicability():
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     
     rp.set_attr(current_design_variables={'height': 65.0, 'smear': 65.0, 'pu_content': 0.42})
     rp.determine_model_applicability('height')
@@ -593,7 +591,7 @@ def test_exploit_perturb_design():
  
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0, 65.0, 0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.set_attr(new_designs=['core_[65.0, 65.0, 0.42]'])
     rp.search_method()
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
@@ -625,7 +623,7 @@ def test_exploit_perturb_design_discrete():
     rp.set_random_seed(seed=1)
     
     rp.set_attr(new_designs=['core_1'])
-    rp.set_attr(lvl_data={'core_1': {'design variables': {'x0': '0', 
+    rp.set_attr(_lvl_data={'core_1': {'design variables': {'x0': '0', 
                                                           'x1': '1',
                                                           'x2': '2',
                                                           'x3': '3'}}})
@@ -649,7 +647,7 @@ def test_exploit_write_to_bb():
     
     core_attrs = {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
                   'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}
-    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core1', core_attrs, panel='new')
+    ka.write_to_bb(ka.get_attr('bb_lvl_data'), 'core1', core_attrs, panel='new')
     ka.get_attr('_class')
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
                   'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
@@ -657,7 +655,7 @@ def test_exploit_write_to_bb():
     
     core_attrs = {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2},
                   'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}
-    ka.write_to_bb(ka.get_attr('bb_lvl'), 'core2', core_attrs, panel='new')
+    ka.write_to_bb(ka.get_attr('bb_lvl_data'), 'core2', core_attrs, panel='new')
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
                   'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
                                                               'core2': {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2},
@@ -688,7 +686,7 @@ def test_kalocalrw():
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.set_attr(new_designs=['core_[65.0, 65.0, 0.4]'])
     rp.search_method()
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0, 65.0, 0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
@@ -718,7 +716,7 @@ def test_determine_step_steepest_ascent():
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
     # Test an increase in burnup (greater than test)
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
@@ -803,7 +801,7 @@ def test_determine_step_simple():
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
     # Test an increase in burnup (greater than test)
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
@@ -850,7 +848,7 @@ def test_determine_step_simple_discrete_dv():
     rp.set_attr(hc_type='steepest ascent')
     
     rp.set_attr(new_designs=['core_1'])
-    rp.set_attr(lvl_data={'core_1': {'design variables': {'x0': '0', 
+    rp.set_attr(_lvl_data={'core_1': {'design variables': {'x0': '0', 
                                                           'x1': '1',
                                                           'x2': '2',
                                                           'x3': '3'}}})
@@ -896,7 +894,7 @@ def test_kalocalhc():
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.set_attr(new_designs=['core_[65.0, 65.0, 0.42]'])
     rp.search_method()
     time.sleep(0.05)
@@ -929,7 +927,7 @@ def test_kalocalhc_simple():
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.set_attr(new_designs=['core_[65.0, 65.0, 0.42]'])
     rp.search_method()
     time.sleep(0.05)
@@ -961,7 +959,7 @@ def test_determine_step_simple_discrete_dv():
     bb.update_abstract_lvl(1, 'core_[3, 1, 2, 0]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
 
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
     rp.set_attr(new_designs=['core_[3, 1, 2, 0]'])
    
@@ -1002,7 +1000,7 @@ def test_KaLocalGA():
     
     bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.25]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
 
@@ -1018,7 +1016,7 @@ def test_KaLocalGA():
     
     rp.set_attr(offspring_per_generation=2)
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
     assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[65.0, 65.0, 0.25]', 'core_[70.0, 60.0, 0.1]', 'core_[75.0, 80.0, 0.5]']
@@ -1053,7 +1051,7 @@ def test_KaLocalGA_linear_crossover():
     
     bb.update_abstract_lvl(1, 'core_[70.0, 70.0, 0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
     assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0, 65.0, 0.15]', 'core_[50.0, 55.0, 0.05]', 'core_[80.0, 70.0, 0.25]']
@@ -1072,7 +1070,7 @@ def test_KaLocalGA_linear_crossover():
     
     rp.set_attr(offspring_per_generation=4)
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
     assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0, 65.0, 0.15]', 'core_[50.0, 55.0, 0.05]', 'core_[80.0, 70.0, 0.25]', 'core_[80.0, 75.0, 0.35]', 'core_[80.0, 70.0, 0.65]', 'core_[60.0, 65.0, 0.05]']
@@ -1106,7 +1104,7 @@ def test_KaLocalGA_full():
     
     bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
     assert rp.get_attr('analyzed_design') == {}
     bb.publish_trigger()
@@ -1199,7 +1197,7 @@ def test_KaLocalGA_crossover_mutate():
     
     bb.update_abstract_lvl(1, 'core_[70.0, 70.0, 0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
     assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0, 60.0, 0.19013]', 'core_[70.0, 70.0, 0.1]']
@@ -1228,7 +1226,7 @@ def test_KaSm_init():
     rp = run_agent(name='ka_sm', base=ka_rp.KaLocalSm)
     
     assert rp.get_attr('bb') == None
-    assert rp.get_attr('bb_lvl') == 3
+    assert rp.get_attr('bb_lvl_data') == 3
     assert rp.get_attr('_entry') == None
     assert rp.get_attr('_entry_name') == None
     assert rp.get_attr('_writer_addr') == None
@@ -1243,15 +1241,15 @@ def test_KaSm_init():
     assert rp.get_attr('_shutdown_addr') == None
     assert rp.get_attr('_trigger_val') == 0.0
     
-    assert rp.get_attr('lvl_data') == None
+    assert rp.get_attr('_lvl_data') == None
     assert rp.get_attr('lvl_read') == None
     assert rp.get_attr('analyzed_design') == {}
     assert rp.get_attr('new_designs') == []
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5  
-    assert rp.get_attr('objective_functions') == {}
+    assert rp.get_attr('current_objectives') == {}
     assert rp.get_attr('_objectives') == {}
-    assert rp.get_attr('design_variables') == {}
+    assert rp.get_attr('_design_variables') == {}
     assert rp.get_attr('bb_lvl_read') == 3
     assert rp.get_attr('current_design_variables') == {}
 
@@ -1264,7 +1262,7 @@ def test_KaSm_init():
 def test_KaSm_generate_sm():
     ns = run_nameserver()
     rp = run_agent(name='ka_sm', base=ka_rp.KaLocalSm)
-    rp.set_attr(design_variables={'a': {}, 'b': {}})
+    rp.set_attr(_design_variables={'a': {}, 'b': {}})
     rp.set_attr(_objectives={'c': {}, 'd': {}})
     rp.set_attr(sm_type='gpr')
     

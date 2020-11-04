@@ -25,10 +25,17 @@ class KaBr(ka.KaBase):
         self.lvl_read = {}
         self.lvl_write = {}
         self._lvl_data = {}
-        self._update_hv = False
         self._class = 'reader'
-        self.level_clear_number = 20
-    
+        self.agent_time = 0
+        self.agent_time = 0
+        self._trigger_event = 0
+
+    def action_complete(self):
+        """
+        Send a message to the BB indicating it's completed its action
+        """
+        self.send(self._complete_alias, (self.name, self.agent_time, self._trigger_event))
+        
     def clear_entry(self):
         """Clear the KA entry"""
         self._entry = None
@@ -53,10 +60,12 @@ class KaBr(ka.KaBase):
         return (True, pareto_opt)
     
     def handler_executor(self, message):
+        t = time.time()
+        self._trigger_event = message[0]
         self.log_debug('Executing agent {}'.format(self.name))
-
-        self.lvl_read =  message['level {}'.format(self.bb_lvl_read)][self.new_panel] 
-        self.lvl_write = message['level {}'.format(self.bb_lvl_write)][self.new_panel]
+        
+        self.lvl_read =  message[1]['level {}'.format(self.bb_lvl_read)][self.new_panel] 
+        self.lvl_write = message[1]['level {}'.format(self.bb_lvl_write)][self.new_panel]
         self._lvl_data = self.lvl_read
 
         self.clear_bb_lvl()
@@ -67,6 +76,7 @@ class KaBr(ka.KaBase):
             entry = self.lvl_read[self._entry_name]
             self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel) 
         self._trigger_val = 0
+        self.agent_time = time.time() - t
         self.action_complete()
             
     def handler_trigger_publish(self, message):
@@ -203,7 +213,6 @@ class KaBr_lvl1(KaBr):
         super().on_init()
         self.bb_lvl_write= 1
         self.bb_lvl_read = 1
-        self._update_hv = False
         self._trigger_val_base = 6.00000000003
         self._pf_size = 1
         self._lower_objective_reference_point = None
@@ -247,14 +256,16 @@ class KaBr_lvl1(KaBr):
         
         DCI accelerated HVI uses the DCI to remove solutions which are closeby to help increase the diversity of the Pareto front.
         """
+        
+        t = time.time()
+        self._lvl_data = {}
+        self._trigger_event = message[0]
         self.log_debug('Executing agent {}'.format(self.name))
 
-        self.lvl_read = message['level {}'.format(self.bb_lvl_read)]
+        self.lvl_read = message[1]['level {}'.format(self.bb_lvl_read)]
         self.lvl_write = self.lvl_read
-        lvl = {}
-        for panel in message['level {}'.format(self.bb_lvl_data)].values():
-            lvl.update(panel)        
-        self._lvl_data = lvl
+        for panel in message[1]['level {}'.format(self.bb_lvl_data)].values():
+            self._lvl_data.update(panel)        
         
         self.clear_bb_lvl()
         self._pf_size = len(self.lvl_read)
@@ -274,6 +285,7 @@ class KaBr_lvl1(KaBr):
         else:
             self.log_debug('Pareto Sorter ({}) not recognized, please select from `non-dominated`, `dci`, `hvi`, or `dci hvi`. Automatically selecting `non-dominated`'.format(self.pareto_sorter)) 
         self.clear_entry()
+        self.agent_time = time.time() - t
         self.action_complete()
     
     def prune_pareto_front(self):
@@ -389,7 +401,6 @@ class KaBr_lvl2(KaBr):
         self._trigger_val_base = 4.00000000002
         self._fitness = 0.0
         self._class = 'reader level 2'
-        self._update_hv = True
         
     def add_entry(self, core_name):
         self._entry_name = core_name[0]
@@ -413,14 +424,16 @@ class KaBr_lvl2(KaBr):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
     def handler_executor(self, message):
+        
+        t = time.time()
+        self._lvl_data = {}
+        self._trigger_event = message[0]
         self.log_debug('Executing agent {}'.format(self.name)) 
 
-        self.lvl_read =  message['level {}'.format(self.bb_lvl_read)][self.new_panel] 
-        self.lvl_write = message['level {}'.format(self.bb_lvl_write)] 
-        lvl = {}
-        for panel in message['level {}'.format(self.bb_lvl_data)].values():
-            lvl.update(panel)
-        self._lvl_data = lvl
+        self.lvl_read =  message[1]['level {}'.format(self.bb_lvl_read)][self.new_panel] 
+        self.lvl_write = message[1]['level {}'.format(self.bb_lvl_write)] 
+        for panel in message[1]['level {}'.format(self.bb_lvl_data)].values():
+            self._lvl_data.update(panel)
         
         self.clear_bb_lvl()
         for core_name in self.lvl_read.keys():
@@ -434,6 +447,7 @@ class KaBr_lvl2(KaBr):
                 self.move_entry(self.bb_lvl_read, self._entry_name, self.lvl_read[self._entry_name], self.old_panel, self.new_panel)
         
         self._trigger_val = 0
+        self.agent_time = time.time() - t
         self.action_complete()
     
     def determine_fitness_function(self, core_name, core_objectives):
@@ -546,13 +560,15 @@ class KaBr_interBB(KaBr):
         self.log_info('Agent {} connected writer to {}'.format(self.name, bb.get_attr('name')))
         
     def handler_executor(self, message):
+        
+        t = time.time()
+        self._lvl_data = {}
+        self._trigger_event = message[0]
         self.log_debug('Executing agent {}'.format(self.name))
 
-        self.lvl_read =  message['level {}'.format(self.bb_lvl_read)]
-        lvl = {}
-        for panel in message['level {}'.format(self.bb_lvl_data)].values():
-            lvl.update(panel)        
-        self._lvl_data = lvl
+        self.lvl_read =  message[1]['level {}'.format(self.bb_lvl_read)]
+        for panel in message[1]['level {}'.format(self.bb_lvl_data)].values():
+            self._lvl_data.update(panel)        
         
         for entry_name in self.lvl_read.keys():
             self.clear_entry()
@@ -563,6 +579,7 @@ class KaBr_interBB(KaBr):
                 self._entries_moved.append(entry_name)
 
         self._trigger_val = 0
+        self.agent_time = time.time() - t
         self.action_complete()
         
     def format_entry(self, entry_name):

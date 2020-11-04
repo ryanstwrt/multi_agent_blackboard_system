@@ -162,7 +162,7 @@ def test_add_ka_specific():
                                                     'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
                                                     'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
                                                     'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
-            assert agent.get_attr('design_variables') == {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+            assert agent.get_attr('_design_variables') == {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                                           'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                                           'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
             assert agent.get_attr('sm_type') == 'interpolate'
@@ -233,14 +233,14 @@ def test_handler_writer():
     obj = {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}
     
     entry={'design variables': dv, 'objective functions': obj}
-    rp.write_to_bb(rp.get_attr('bb_lvl'), 'core1', entry, panel='new')
+    rp.write_to_bb(rp.get_attr('bb_lvl_data'), 'core1', entry, panel='new')
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
                                                                         'objective functions': {'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}}}
     dv = {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2}
     obj = {'cycle length': 100.0, 'reactivity swing': 10000.0, 'burnup': 32.0, 'pu mass': 1000.0}
     entry={'design variables': dv, 'objective functions': obj}
                                   
-    rp1.write_to_bb(rp1.get_attr('bb_lvl'), 'core2', entry, panel='new')
+    rp1.write_to_bb(rp1.get_attr('bb_lvl_data'), 'core2', entry, panel='new')
     
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core1': {'design variables': {'height': 60.0, 'smear': 70.0, 'pu_content': 0.2},
                                                                         'objective functions' :{'cycle length': 100.0, 'reactivity swing': 110.0, 'burnup': 32.0, 'pu mass': 1000.0}},
@@ -301,11 +301,9 @@ def test_determine_complete_hv():
 def test_meta_data_entry():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.set_attr(_trigger_event=3)
-    bb.set_attr(_ka_to_execute=('agent_x', 2.4))
     bb.set_attr(hv_list=[0.1,0.2,0.3,0.4,0.5])
-    bb.meta_data_entry(1.5)
-    assert bb.get_attr('abstract_lvls')['level 100'] == {'3': {'agent': 'agent_x', 'time': 1.5, 'hvi': 0.4}}
+    bb.meta_data_entry('agent_x', 1.5, 4)
+    assert bb.get_attr('abstract_lvls')['level 100'] == {'4': {'agent': 'agent_x', 'time': 1.5, 'hvi': 0.4}}
     
 
     ns.shutdown()
