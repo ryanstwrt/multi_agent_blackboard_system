@@ -39,6 +39,7 @@ class KaRp(ka.KaBase):
         self._constraint_accuracy = 5
         self._update_hv = False
         self._class = 'search'
+        self.lvl_data = {}
         
     def set_random_seed(self, seed=None):
         """
@@ -58,12 +59,17 @@ class KaRp(ka.KaBase):
         if 'benchmark' in self.sm_type:
             obj_list = self._sm.predict(self.sm_type.split()[0], design, len(design), len(self._objectives.keys()))
             for num, obj in enumerate(self._objectives.keys()):
-                self.objective_functions[obj] = round(float(obj_list[num]), self._objective_accuracy)
+                if self._objectives[obj]['variable type'] == float:
+                    self.objective_functions[obj] = round(float(obj_list[num]), self._objective_accuracy)
+                elif self._objectives[obj]['variable type'] == str:
+                    self.objective_functions[obj] = str(obj_list[num])
         elif self.sm_type == 'interpolate':
             self.get_interpolate_objectives(design)
         else:
             self.get_sm_objectives()
-                
+        
+        print(self.current_design_variables)
+        print(self.objective_functions)
         self._entry_name = self.get_design_name(self.current_design_variables)
         self._entry = {'design variables': self.current_design_variables, 
                        'objective functions': self.objective_functions,
@@ -104,7 +110,7 @@ class KaRp(ka.KaBase):
         for cnst in self._constraints.keys():
             self.current_constraints[cnst] = round(float(obj_dict[cnst]), self._constraint_accuracy)
                 
-    def handler_executor(self, message):
+    def handler_executor(self, blackbaord):
         """
         Execution handler for KA-RP.
         KA-RP determines a core design and runs a physics simulation using a surrogate model.
@@ -112,9 +118,13 @@ class KaRp(ka.KaBase):
         
         Parameter
         ---------
-        message : str
-            required message for sending communication
+        blackbaord : str
+            required message for sending communication containing current state of BB
         """
+        self.lvl_data = {}
+        for panel in blackbaord['level {}'.format(self.bb_lvl)].values():
+            self.lvl_data.update(panel)
+            
         self.log_debug('Executing agent {}'.format(self.name))
         self.search_method()
         self.calc_objectives()
@@ -187,6 +197,11 @@ class KaGlobal(KaRp):
                 self.current_design_variables[dv] = random.choice(dv_dict['options'])               
             else:
                 self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
+        
+        self._entry_name = self.get_design_name(self.current_design_variables)
+        if self._entry_name in self.lvl_data.keys():
+            self.search_method()
+                
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
                 
         
@@ -386,7 +401,6 @@ class KaLocal(KaRp):
         dv_dict = self.design_variables[dv]
         dv_cur_val = self.current_design_variables[dv]
         core_name = self.get_design_name(self.current_design_variables)
-        print(dv_cur_val,dv_dict['ll'], dv_dict['ul'])
 
         if core_name in self.lvl_data.keys():
             self.log_debug('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl))
@@ -401,26 +415,29 @@ class KaLocal(KaRp):
         self.write_to_bb(self.bb_lvl, self._entry_name, self._entry, panel='new')
         self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
         
-    def handler_executor(self, message):
+    def handler_executor(self, blackboard):
         """
         Execution handler for KA-RP.
         
         KA will perturb the core via the perturbations method and write all results the BB
         """
         self.log_debug('Executing agent {}'.format(self.name))
-        self.lvl_read = message[0]
-        self.lvl_data = message[1]
+        self.lvl_read = blackboard['level {}'.format(self.bb_lvl_read)]
+        self.lvl_data = {}
+        for panel in blackboard['level {}'.format(self.bb_lvl)].values():
+            self.lvl_data.update(panel)
+            
         self.search_method()
         self.action_complete()
                       
-    def handler_trigger_publish(self, message):
+    def handler_trigger_publish(self, blackboard):
         """
         Read the BB level and determine if an entry is available.
         
         Paremeters
         ----------
-        message : str
-            Required message from BB
+        blackboard : str
+            Required message from BB containing the current state of the blackboard
         
         Returns
         -------
@@ -432,7 +449,7 @@ class KaLocal(KaRp):
             _trigger_val : int
                 Trigger value for knowledge agent
         """
-        new_entry = self.read_bb_lvl(message)
+        new_entry = self.read_bb_lvl(blackboard)
         self._trigger_val = self._base_trigger_val if new_entry else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
@@ -458,7 +475,7 @@ class KaLocal(KaRp):
             if self.design_variables[dv]['variable type'] == str:
                 options = self.design_variables[dv]['options']
                 options.remove(design[dv])
-                design[dv] = random.choice(options)
+                design[dv] = str(random.choice(options))
                 self.current_design_variables = design
                 self.determine_model_applicability(dv)
             else:

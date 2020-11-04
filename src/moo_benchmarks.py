@@ -11,11 +11,13 @@ class optimization_test_functions(object):
         elif self.test_name == 'sf2':
             return self.schaffer_func_2(x)
         elif self.test_name == 'zdt1':
-            return self.zdt_1(x, num_vars)
+            return self.zdt_1(x, num_vars=num_vars)
         elif self.test_name == 'zdt2':
-            return self.zdt_2(x)
+            return self.zdt_2(x, num_vars=num_vars)
         elif self.test_name == 'zdt3':
-            return self.zdt_3(x)
+            return self.zdt_3(x, num_vars=num_vars)
+        elif self.test_name == 'tsp':
+            return self.tsp(x)
         
     
     def schaffer_func_1(self, x):
@@ -69,3 +71,25 @@ class optimization_test_functions(object):
         problem = mop.ZDT3(n_var=num_vars)
         soln = problem.evaluate(x)
         return soln
+    
+    def tsp(self, x):
+        """
+        traveling sales person
+        """
+        print(x)
+        print(type(x[0]))
+        if type(x[0]) == str:
+            x = [int(y) for y in x]
+        graph = [[0, 10, 15, 20], [10, 0, 35, 25], 
+                 [15, 35, 0, 30], [20, 25, 30, 0]]
+                
+        path = 0
+        k = 0
+        for j in x:
+            path += graph[k][j]
+            k=j
+        path += graph[k][0]
+        
+        return [path]
+
+        

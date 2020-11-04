@@ -7,6 +7,7 @@ import src.ka as ka
 import time
 import src.ka_rp as ka_rp
 import src.bb_opt as bb_opt
+import src.moo_benchmarks as moo
 
 with open('./sm_gpr.pkl', 'rb') as pickle_file:
     sm_ga = pickle.load(pickle_file)
@@ -608,21 +609,34 @@ def test_exploit_perturb_design():
     time.sleep(0.05)
     
     
-#def test_exploit_perturb_design_test():
-#    ns = run_nameserver()
-#    rp = run_agent(name='ka_rp', base=ka_rp.KaLocal)
-#    rp.set_random_seed(seed=1)
-#    rp.set_attr(design_variables={'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
-#                                  'position2' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}})
+def test_exploit_perturb_design_discrete():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)
+    dv = {'x0' : {'options': ['0', '1', '2', '3'], 'default': '0', 'variable type': str},
+          'x1' : {'options': ['0', '1', '2', '3'], 'default': '1', 'variable type': str},
+          'x2' : {'options': ['0', '1', '2', '3'], 'default': '2', 'variable type': str},
+          'x3' : {'options': ['0', '1', '2', '3'], 'default': '3', 'variable type': str}}
+    obj = {'f1': {'ll': 80, 'ul':200, 'goal': 'lt', 'variable type': float}}
+    bb.initialize_abstract_level_3(design_variables=dv,objectives=obj)
+    bb.set_attr(sm_type='tsp_benchmark')
+    bb.set_attr(_sm=moo.optimization_test_functions('tsp'))
+    bb.connect_agent(ka_rp.KaLocal, 'ka_rp')
+    rp = ns.proxy('ka_rp')
+    rp.set_random_seed(seed=1)
     
-#    rp.set_attr(new_designs=['core_1'])
-#    rp.set_attr(lvl_data={'core_1': {'design variables': {'position': 'exp_d', 'position2': 'exp_a'}}})
-#    rp.search_method()
-#    assert rp.get_attr('current_design_variables') == {'position': 'exp_d', 'height': 62.51066, 'smear': 64.40649, 'pu_content': 0.00011, 'experiments': {'0':'exp_a', 'random variable': 0.18468}}
-#    rp.search_method()
+    rp.set_attr(new_designs=['core_1'])
+    rp.set_attr(lvl_data={'core_1': {'design variables': {'x0': '0', 
+                                                          'x1': '1',
+                                                          'x2': '2',
+                                                          'x3': '3'}}})
+    rp.search_method()
+    assert bb.get_blackboard()['level 3']['new'] == {'core_[2, 1, 2, 3]': {'design variables': {'x0': '2', 'x1': '1', 'x2': '2', 'x3': '3'}, 'objective functions': {'f1': 135.0}, 'constraints': {}}, 
+                                                     'core_[0, 0, 2, 3]': {'design variables': {'x0': '0', 'x1': '0', 'x2': '2', 'x3': '3'}, 'objective functions': {'f1': 65.0}, 'constraints': {}}, 
+                                                     'core_[0, 1, 0, 3]': {'design variables': {'x0': '0', 'x1': '1', 'x2': '0', 'x3': '3'}, 'objective functions': {'f1': 60.0}, 'constraints': {}}, 
+                                                     'core_[0, 1, 2, 1]': {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '1'}, 'objective functions': {'f1': 90.0}, 'constraints': {}}}
     
-#    ns.shutdown()
-#    time.sleep(0.05)
+    ns.shutdown()
+    time.sleep(0.05)
 
     
 def test_exploit_write_to_bb():

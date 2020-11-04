@@ -359,15 +359,8 @@ class BbOpt(blackboard.Blackboard):
         """Send an executor message to the triggered KA."""
         if self._ka_to_execute != (None, 0):
             self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], round(self._ka_to_execute[1],2), self._trigger_event))
-            agent_class = str(self.agent_addrs[self._ka_to_execute[0]]['class'])
             self._new_entry = False
-            if 'Local' in agent_class:
-                self.send('executor_{}'.format(self._ka_to_execute[0]), (self.abstract_lvls['level 1'],
-                                                                         self.abstract_lvls['level 3']['old']))
-            elif 'Br' in agent_class:
-                self.send('executor_{}'.format(self._ka_to_execute[0]), self.abstract_lvls)
-            else:
-                self.send('executor_{}'.format(self._ka_to_execute[0]), self._ka_to_execute)
+            self.send('executor_{}'.format(self._ka_to_execute[0]), self.abstract_lvls)
         else:
             self.log_info('No KA to execute, waiting to sends trigger again.')
 
