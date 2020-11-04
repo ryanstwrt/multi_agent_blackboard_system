@@ -12,7 +12,8 @@ import src.train_surrogate_models as tm
 import scipy.interpolate
 import plotly.express as px
 import src.performance_measure as pm
-import random
+#import random
+from numpy import random
 
 
 cur_dir = os.path.dirname(__file__)
@@ -59,7 +60,7 @@ class BbOpt(blackboard.Blackboard):
         """
         Sets the random seed number to provide a reproducabel result
         """
-        random.seed(a=seed)
+        random.seed(seed=seed)
         self.random_seed = seed
 
     def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
@@ -375,8 +376,9 @@ class BbOpt(blackboard.Blackboard):
             cur_tv = {k: cur_tv[k] for k in sorted(cur_tv)}
             max_ka = max(cur_tv, key=cur_tv.get)
             if cur_tv[max_ka] > 0:
-                equal_vals = [(k,v) for k,v in cur_tv.items() if v == cur_tv[max_ka]]
-                self._ka_to_execute = random.choice(equal_vals)
+                equal_vals = [k for k,v in cur_tv.items() if v == cur_tv[max_ka]]
+                ka_ = random.choice(equal_vals) 
+                self._ka_to_execute = (ka_, cur_tv[ka_])
 
         
     def publish_trigger(self):

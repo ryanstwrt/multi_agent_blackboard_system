@@ -306,7 +306,7 @@ class Multi_Tiered_Controller(Controller):
 
         time_2 = time.time()
 
-        bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time_2 - time_1, 'hvi': bb.get_hv_list()[-1]})
+        bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'hvi': bb.get_hv_list()[-1], 'time': time_2 - time_1})
         bb.write_to_h5()
 
         return
