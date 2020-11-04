@@ -27,3 +27,6 @@ def test_zdt_3():
 def test_tsp():
     tsp = moo.optimization_test_functions('tsp')
     assert tsp.predict('tsp', [0,1,3,2]) == [80]
+    assert tsp.predict('tsp', [3,1,2,0]) == [95]
+    assert tsp.predict('tsp', [0,1,2,1]) == [90]
+    

@@ -67,9 +67,7 @@ class KaRp(ka.KaBase):
             self.get_interpolate_objectives(design)
         else:
             self.get_sm_objectives()
-        
-        print(self.current_design_variables)
-        print(self.objective_functions)
+
         self._entry_name = self.get_design_name(self.current_design_variables)
         self._entry = {'design variables': self.current_design_variables, 
                        'objective functions': self.objective_functions,
@@ -473,7 +471,7 @@ class KaLocal(KaRp):
         for dv, dv_value in design_.items():
             design = copy.copy(design_)
             if self.design_variables[dv]['variable type'] == str:
-                options = self.design_variables[dv]['options']
+                options = copy.copy(self.design_variables[dv]['options'])
                 options.remove(design[dv])
                 design[dv] = str(random.choice(options))
                 self.current_design_variables = design
@@ -498,17 +496,7 @@ class KaLocal(KaRp):
         lvl = lvl['level {}'.format(self.bb_lvl_read)]
         cores = [x for x in self.analyzed_design.keys()]
         self.new_designs = [key for key in lvl if not key in self.analyzed_design]
-        return True if self.new_designs else False    
-    
-class KaLocalBnB(KaLocal):
-    
-    def on_init():
-        super().init()
-        self._base_trigger_val = 5.00001
-        self.hc_type = 'simple'
-        self._class = 'local search branch and bound'
-        
-        
+        return True if self.new_designs else False            
         
 class KaLocalHC(KaLocal):
     
@@ -549,20 +537,29 @@ class KaLocalHC(KaLocal):
             gradient_vector = {}
             next_step = None
             # Calculate our gradient vector
-            for dv in self.design_variables:
-                for direction in ['+', '-']:
-                    temp_design = copy.copy(step_design)
-                    temp_design[dv] += temp_design[dv] * step if direction == '+' else temp_design[dv] * -step
-                    temp_design[dv] = round(temp_design[dv], self._design_accuracy)
+            for dv, dv_dict in self.design_variables.items():
+                if dv_dict['variable type'] == float:
+                    for direction in ['+', '-']:
+                        temp_design = copy.copy(step_design)
+                        temp_design[dv] += temp_design[dv] * step if direction == '+' else temp_design[dv] * -step
+                        temp_design[dv] = round(temp_design[dv], self._design_accuracy)
                     
-                    if temp_design[dv] >= self.design_variables[dv]['ll'] and temp_design[dv] <= self.design_variables[dv]['ul']:
-                        if 'core_{}'.format([x for x in temp_design.values()]) in self.lvl_data.keys():
-                            pass
-                        else:
+                        if temp_design[dv] >= dv_dict['ll'] and temp_design[dv] <= dv_dict['ul'] and self.get_design_name(temp_design) not in self.lvl_data.keys():
                             self.current_design_variables = temp_design
                             self.calc_objectives()
                             gradient_vector['{} {}'.format(direction,dv)] = {'design variables': temp_design, 
-                                                                       'objective functions': {k:v for k,v in self.objective_functions.items()}}
+                                                                             'objective functions': {k:v for k,v in self.objective_functions.items()}}
+                else:
+                    temp_design = copy.copy(step_design)
+                    options = copy.copy(dv_dict['options'])
+                    options.remove(step_design[dv])
+                    temp_design[dv] = str(random.choice(options))
+                    if self.get_design_name(temp_design) not in self.lvl_data.keys():
+                        self.current_design_variables = temp_design
+                        self.calc_objectives()
+                        gradient_vector['+ {}'.format(dv)] = {'design variables': temp_design, 
+                                                              'objective functions': {k:v for k,v in self.objective_functions.items()}}
+                    
             # Determine which step is the steepest, update our design, and write this to the BB
             if gradient_vector:
                 next_step, diff = self.determine_step(step_design, step_objs, gradient_vector)
@@ -596,19 +593,20 @@ class KaLocalHC(KaLocal):
         for pert_dv in design_list:
             dict_ = design_dict[pert_dv]
             dv = pert_dv.split(' ')[1]
+            dv_dict = self.design_variables[dv]
             design[pert_dv] = {}
             design[pert_dv]['total'] = 0
-            for name, obj in self._objectives.items():
+            for name, obj_dict in self._objectives.items():
                 base_obj = base_design[name]
                 new_obj = dict_['objective functions'][name]
-                if new_obj >= self._objectives[name]['ll'] and new_obj <= self._objectives[name]['ul']:
-                    obj_scaled_new = self.scale_objective(new_obj, self._objectives[name]['ll'], self._objectives[name]['ul'])
-                    obj_scaled_base = self.scale_objective(base_obj, self._objectives[name]['ll'], self._objectives[name]['ul'])
-                    dv_scaled_new = self.scale_objective(base[dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
-                    dv_scaled_base = self.scale_objective(design_dict[pert_dv]['design variables'][dv], self.design_variables[dv]['ll'], self.design_variables[dv]['ul'])
+                if new_obj >= obj_dict['ll'] and new_obj <= obj_dict['ul']:
+                    obj_scaled_new = self.scale_objective(new_obj, obj_dict['ll'], obj_dict['ul'])
+                    obj_scaled_base = self.scale_objective(base_obj, obj_dict['ll'], obj_dict['ul'])
+                    dv_scaled_new = self.scale_objective(base[dv], dv_dict['ll'], dv_dict['ul']) if dv_dict['variable type'] == float else 1.0
+                    dv_scaled_base = self.scale_objective(design_dict[pert_dv]['design variables'][dv], dv_dict['ll'], dv_dict['ul']) if dv_dict['variable type'] == float else 0.0
                     
-                    # We are ollowing the steepest ascent, so positive is better
-                    obj_diff = (obj_scaled_new - obj_scaled_base) if obj['goal'] == 'gt' else (obj_scaled_base - obj_scaled_new)
+                    # We are following the steepest ascent, so positive is better
+                    obj_diff = (obj_scaled_new - obj_scaled_base) if obj_dict['goal'] == 'gt' else (obj_scaled_base - obj_scaled_new)
                     dv_diff = abs(dv_scaled_new - dv_scaled_base)
                     derivative = obj_diff / dv_diff if dv_diff != 0 else 0
                     design[pert_dv][name] = derivative
@@ -616,11 +614,11 @@ class KaLocalHC(KaLocal):
 
                     if derivative > 0 and self.hc_type == 'simple':
                         return(pert_dv, derivative)
-            
             if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total']:
                 best_design = design[pert_dv]
                 best_design['pert'] = pert_dv
-                
+                print(best_design)
+             
         if best_design['total'] > 0:
             return (best_design['pert'], best_design['total'])
         else:

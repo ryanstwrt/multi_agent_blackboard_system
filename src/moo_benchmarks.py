@@ -76,8 +76,6 @@ class optimization_test_functions(object):
         """
         traveling sales person
         """
-        print(x)
-        print(type(x[0]))
         if type(x[0]) == str:
             x = [int(y) for y in x]
         graph = [[0, 10, 15, 20], [10, 0, 35, 25], 

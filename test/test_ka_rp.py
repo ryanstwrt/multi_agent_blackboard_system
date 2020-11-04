@@ -415,7 +415,7 @@ def test_karp_exploit_init():
 # Tests fopr KA-Local-HC
 #----------------------------------------------------------
 
-def test_karp_exploit_init():
+def test_karp_exploit_init_local_hill_climb():
     ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=ka_rp.KaLocalHC)
     
@@ -833,6 +833,43 @@ def test_determine_step_simple():
     time.sleep(0.05)
     
     
+def test_determine_step_simple_discrete_dv():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)
+    dv = {'x0' : {'options': ['0', '1', '2', '3'], 'default': '0', 'variable type': str},
+          'x1' : {'options': ['0', '1', '2', '3'], 'default': '1', 'variable type': str},
+          'x2' : {'options': ['0', '1', '2', '3'], 'default': '2', 'variable type': str},
+          'x3' : {'options': ['0', '1', '2', '3'], 'default': '3', 'variable type': str}}
+    obj = {'f1': {'ll': 80, 'ul':200, 'goal': 'lt', 'variable type': float}}
+    bb.initialize_abstract_level_3(design_variables=dv,objectives=obj)
+    bb.set_attr(sm_type='tsp_benchmark')
+    bb.set_attr(_sm=moo.optimization_test_functions('tsp'))
+    bb.connect_agent(ka_rp.KaLocalHC, 'ka_rp')
+    rp = ns.proxy('ka_rp')
+    rp.set_random_seed(seed=1)
+    rp.set_attr(hc_type='steepest ascent')
+    
+    rp.set_attr(new_designs=['core_1'])
+    rp.set_attr(lvl_data={'core_1': {'design variables': {'x0': '0', 
+                                                          'x1': '1',
+                                                          'x2': '2',
+                                                          'x3': '3'}}})
+    
+
+    # Test an increase in burnup (greater than test)
+    base = {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'}
+    base_design =  {'f1': 100}
+    design_dict = {'+ x0' : {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'}, 
+                           'objective functions': {'f1': 95}},
+                   '+ x1' : {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'}, 
+                           'objective functions': {'f1': 81}}}
+    pert, diff = rp.determine_step(base, base_design, design_dict)
+    assert pert == '+ x1'
+    assert round(diff, 5) == 0.15833
+    ns.shutdown()
+    time.sleep(0.05)
+    
+    
 def test_kalocalhc():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
@@ -898,6 +935,40 @@ def test_kalocalhc_simple():
     time.sleep(0.05)
     assert list(bb.get_attr('abstract_lvls')['level 3']['new']) == ['core_[65.0, 65.0, 0.105]', 'core_[65.0, 65.0, 0.02625]', 'core_[65.0, 65.0, 0.04594]', 'core_[65.0, 65.0, 0.01149]', 'core_[65.0, 65.0, 0.00287]', 'core_[65.0, 65.0, 0.00072]', 'core_[65.0, 65.0, 0.00018]', 'core_[65.0, 65.0, 5e-05]', 'core_[65.0, 65.0, 9e-05]', 'core_[65.0, 65.0, 0.00016]', 'core_[65.0, 65.0, 0.00028]', 'core_[65.0, 65.0, 0.00049]', 'core_[65.0, 65.0, 0.00012]', 'core_[65.0, 65.0, 3e-05]', 'core_[65.0, 65.0, 1e-05]', 'core_[65.0, 65.0, 0.0]']
    
+    ns.shutdown()
+    time.sleep(0.05)
+
+def test_determine_step_simple_discrete_dv():
+    ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)
+    dv = {'x0' : {'options': ['0', '1', '2', '3'], 'default': '0', 'variable type': str},
+          'x1' : {'options': ['0', '1', '2', '3'], 'default': '1', 'variable type': str},
+          'x2' : {'options': ['0', '1', '2', '3'], 'default': '2', 'variable type': str},
+          'x3' : {'options': ['0', '1', '2', '3'], 'default': '3', 'variable type': str}}
+    obj = {'f1': {'ll': 10, 'ul':200, 'goal': 'lt', 'variable type': float}}
+    bb.initialize_abstract_level_3(design_variables=dv,objectives=obj)
+    bb.set_attr(sm_type='tsp_benchmark')
+    bb.set_attr(_sm=moo.optimization_test_functions('tsp'))
+    bb.connect_agent(ka_rp.KaLocalHC, 'ka_rp')
+    rp = ns.proxy('ka_rp')
+    rp.set_attr(step_limit=10)
+    rp.set_random_seed(seed=109873)
+    rp.set_attr(hc_type='steepest ascent')
+    
+    bb.update_abstract_lvl(3, 'core_[3, 1, 2, 0]', {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'},
+                                                   'objective functions': {'f1': 95.0},
+                                                   'constraints': {}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[3, 1, 2, 0]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+
+    rp.set_attr(new_designs=['core_[3, 1, 2, 0]'])
+   
+    rp.search_method()
+    time.sleep(0.5)
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new']) ==  ['core_[0, 1, 0, 3]', 'core_[0, 1, 0, 1]', 'core_[0, 1, 0, 0]']
+    
     ns.shutdown()
     time.sleep(0.05)
     

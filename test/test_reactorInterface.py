@@ -7,10 +7,8 @@ h5_interface.create_h5()
 for root, dirs, files in os.walk('test/mcnp_output/'):
     for file in files:
         if '.out' in file and 'checkpoint' not in file:
-            try:
-                h5_interface.add_reactor(file, path=root)  
-            except ValueError:
-                pass
+            h5_interface.add_reactor(file, path=root)  
+
 rx = rI.reactorInterface(h5_interface.h5file['FS65_H75_23Pu4U10Zr'])
 
             
@@ -86,12 +84,6 @@ def test_get_bu_list():
     assert time == [0,50,100,150,200,250,300]
     assert keff == [1.20837, 1.19608, 1.18370, 1.17161, 1.15918, 1.14671, 1.13466]
     assert power_fraction == [1.765E-2, 1.746E-2, 1.734E-2, 1.723E-2, 1.710E-2, 1.695E-2, 1.684E-2]
-    
-def test_get_assem_avg():
-    avg_pow = rx.get_assembly_avg(300, 'power fraction')
-    assert round(avg_pow, 6) == 0.012987
-    avg_bu = rx.get_assembly_avg(300, 'burnup')
-    assert round(avg_bu, 6) == 38.055065
 
 def test_get_assembly_to_avg():
     avg_pow = rx.get_assembly_to_avg(300, 'power fraction', '122')
