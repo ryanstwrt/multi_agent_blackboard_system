@@ -167,7 +167,12 @@ def test_explore_search_method():
     assert rp.get_attr('_entry_name') == None
     rp.search_method()
     assert rp.get_attr('current_design_variables') == {'height': 62.51066, 'smear': 64.40649, 'pu_content': 0.00011, 'position': 'exp_d', 'experiments': {'0':'exp_a', 'random variable': 0.18468}}
+    rp.set_random_seed(seed=2)
+    #This entry is the first for seed 2, so we should skip it and get a new entry
+    rp.set_attr(_lvl_data={'core_[55.58781, 56.91121, 0.39677, exp_c, no_exp, 0.83839]': {}})
     rp.search_method()
+
+    assert rp.get_attr('_entry_name') == 'core_[63.07985, 50.51852, 0.54966, exp_c, exp_d, 0.84074]'
     
     ns.shutdown()
     time.sleep(0.05)
@@ -294,14 +299,15 @@ def test_kalhc_search_method():
                                                   'variable type': dict}})   
     rp.generate_lhc()
     lhd = rp.get_attr('lhd')[0]
-    
+    rp.set_attr(_lvl_data={'core_[64.7868, 55.4668, 0.60948, exp_b, exp_b, 0.27916]': {}})
     rp.search_method()
     design = rp.get_attr('current_design_variables')
     assert lhd == [0.49289349476842825, 0.27333988805820186, 0.6094827107430164, 0.28938241131245845, 0.7480195854625139, 0.1395797709205764]
-    assert design == {'height': 64.7868, 'smear': 55.4668, 'pu_content': 0.60948, 'position': 'exp_b', 'experiments': {'0': 'exp_b', 'random variable': 0.27916}}
+    assert design == {'height': 68.04896, 'smear': 63.82976, 'pu_content': 0.52104, 'position': 'exp_d', 'experiments': {'0': 'exp_b', 'random variable': 1.93726}}
+    
+    
     ns.shutdown()
     time.sleep(0.05) 
-
     
 def test_kalocal_search_method_discrete():
     ns = run_nameserver()
@@ -712,7 +718,8 @@ def test_determine_step_steepest_ascent():
     rp = ka.proxy('ka_rp_exploit')
     rp.set_attr(hc_type='steepest ascent')
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
-                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12},
+                                                          'constraints': {'eol keff': 1.1}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -722,9 +729,11 @@ def test_determine_step_steepest_ascent():
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
     base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 60.12}},
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 60.12},
+                                                          'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 67.12}}}
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 67.12},
+                                                          'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
     assert diff == 0.09
@@ -734,9 +743,11 @@ def test_determine_step_steepest_ascent():
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
     base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 680.11, 'burnup' : 61.12}},
+                                      'objective functions': {'reactivity swing' : 680.11, 'burnup' : 61.12},
+                                                          'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 61.12}}}
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 61.12},
+                                                          'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
     assert round(diff, 3) == 0.053
@@ -746,9 +757,11 @@ def test_determine_step_steepest_ascent():
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
     base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 60.12}},
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 60.12},
+                                                          'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 680.11, 'burnup' : 67.12}}}
+                                      'objective functions': {'reactivity swing' : 680.11, 'burnup' : 67.12},
+                                                          'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
     assert round(diff, 3) == 0.138
@@ -758,9 +771,11 @@ def test_determine_step_steepest_ascent():
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
     base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12}},
+                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12},
+                                                          'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12}}}
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12},
+                                                          'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
     assert round(diff, 3) == 0.078
@@ -770,9 +785,25 @@ def test_determine_step_steepest_ascent():
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
     base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12}},
+                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12},
+                                                          'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12}}}
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12},
+                                                          'constraints': {'eol keff': 1.1}}}
+    pert, diff = rp.determine_step(base, base_design, design_dict)
+    
+    assert diff  == None
+    assert pert == None
+    
+    # Test a postive a change in both objectives (both have of ~0.078, but + pu_content is slightly greater})
+    base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
+    design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
+                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12},
+                                                          'constraints': {'eol keff': 0.9}},
+                   '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12},
+                                                          'constraints': {'eol keff': 2.8}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
     assert diff  == None
@@ -797,7 +828,8 @@ def test_determine_step_simple():
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12},
+                                                          'constraints': {'eol keff': 1.1}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
@@ -807,9 +839,11 @@ def test_determine_step_simple():
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
     base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 60.12}},
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 60.12},
+                                                          'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 67.12}}}
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 67.12},
+                                                          'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
     assert pert == '+ height'
@@ -818,11 +852,14 @@ def test_determine_step_simple():
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
     base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 60.12}},
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 60.12},
+                                                          'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 67.12}},
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 67.12},
+                                                          'constraints': {'eol keff': 1.1}},
                    '- height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 650.11, 'burnup' : 62.12}}}
+                                      'objective functions': {'reactivity swing' : 650.11, 'burnup' : 62.12},
+                                                          'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
     assert pert == '+ height' or '- height'
@@ -858,9 +895,11 @@ def test_determine_step_simple_discrete_dv():
     base = {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'}
     base_design =  {'f1': 100}
     design_dict = {'+ x0' : {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'}, 
-                           'objective functions': {'f1': 95}},
+                           'objective functions': {'f1': 95},
+                                                          'constraints': {}},
                    '+ x1' : {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'}, 
-                           'objective functions': {'f1': 81}}}
+                           'objective functions': {'f1': 81},
+                                                          'constraints': {}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     assert pert == '+ x1'
     assert round(diff, 5) == 0.15833
@@ -899,7 +938,7 @@ def test_kalocalhc():
     rp.search_method()
     time.sleep(0.05)
     
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] ==  ['core_[65.0, 65.0, 0.378]', 'core_[65.0, 65.0, 0.3402]', 'core_[65.0, 65.0, 0.30618]', 'core_[65.0, 65.0, 0.27556]', 'core_[65.0, 65.0, 0.248]', 'core_[65.0, 65.0, 0.2232]', 'core_[65.0, 65.0, 0.20088]', 'core_[65.0, 65.0, 0.18079]', 'core_[65.0, 65.0, 0.16271]', 'core_[71.5, 65.0, 0.16271]', 'core_[78.65, 65.0, 0.16271]', 'core_[78.65, 65.0, 0.14644]', 'core_[78.65, 65.0, 0.1318]', 'core_[78.65, 65.0, 0.11862]', 'core_[78.65, 68.25, 0.11862]', 'core_[78.65, 68.25, 0.12455]', 'core_[78.65, 69.95625, 0.12455]', 'core_[78.65, 69.95625, 0.12144]', 'core_[79.63313, 69.95625, 0.12144]', 'core_[79.63313, 69.95625, 0.12296]', 'core_[79.63313, 69.95625, 0.1245]', 'core_[79.63313, 69.95625, 0.12606]', 'core_[79.63313, 69.95625, 0.12527]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] ==  ['core_[65.0, 65.0, 0.378]', 'core_[65.0, 65.0, 0.3402]', 'core_[65.0, 65.0, 0.30618]', 'core_[65.0, 65.0, 0.27556]', 'core_[65.0, 65.0, 0.248]', 'core_[65.0, 65.0, 0.2232]', 'core_[65.0, 65.0, 0.20088]', 'core_[65.0, 65.0, 0.18079]', 'core_[65.0, 65.0, 0.16271]', 'core_[65.0, 65.8125, 0.16271]', 'core_[65.0, 65.8125, 0.16068]', 'core_[65.0, 65.8125, 0.15867]', 'core_[65.0, 65.8125, 0.15669]', 'core_[65.8125, 65.8125, 0.15669]', 'core_[65.8125, 65.8125, 0.15473]', 'core_[65.8125, 65.8125, 0.1528]', 'core_[65.8125, 65.8125, 0.15089]', 'core_[66.63516, 65.8125, 0.15089]', 'core_[66.63516, 65.8125, 0.149]', 'core_[66.63516, 65.8125, 0.14714]', 'core_[67.4681, 65.8125, 0.14714]', 'core_[67.4681, 65.8125, 0.1453]', 'core_[68.31145, 65.8125, 0.1453]', 'core_[69.16534, 65.8125, 0.1453]', 'core_[70.02991, 65.8125, 0.1453]', 'core_[70.90528, 65.8125, 0.1453]', 'core_[71.7916, 65.8125, 0.1453]', 'core_[72.689, 65.8125, 0.1453]', 'core_[73.59761, 65.8125, 0.1453]', 'core_[74.51758, 65.8125, 0.1453]', 'core_[75.44905, 65.8125, 0.1453]', 'core_[76.39216, 65.8125, 0.1453]', 'core_[77.34706, 65.8125, 0.1453]', 'core_[78.3139, 65.8125, 0.1453]', 'core_[79.29282, 65.8125, 0.1453]', 'core_[79.29282, 66.63516, 0.1453]', 'core_[79.29282, 67.4681, 0.1453]', 'core_[79.29282, 68.31145, 0.1453]', 'core_[79.29282, 69.16534, 0.1453]', 'core_[79.29282, 69.16534, 0.14348]', 'core_[79.29282, 69.16534, 0.14169]', 'core_[79.29282, 69.16534, 0.13992]', 'core_[79.29282, 69.16534, 0.13817]', 'core_[79.29282, 69.16534, 0.13644]', 'core_[79.29282, 69.16534, 0.13473]', 'core_[79.29282, 69.16534, 0.13305]', 'core_[79.29282, 69.16534, 0.13139]', 'core_[79.29282, 69.16534, 0.12975]', 'core_[79.29282, 69.16534, 0.12813]', 'core_[79.29282, 69.16534, 0.12653]', 'core_[79.29282, 69.16534, 0.12495]', 'core_[79.7884, 69.16534, 0.12495]', 'core_[79.7884, 69.59762, 0.12495]', 'core_[79.7884, 69.59762, 0.12573]', 'core_[79.7884, 69.59762, 0.12652]']
    
     ns.shutdown()
     time.sleep(0.05)
@@ -936,7 +975,7 @@ def test_kalocalhc_simple():
     ns.shutdown()
     time.sleep(0.05)
 
-def test_determine_step_simple_discrete_dv():
+def test_kchc_search_method_discrete_dv():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)
     dv = {'x0' : {'options': ['0', '1', '2', '3'], 'default': '0', 'variable type': str},

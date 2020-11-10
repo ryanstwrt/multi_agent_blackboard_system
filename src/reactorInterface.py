@@ -94,13 +94,19 @@ class reactorInterface(object):
     def get_doppler_coefficient(self):
         """Calculate the Doppler Coefficient for the reactor"""
         keff_low = self.rx_temp['keff'][0]
-        keff_high = self.rx_base['keff'][0]
+        try:
+            keff_high = self.rx_base['keff'][0]
+        except:
+            keff_high = self.rx_step_params['step_0']['keff'][0]
         doppler = (keff_high - keff_low) / (keff_high*keff_low) * 1E5
         return doppler
     
     def get_void_coefficient(self):
         """Calculate the void coefficient"""
-        keff_base = self.rx_base['keff'][0]
+        try:
+            keff_base = self.rx_base['keff'][0]
+        except:
+            keff_base = self.rx_step_params['step_0']['keff'][0]
         keff_void = self.rx_void['keff'][0]
         void = (keff_void - keff_base) / (keff_void*keff_base*99.99) *1E5
         return void

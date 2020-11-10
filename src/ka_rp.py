@@ -356,6 +356,11 @@ class KaLHC(KaRp):
             else:
                 self.current_design_variables[dv] = round(cur_design[num] * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
             num += 1
+            
+        self._entry_name = self.get_design_name(self.current_design_variables)
+        if self._entry_name in self._lvl_data.keys():
+            self.search_method()
+            
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
         
     def handler_trigger_publish(self, message):
@@ -479,7 +484,7 @@ class KaLocal(KaRp):
         design_ = self._lvl_data[core]['design variables']
         pert = self.perturbation_size if self.neighboorhod_search == 'fixed' else random.uniform(0,self.perturbation_size)
         perts = [1.0 - pert, 1.0 + pert]
-            
+        pert_designs = []
             
         for dv, dv_value in design_.items():
             design = copy.copy(design_)
@@ -487,14 +492,21 @@ class KaLocal(KaRp):
                 options = copy.copy(self._design_variables[dv]['options'])
                 options.remove(design[dv])
                 design[dv] = str(random.choice(options))
-                self.current_design_variables = design
-                self.determine_model_applicability(dv)
+                pert_designs.append((dv,design))
             else:
                 for pert in perts:
                     design[dv] = round(dv_value * pert, self._design_accuracy)
-                    self.current_design_variables = design
-                    self.determine_model_applicability(dv)
+                    pert_designs.append((dv,design))
                     design = copy.copy(design_)
+        
+        for dv, design in pert_designs:
+            self.current_design_variables = design
+            self._entry_name = self.get_design_name(self.current_design_variables)
+            if self._entry_name in self._lvl_data.keys():
+                self.log_debug('Core {} not examinedl found same core in level {}'.format(self._entry_name, self.bb_lvl))
+            else:
+                self.determine_model_applicability(dv)
+        
         self.analyzed_design[core] = {'Analyzed': True}
 
     def read_bb_lvl(self, lvl):
@@ -558,29 +570,35 @@ class KaLocalHC(KaLocal):
         while step > self.convergence_criteria:
             gradient_vector = {}
             next_step = None
+            
             # Calculate our gradient vector
             for dv, dv_dict in self._design_variables.items():
+                potential_steps = []
                 if dv_dict['variable type'] == float:
                     for direction in ['+', '-']:
                         temp_design = copy.copy(step_design)
                         temp_design[dv] += temp_design[dv] * step if direction == '+' else temp_design[dv] * -step
                         temp_design[dv] = round(temp_design[dv], self._design_accuracy)
-                    
-                        if temp_design[dv] >= dv_dict['ll'] and temp_design[dv] <= dv_dict['ul'] and self.get_design_name(temp_design) not in self._lvl_data.keys():
-                            self.current_design_variables = temp_design
-                            self.calc_objectives()
-                            gradient_vector['{} {}'.format(direction,dv)] = {'design variables': temp_design, 
-                                                                             'objective functions': {k:v for k,v in self.current_objectives.items()}}
+                        if temp_design[dv] >= dv_dict['ll'] and temp_design[dv] <= dv_dict['ul']:
+                            potential_steps.append((direction, temp_design))
+
                 else:
                     temp_design = copy.copy(step_design)
                     options = copy.copy(dv_dict['options'])
                     options.remove(step_design[dv])
                     temp_design[dv] = str(random.choice(options))
-                    if self.get_design_name(temp_design) not in self._lvl_data.keys():
-                        self.current_design_variables = temp_design
+                    potential_steps.append(('+', temp_design))
+
+                for direction, design in potential_steps:
+                    self.current_design_variables = design
+                    self._entry_name = self.get_design_name(self.current_design_variables)
+                    if self._entry_name in self._lvl_data.keys():
+                        self.log_debug('Core {} not examined, found same core in level {}'.format(self._entry_name, self.bb_lvl))
+                    else:
                         self.calc_objectives()
-                        gradient_vector['+ {}'.format(dv)] = {'design variables': temp_design, 
-                                                              'objective functions': {k:v for k,v in self.current_objectives.items()}}
+                        gradient_vector['{} {}'.format(direction,dv)] = {'design variables': self.current_design_variables, 
+                                                                         'objective functions': {k:v for k,v in self.current_objectives.items()},
+                                                                        'constraints': self.current_constraints}
                     
             # Determine which step is the steepest, update our design, and write this to the BB
             if gradient_vector:
@@ -620,6 +638,7 @@ class KaLocalHC(KaLocal):
             dv_dict = self._design_variables[dv]
             design[pert_dv] = {}
             design[pert_dv]['total'] = 0
+            
             for name, obj_dict in self._objectives.items():
                 base_obj = base_design[name]
                 new_obj = dict_['objective functions'][name]
@@ -638,10 +657,14 @@ class KaLocalHC(KaLocal):
 
                     if derivative > 0 and self.hc_type == 'simple':
                         return(pert_dv, derivative)
-            if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total']:
+                    
+            truth = True
+            for constraint, val in dict_['constraints'].items():
+                if val <= self._constraints[constraint]['ll'] or val >= self._constraints[constraint]['ul']:
+                    truth = False
+            if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total'] and truth:
                 best_design = design[pert_dv]
                 best_design['pert'] = pert_dv
-                print(best_design)
              
         if best_design['total'] > 0:
             return (best_design['pert'], best_design['total'])
