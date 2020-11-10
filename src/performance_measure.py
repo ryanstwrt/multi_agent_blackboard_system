@@ -114,7 +114,17 @@ class diversity_comparison_indicator(object):
             if optimal:
                 pf.update({solution_name: solution_1})
         self._pf = pf
-                            
+    
+    def _convert_to_minimize(self, obj, obj_val):
+        goal = self.goal[obj]
+        if goal == 'gt':
+            return -obj_val
+        elif goal =='lt':
+            return obj_val
+        elif goal[0] =='et':
+            target = self.goal[obj][1]
+            return abs(target - obj_val)        
+    
     def _determine_dominated_solutions(self, sol_1):
         """
         Determine if one solutions dominates another
@@ -122,9 +132,9 @@ class diversity_comparison_indicator(object):
         for sol_2 in self._pf.values():
             optimal = 0
             if sol_1 != sol_2:
-                for obj, goal in self.goal.items():
-                    sol_1_val = -sol_1[obj] if goal == 'gt' else sol_1[obj]
-                    sol_2_val = -sol_2[obj] if goal == 'gt' else sol_2[obj]
+                for obj in self.goal.keys():
+                    sol_1_val = self._convert_to_minimize(obj, sol_1[obj])
+                    sol_2_val = self._convert_to_minimize(obj, sol_2[obj])
                     optimal += 1 if sol_1_val <= sol_2_val else 0
                 if optimal == 0:
                     return False

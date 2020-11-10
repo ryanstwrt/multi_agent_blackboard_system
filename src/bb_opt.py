@@ -31,7 +31,7 @@ class BbOpt(blackboard.Blackboard):
         self.objectives = {'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float},
                            'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
-                           'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}
+                           'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float},}
         self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
                                  'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
                                  'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
@@ -225,7 +225,14 @@ class BbOpt(blackboard.Blackboard):
             return
         
         total_pf = [current_pf, self.previous_pf]
-        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, self.convergence_model['div'])
+        goal = {}
+        for obj_name, obj in self.objectives.items():
+            if obj['goal'] == 'et':
+                goal.update({obj_name: (obj['goal'], obj['target'])})
+            else:
+                goal.update({obj_name: obj['goal']})
+        
+        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, goal=goal, div=self.convergence_model['div'])
         dci._grid_generator()
         dci.compute_dci(current_pf)
         current_dci = dci.dci
@@ -330,7 +337,8 @@ class BbOpt(blackboard.Blackboard):
                       'burnup': 'Burnup (GWD/MTHM)',
                       'cycle length': 'Cycle Length (days)',
                       'pu mass': 'Pu Mass (kg/year)',
-                      'reactivity swing' : 'Rx Swing (pcm/month)'}
+                      'reactivity swing' : 'Rx Swing (pcm/month)',
+                      'eol keff': 'EOC k-eff'}
         dv_labels = {'height' : 'Height (cm)',
                      'smear' : 'Smear',
                      'pu_content' : 'Pu Fraction'}

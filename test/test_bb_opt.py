@@ -437,7 +437,7 @@ def test_convergence_indicator_dci_hvi():
                                                           'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0}}, panel='old')
         
     bb.convergence_indicator()
-    assert bb.get_attr('dci_convergence_list') == [0.0,  0.5]
+    assert bb.get_attr('dci_convergence_list') == [0.0,  1.0]
 
     ns.shutdown()
     time.sleep(0.05) 

@@ -83,6 +83,33 @@ def test_kabr_scale_objective_list():
     ns.shutdown()
     time.sleep(0.05)  
     
+def test_kabr_convert_to_minimize():
+    ns = run_nameserver()
+    ka_b = run_agent(name='ka_br', base=ka_br.KaBr)    
+    ka_b.set_attr(_objectives= {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+                                'burnup':            {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
+                                'keff':              {'ll':1.0, 'ul':2.0,  'target': 1.5, 'goal':'et', 'variable type': float}})
+    assert ka_b.convert_to_minimize('burnup', 200) == -200
+    assert ka_b.convert_to_minimize('reactivity swing', 200) == 200
+    assert ka_b.convert_to_minimize('keff', 1.25) == 0.25
+    assert ka_b.convert_to_minimize('keff', 1.75) == 0.25
+    ns.shutdown()
+    time.sleep(0.05) 
+
+def test_kabr_convert_scaled_objective_to_minimzation():
+    ns = run_nameserver()
+    ka_b = run_agent(name='ka_br', base=ka_br.KaBr)    
+    ka_b.set_attr(_objectives= {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+                                'burnup':            {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
+                                'keff':              {'ll':1.0, 'ul':2.0,  'target': 1.5, 'goal':'et', 'variable type': float}})
+    assert ka_b.convert_scaled_objective_to_minimzation('burnup', 0.75) == 0.25
+    assert ka_b.convert_scaled_objective_to_minimzation('reactivity swing', 0.6) == 0.6
+    assert round(ka_b.convert_scaled_objective_to_minimzation('keff', 0.4),2) == 0.2
+    assert round(ka_b.convert_scaled_objective_to_minimzation('keff', 0.6),2) == 0.2
+
+    ns.shutdown()
+    time.sleep(0.05) 
+    
 def test_kabr_update_abstract_level():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
@@ -317,6 +344,29 @@ def test_kabr_lvl1_calculate_hvi_contribution():
     assert ka_br1.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 
                                             'core_[70.0, 60.0, 0.50]': 0.0625,
                                             'core_[75.0, 55.0, 0.30]': 0.0625}
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
+def test_kabr_lvl1_calculate_hvi_contribution_equal_to():
+    ns = run_nameserver()
+    ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
+    ka_br1.set_attr(_lower_objective_reference_point=[0,0,0])
+    ka_br1.set_attr(_upper_objective_reference_point=[1,1,1])
+    ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                              'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
+    ka_br1.set_attr(_lvl_data={'core_[65.0, 65.0, 0.42]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                           'objective functions': {'reactivity swing' : 250.0, 'burnup' : 25.0, 'keff': 1.05}},
+                               'core_[75.0, 55.0, 0.30]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+                                                           'objective functions': {'reactivity swing' : 250.0, 'burnup' : 25.0, 'keff': 1.15}}})
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float},
+            'keff':             {'ll':1.0,   'ul':1.2, 'target':1.10, 'goal':'et', 'variable type': float},}
+    ka_br1.set_attr(_objectives=objs)
+    ka_br1.calculate_hvi_contribution()
+
+    assert ka_br1.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.09375, 
+                                            'core_[75.0, 55.0, 0.30]': 0.09375}
     
     ns.shutdown()
     time.sleep(0.05)
@@ -573,7 +623,24 @@ def test_kabr_lvl2_init():
     
     ns.shutdown()
     time.sleep(0.05)
-
+    
+def test_kabr_lvl2_convert_fitness_to_minimzation():
+    ns = run_nameserver()
+    ka_br2 = run_agent(name='ka_br2', base=ka_br.KaBr_lvl2)
+    ka_br2.set_attr(_objectives = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+                                   'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
+                                   'keff':              {'ll':1.0, 'ul':2.0,  'target': 1.5, 'goal':'et', 'variable type': float}})
+    
+    assert ka_br2.convert_fitness_to_minimzation('burnup', 0.75) == 0.75
+    assert ka_br2.convert_fitness_to_minimzation('reactivity swing', 0.6) == 0.4
+    assert round(ka_br2.convert_fitness_to_minimzation('keff', 0.45),2) == 0.9                    
+    assert round(ka_br2.convert_fitness_to_minimzation('keff', 0.55),2) == 0.9
+    assert round(ka_br2.convert_fitness_to_minimzation('keff', 0.15),2) == 0.3                  
+    assert round(ka_br2.convert_fitness_to_minimzation('keff', 0.95),2) == 0.1
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
 def test_kabr_lvl2_update_abstract_levels():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)

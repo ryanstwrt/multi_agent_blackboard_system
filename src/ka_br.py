@@ -87,10 +87,6 @@ class KaBr(ka.KaBase):
         
         self._num_entries = len(self.lvl_read)
         
- #       trig_prob = self._num_entries / self._num_allowed_entries if new_entry else 0
- #       self._trigger_val = self._trigger_val_base if trig_prob > 0 else 0
-#        print('New Entry: {}    trig prob: {}    Num Entries: {}'.format(new_entry, trig_prob, self._num_entries))
-        
         self._trigger_val = 0
         if self.read_bb_lvl():
             self._trigger_val = self._num_entries / self._num_allowed_entries * self._trigger_val_base if self._num_entries > self._num_allowed_entries else self._trigger_val_base
@@ -130,9 +126,9 @@ class KaBr(ka.KaBase):
         """Determine if the solution is Pareto, weak, or not optimal"""
         optimal = 0
         pareto_optimal = 0
-        for param, obj_dict in self._objectives.items():
-            new_val = -new_rx[param] if obj_dict['goal'] == 'gt' else new_rx[param]
-            opt_val = -opt_rx[param] if obj_dict['goal'] == 'gt' else opt_rx[param]           
+        for obj in self._objectives.keys():
+            new_val = self.convert_to_minimize(obj, new_rx[obj])
+            opt_val = self.convert_to_minimize(obj, opt_rx[obj])       
             optimal += 1 if new_val <= opt_val else 0
             pareto_optimal += 1 if new_val < opt_val else 0
             
@@ -142,7 +138,37 @@ class KaBr(ka.KaBase):
             return 'weak'
         else:
             return None
-    
+        
+    def convert_to_minimize(self, obj, obj_val):
+        """
+        Converts maximization and equal to goals to a minimization problem
+        """
+        
+        goal = self._objectives[obj]['goal']
+        if goal == 'gt':
+            return -obj_val
+        elif goal =='lt':
+            return obj_val
+        elif goal =='et':
+            target = self._objectives[obj]['target']
+            return abs(target - obj_val)
+        
+    def convert_scaled_objective_to_minimzation(self, obj, obj_val):
+        """
+        Convert the sclaed objective value to a minimization problem
+        """
+        
+        goal = self._objectives[obj]['goal']
+        if goal == 'gt':
+            return 1.0 - obj_val
+        elif goal =='lt':
+            return obj_val
+        elif goal =='et':
+            target = self.scale_objective(self._objectives[obj]['target'],
+                                          self._objectives[obj]['ll'],
+                                          self._objectives[obj]['ul'])
+            return 2.0 * abs(target - obj_val)  
+            
     def scale_objective(self, val, ll, ul):
         """Scale an objective based on the upper/lower value"""
         if val < ll or val > ul:
@@ -317,7 +343,7 @@ class KaBr_lvl1(KaBr):
                     scaled_obj = self.scale_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'])
                 elif self._objectives[obj]['variable type'] == list:
                     scaled_obj = self.scale_list_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'], self._objectives[obj]['goal type'])
-                design_objectives.append(scaled_obj if self._objectives[obj]['goal'] == 'lt' else (1.0-scaled_obj))
+                design_objectives.append(round(self.convert_scaled_objective_to_minimzation(obj, scaled_obj), 7))
             scaled_pf.append(design_objectives)
         return scaled_pf
 
@@ -334,6 +360,7 @@ class KaBr_lvl1(KaBr):
                 designs_to_remove.append(design_name)
             else:
                 self._hvi_dict[design_name] = design_hvi_contribution
+        
         if designs_to_remove != []:
             self.remove_dominated_entries(designs_to_remove)
             
@@ -351,7 +378,14 @@ class KaBr_lvl1(KaBr):
         pf = {name: {obj: self.get_objective_value(name, obj) for obj in self._objectives.keys()} for name in self.lvl_read.keys()}
             
         # Place the PF in the DCI hypergrid
-        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, [pf], goal={obj_name: obj['goal'] for obj_name, obj in self._objectives.items()}, div=self.dci_div)
+        goal = {}
+        for obj_name, obj in self._objectives.items():
+            if obj['goal'] == 'et':
+                goal.update({obj_name: (obj['goal'], obj['target'])})
+            else:
+                goal.update({obj_name: obj['goal']})
+
+        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, [pf], goal=goal, div=self.dci_div)
         dci.compute_dci(pf)
         dc = dci.dc
         
@@ -448,7 +482,23 @@ class KaBr_lvl2(KaBr):
         
         self._trigger_val = 0
         self.agent_time = time.time() - t
-        self.action_complete()
+        self.action_complete()      
+    
+    def convert_fitness_to_minimzation(self, obj, obj_val):
+        """
+        Convert the fitness function value to a minimization problem
+        """
+        
+        goal = self._objectives[obj]['goal']
+        if goal == 'gt':
+            return obj_val
+        elif goal =='lt':
+            return 1.0 - obj_val
+        elif goal =='et':
+            target = self.scale_objective(self._objectives[obj]['target'],
+                                          self._objectives[obj]['ll'],
+                                          self._objectives[obj]['ul'])
+            return (1.0 - 2*abs(target - obj_val))
     
     def determine_fitness_function(self, core_name, core_objectives):
         """
@@ -461,7 +511,7 @@ class KaBr_lvl2(KaBr):
             elif type(core_objectives[param]) == list:
                 scaled_fit = self.scale_list_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'], obj_dict['goal type'])
             try:
-                fitness += scaled_fit if obj_dict['goal'] == 'gt' else (1-scaled_fit)
+                fitness += self.convert_fitness_to_minimzation(param, scaled_fit)
             except TypeError:
                 fitness += 0
 
