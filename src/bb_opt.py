@@ -81,8 +81,8 @@ class BbOpt(blackboard.Blackboard):
                 self._nadir_point.update({obj: -obj_dict['ul']})
                 self._ideal_point.update({obj: -obj_dict['ll']})
 
-        self.objectives_ll = [self._nadir_point[x] for x in self.objectives.keys()]
-        self.objectives_ul = [self._ideal_point[x] for x in self.objectives.keys()]
+        self.objectives_ll = [0.0 for x in self.objectives.keys()]
+        self.objectives_ul = [1.0 for x in self.objectives.keys()]
 
         dv  = self.create_level_format(self.design_variables)
         obj = self.create_level_format(self.objectives)
@@ -261,6 +261,41 @@ class BbOpt(blackboard.Blackboard):
                 if 'shutdown' in list(connections.keys()):
                     self.send(connections['shutdown'][0], "shutdown")
             self._complete = True
+
+    def scale_objective(self, val, ll, ul):
+        """Scale an objective based on the upper/lower value"""
+        if val < ll or val > ul:
+            return None
+        else:
+            return (val - ll) / (ul - ll)
+
+    def convert_scaled_objective_to_minimization(self, obj, obj_val):
+        """
+        Convert the sclaed objective value to a minimization problem
+        """
+        
+        goal = self.objectives[obj]['goal']
+        if goal == 'gt':
+            return 1.0 - obj_val
+        elif goal =='lt':
+            return obj_val
+        elif goal =='et':
+            target = self.scale_objective(self.objectives[obj]['target'],
+                                          self.objectives[obj]['ll'],
+                                          self.objectives[obj]['ul'])
+            return 2.0 * abs(target - obj_val) 
+    
+    def scale_pareto_front(self, pf):
+        scaled_pf = []
+        for x in pf:
+            design_objectives = []
+            # This part of the loop is identical to the determine fitness function... perhaps create a function in KA_RP and merge
+            for obj in self.objectives.keys():
+                scaled_obj = self.scale_objective(self.get_objective_value(x, obj), self.objectives[obj]['ll'], self.objectives[obj]['ul'])
+
+                design_objectives.append(round(self.convert_scaled_objective_to_minimization(obj, scaled_obj), 7))
+            scaled_pf.append(design_objectives)
+        return scaled_pf    
     
     def hv_indicator(self):
         """
@@ -268,13 +303,12 @@ class BbOpt(blackboard.Blackboard):
         """
         pf = []
         cores = [x for x in self.abstract_lvls['level 1']]
-        bb_lvl3 = self.abstract_lvls['level 3']['old']
-        for core in cores:
-            pf.append([self.get_objective_value(core, obj) if self.objectives[obj]['goal'] == 'lt' else -self.get_objective_value(core, obj) for obj in self.objectives.keys()])
+        pf = self.scale_pareto_front(cores)
+
         if self.convergence_model['type'] == 'dci hvi':
-            self.hv_list[self._trigger_event] = pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul)
+            self.hv_list[self._trigger_event] = round(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul),10)
         else:
-            self.hv_list.append(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul))
+            self.hv_list.append(round(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul),10))
             
     def get_hv_list(self):
         return self.hv_list

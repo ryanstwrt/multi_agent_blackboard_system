@@ -525,7 +525,11 @@ class Blackboard(Agent):
         temp_dict = {data_name: self.load_dataset(data_name, data, data_dict) for data_name, data in entry.items()}
         if panel and (panel not in self.abstract_lvls[lvl_name].keys()):
             self.add_panel(lvl_num, [x for x in self._panels[lvl_name]])
-        self.update_abstract_lvl(lvl_num, entry_name, temp_dict, panel=panel)              
+        # If the BB is sent an null entry, don't add anything
+        try:
+            self.update_abstract_lvl(lvl_num, entry_name, temp_dict, panel=panel)
+        except AttributeError:
+            pass
         
     def publish_trigger(self):
         """Send a trigger event message to all KAs."""

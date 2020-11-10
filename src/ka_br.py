@@ -350,7 +350,7 @@ class KaBr_lvl1(KaBr):
     def calculate_hvi_contribution(self):
         pf = [x for x in self.lvl_read.keys()]
         scaled_pf = self.scale_pareto_front(pf)
-        # Get the HVI from the blackboard rather than calculating it
+
         hvi = self.calculate_hvi(scaled_pf)
         designs_to_remove = []
         
