@@ -875,12 +875,18 @@ class KaLocalGA(KaLocal):
             dictionary of mutated design with one of the dezign variables changed within the perturbation size
         """
         dv_mutate = random.choice([x for x in self._design_variables.keys()])
-        ll = genotype[dv_mutate]*(1-self.perturbation_size)
-        ul = genotype[dv_mutate]*(1+self.perturbation_size)
-        genotype[dv_mutate] = round(random.random() * (ul - ll) + ll, self._design_accuracy)
-        # Check to make sure we don't violate upper/lower limits, if we do, set it to the limit.
-        genotype[dv_mutate] = min(self._design_variables[dv_mutate]['ul'], genotype[dv_mutate])
-        genotype[dv_mutate] = max(self._design_variables[dv_mutate]['ll'], genotype[dv_mutate])
+        if self._design_variables[dv_mutate]['variable type'] == str:
+            options = copy.copy(self._design_variables[dv_mutate]['options'])
+            options.remove(genotype[dv_mutate])
+            genotype[dv_mutate] = str(random.choice(options))
+        else:
+            ll = genotype[dv_mutate]*(1-self.perturbation_size)
+            ul = genotype[dv_mutate]*(1+self.perturbation_size)
+            genotype[dv_mutate] = round(random.random() * (ul - ll) + ll, self._design_accuracy)
+            # Check to make sure we don't violate upper/lower limits, if we do, set it to the limit.
+            genotype[dv_mutate] = min(self._design_variables[dv_mutate]['ul'], genotype[dv_mutate])
+            genotype[dv_mutate] = max(self._design_variables[dv_mutate]['ll'], genotype[dv_mutate])   
+            
         return genotype
     
     def non_uniform_mutation(self, genotype):
