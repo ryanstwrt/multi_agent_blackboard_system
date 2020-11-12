@@ -172,24 +172,24 @@ def test_linear_model():
     linear_model = model.models['lr']
     assert linear_model['model'] != None
     assert linear_model['fit'] != None
-    assert linear_model['score'] == 0.3546058200687729
-    assert linear_model['mse_score'] == 0.6453941799312272
+    assert round(linear_model['score'],6) == round(0.3546058200687729,6)
+    assert round(linear_model['mse_score'],6) == round(0.6453941799312272,6)
 
 def test_poly_model():
     model.set_model('pr')
     poly_model = model.models['pr']
     assert poly_model['model'] != None
     assert poly_model['fit'] != None
-    assert poly_model['score'] == -0.22259110245070493
-    assert poly_model['mse_score'] == 1.2225911024507052
+    assert round(poly_model['score'],6) == round(-0.22259110245070493,6)
+    assert round(poly_model['mse_score'],6) == round(1.2225911024507052,6)
 
 def test_grp_model():
     model.set_model('gpr')
     gpr_model = model.models['gpr']
     assert gpr_model['model'] != None
     assert gpr_model['fit'] != None
-    assert gpr_model['score'] == 0.0
-    assert gpr_model['mse_score'] == 1.0
+    assert round(gpr_model['score'],6) == round(0.0,6)
+    assert round(gpr_model['mse_score'],6) == round(1.0,6)
 
 def test_ann_model():
     model.set_model('ann')
@@ -197,21 +197,21 @@ def test_ann_model():
     assert ann_model['model'] != None
     assert ann_model['fit'] != None
     try:
-        assert ann_model['score'] == -0.8124181759959282
+        assert round(ann_model['score'],6) == round(-0.8124181759959282,6)
     except AssertionError:
-        assert ann_model['score'] == -1.1035757582289127
+        assert round(ann_model['score'],6) == round(-1.1035757582289127,6)
     try:
-        assert ann_model['mse_score'] == 1.8124181759959297
+        assert round(ann_model['mse_score'],6) == round(1.8124181759959297,6)
     except AssertionError:
-        assert ann_model['mse_score'] == 2.1035757582289114
+        assert round(ann_model['mse_score'],6) == round(2.1035757582289114,6)
         
 def test_rf_model():
     model.set_model('rf')
     rf_model = model.models['rf']
     assert rf_model['model'] != None
     assert rf_model['fit'] != None
-    assert rf_model['score'] == 0.1770111582876811
-    assert rf_model['mse_score'] == 0.822988841712319
+    assert round(rf_model['score'],6) == round(0.1770111582876811,6)
+    assert round(rf_model['mse_score'],6) == round(0.822988841712319,6)
 
 def test_add_model():
     ridge = linear_model.Ridge()
@@ -225,7 +225,7 @@ def test_set_added_model():
     ridge_model = model.models['ridge']
     assert ridge_model['model'] != None
     assert ridge_model['fit'] != None
-    assert ridge_model['score'] == 0.3602889061502321
+    assert round(ridge_model['score'],6) == round(0.3602889061502321,6)
 
 def test_add_hyper_parameter_update():
     assert model.hyper_parameters['ann'] == {'hidden_layer_sizes': (2,200,'log-uniform'),
@@ -254,11 +254,11 @@ def test_add_hyper_parameter_poly():
 def test_update_model():
     model.set_model('lr')
     linear_model = model.models['lr']
-    assert linear_model['score'] == 0.3546058200687729
+    assert round(linear_model['score'],6) == round(0.3546058200687729,6)
     model.update_database([[ 15, 150,  65,],[ 13, 550,  90,],], [[205,  38,  47,],[145,  32,  77,]])
     model.update_model('lr')
     linear2_model = model.models['lr']
-    assert linear2_model['score'] == -0.5475314374931772
+    assert round(linear2_model['score'],6) == round(-0.5475314374931772,6)
 
 def test_update_all_models():
     model2 = tm.Surrogate_Models()
@@ -273,12 +273,12 @@ def test_update_all_models():
     for model_type in model_list:
         model2.set_model(model_type)
     for model_type, model_score in zip(model_list, model_scores):
-        assert np.allclose(model2.models[model_type]['score'], model_score, rtol=1e-05)
+        assert round(model2.models[model_type]['score'],6) == round(model_score,6)
         
     model2.update_database([[ 15, 150,  65,],[ 13, 550,  90,],], [[205,  38,  47,],[145,  32,  77,]])
     model2.update_all_models()
     for model_type, model_score in zip(model_list, model_scores2):
-        assert np.allclose(model2.models[model_type]['score'], model_score, rtol=1e-5)
+        assert round(model2.models[model_type]['score'],6) == round(model_score,6)
 
 # TODO: Add tests for optimizing all regression techniques        
 
@@ -293,13 +293,13 @@ def test_optimize_pr():
 
     sm.set_model('pr')
     poly_model = sm.models['pr']
-    assert poly_model['score'] == -0.22259110245070493
-    assert poly_model['mse_score'] == 1.2225911024507052
+    assert round(poly_model['score'],6) == round(-0.22259110245070493,6)
+    assert round(poly_model['mse_score'],6) == round(1.2225911024507052,6)
     hyper_parameters = {'poly__degree': (2,4)}
     sm.optimize_model('pr', hyper_parameters)
     optimized_pr_model = sm.models['pr']
-    assert optimized_pr_model['score'] == -9.2227093574984
-    assert optimized_pr_model['mse_score'] == 10.222709357498402
+    assert round(optimized_pr_model['score'],6) == round(-9.2227093574984,6)
+    assert round(optimized_pr_model['mse_score'],6) == round(10.222709357498402,6)
     assert optimized_pr_model['hyper_parameters'] == {'poly__degree': 4}
     
 def test_optimize_rf():
@@ -314,16 +314,16 @@ def test_optimize_rf():
 
     sm.set_model('rf')
     ann_model = sm.models['rf']
-    assert ann_model['score'] == 0.42132316605554143
-    assert ann_model['mse_score'] == 0.5786768339444586
+    assert round(ann_model['score'],6) == round(0.42132316605554143,6)
+    assert round(ann_model['mse_score'],6) == round(0.5786768339444586,6)
 
     
     hyper_parameters = {'n_estimators': (100,200)}
     sm.optimize_model('rf', hyper_parameters)
     optimized_ann_model = sm.models['rf']
     assert optimized_ann_model['hyper_parameters'] == {'n_estimators': 149}
-    assert optimized_ann_model['score'] == 0.4251771319924367
-    assert optimized_ann_model['mse_score'] == 0.5748228680075633
+    assert round(optimized_ann_model['score'],6) == round(0.4251771319924367,6)
+    assert round(optimized_ann_model['mse_score'],6) == round(0.5748228680075633,6)
     
 def test_return_best_model():
     sm = tm.Surrogate_Models()
@@ -380,8 +380,8 @@ def test_mse():
     for known_mse, model_type in zip(mse_val, model_list):
         sm.set_model(model_type)
         try:
-            assert sm._get_mse(sm.models[model_type]['model']) == known_mse
+            assert round(sm._get_mse(sm.models[model_type]['model']),6) == round(known_mse,6)
         except AssertionError:
-            # except for Travis-CI testing - likely due to old verion sof some package
-            assert sm._get_mse(sm.models[model_type]['model']) == 2.1035757582289114
+            # except for Travis-CI testing - likely due to old verion of some package
+            assert round(sm._get_mse(sm.models[model_type]['model']),6) == round(2.1035757582289114,6)
             

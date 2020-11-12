@@ -143,7 +143,7 @@ def test_get_design_name():
     
     current_design_variables={'height': 62.51066, 'smear': 64.40649, 'pu_content': 0.00011, 'position': 'exp_d', 'experiments': {'0':'exp_a', 'random variable': 0.18468}}
     name = rp.get_design_name(current_design_variables)
-    assert name == 'core_[62.51066, 64.40649, 0.00011, exp_d, exp_a, 0.18468]'
+    assert name == 'core_[62.51066,64.40649,0.00011,exp_d,exp_a,0.18468]'
     
     
     ns.shutdown()
@@ -169,10 +169,10 @@ def test_explore_search_method():
     assert rp.get_attr('current_design_variables') == {'height': 62.51066, 'smear': 64.40649, 'pu_content': 0.00011, 'position': 'exp_d', 'experiments': {'0':'exp_a', 'random variable': 0.18468}}
     rp.set_random_seed(seed=2)
     #This entry is the first for seed 2, so we should skip it and get a new entry
-    rp.set_attr(_lvl_data={'core_[55.58781, 56.91121, 0.39677, exp_c, no_exp, 0.83839]': {}})
+    rp.set_attr(_lvl_data={'core_[55.58781,56.91121,0.39677,exp_c,no_exp,0.83839]': {}})
     rp.search_method()
 
-    assert rp.get_attr('_entry_name') == 'core_[63.07985, 50.51852, 0.54966, exp_c, exp_d, 0.84074]'
+    assert rp.get_attr('_entry_name') == 'core_[63.07985,50.51852,0.54966,exp_c,exp_d,0.84074]'
     
     ns.shutdown()
     time.sleep(0.05)
@@ -299,7 +299,7 @@ def test_kalhc_search_method():
                                                   'variable type': dict}})   
     rp.generate_lhc()
     lhd = rp.get_attr('lhd')[0]
-    rp.set_attr(_lvl_data={'core_[64.7868, 55.4668, 0.60948, exp_b, exp_b, 0.27916]': {}})
+    rp.set_attr(_lvl_data={'core_[64.7868,55.4668,0.60948,exp_b,exp_b,0.27916]': {}})
     rp.search_method()
     design = rp.get_attr('current_design_variables')
     assert lhd == [0.49289349476842825, 0.27333988805820186, 0.6094827107430164, 0.28938241131245845, 0.7480195854625139, 0.1395797709205764]
@@ -471,10 +471,10 @@ def test_determine_model_applicability():
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
 
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     
@@ -491,7 +491,7 @@ def test_determine_model_applicability():
     rp.determine_model_applicability('height')
     time.sleep(0.05)
     
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[70.0, 65.0, 0.42]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[70.0,65.0,0.42]']
 
     ns.shutdown()
     time.sleep(0.05)
@@ -518,12 +518,12 @@ def test_exploit_handler_executor_pert():
     time.sleep(0.05)
     
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
-                                                           'core_[61.75, 65.0, 0.4]',
-                                                           'core_[68.25, 65.0, 0.4]',
-                                                           'core_[65.0, 61.75, 0.4]',
-                                                           'core_[65.0, 68.25, 0.4]',
-                                                           'core_[65.0, 65.0, 0.38]', 
-                                                           'core_[65.0, 65.0, 0.42]']
+                                                           'core_[61.75,65.0,0.4]',
+                                                           'core_[68.25,65.0,0.4]',
+                                                           'core_[65.0,61.75,0.4]',
+                                                           'core_[65.0,68.25,0.4]',
+                                                           'core_[65.0,65.0,0.38]',
+                                                           'core_[65.0,65.0,0.42]']
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
     
     ns.shutdown()
@@ -551,7 +551,7 @@ def test_exploit_handler_executor_rw():
 
     bb.send_executor()  
     time.sleep(0.05)
-    assert [k for k in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[65.0, 64.99541, 0.4]', 'core_[65.00093, 64.99541, 0.4]', 'core_[65.00093, 64.99541, 0.39677]', 'core_[65.01003, 64.99541, 0.39677]', 'core_[65.01003, 64.99541, 0.39262]', 'core_[65.01003, 64.9917, 0.39262]', 'core_[65.01003, 64.9831, 0.39262]', 'core_[65.01003, 64.9831, 0.38717]', 'core_[65.0023, 64.9831, 0.38717]', 'core_[65.0023, 64.98111, 0.38717]']
+    assert [k for k in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[65.0,64.99541,0.4]','core_[65.00093,64.99541,0.4]','core_[65.00093,64.99541,0.39677]','core_[65.01003,64.99541,0.39677]','core_[65.01003,64.99541,0.39262]','core_[65.01003,64.9917,0.39262]','core_[65.01003,64.9831,0.39262]','core_[65.01003,64.9831,0.38717]','core_[65.0023,64.9831,0.38717]','core_[65.0023,64.98111,0.38717]']
   
     ns.shutdown()
     time.sleep(0.05)  
@@ -590,24 +590,24 @@ def test_exploit_perturb_design():
     bb.connect_agent(ka_rp.KaLocal, 'ka_rp_exploit')
 
     rp = ns.proxy('ka_rp_exploit')
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
                               'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0, 'burnup' : 50.0}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
  
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0, 65.0, 0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0,65.0,0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.set_attr(new_designs=['core_[65.0, 65.0, 0.42]'])
+    rp.set_attr(new_designs=['core_[65.0,65.0,0.42]'])
     rp.search_method()
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == [
-                                                           'core_[61.75, 65.0, 0.4]', 
-                                                           'core_[68.25, 65.0, 0.4]',
-                                                           'core_[65.0, 61.75, 0.4]',
-                                                           'core_[65.0, 68.25, 0.4]',
-                                                           'core_[65.0, 65.0, 0.38]',]
-    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['old'].keys()] == ['core_[65.0, 65.0, 0.42]']
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0, 65.0, 0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+                                                           'core_[61.75,65.0,0.4]',
+                                                           'core_[68.25,65.0,0.4]',
+                                                           'core_[65.0,61.75,0.4]',
+                                                           'core_[65.0,68.25,0.4]',
+                                                           'core_[65.0,65.0,0.38]',]
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['old'].keys()] == ['core_[65.0,65.0,0.42]']
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0,65.0,0.42]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
 
     ns.shutdown()
     time.sleep(0.05)
@@ -616,10 +616,10 @@ def test_exploit_perturb_design():
 def test_exploit_perturb_design_discrete():
     ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)
-    dv = {'x0' : {'options': ['0', '1', '2', '3'], 'default': '0', 'variable type': str},
-          'x1' : {'options': ['0', '1', '2', '3'], 'default': '1', 'variable type': str},
-          'x2' : {'options': ['0', '1', '2', '3'], 'default': '2', 'variable type': str},
-          'x3' : {'options': ['0', '1', '2', '3'], 'default': '3', 'variable type': str}}
+    dv = {'x0' : {'options': ['0','1','2','3'],'default': '0','variable type': str},
+          'x1' : {'options': ['0','1','2','3'],'default': '1','variable type': str},
+          'x2' : {'options': ['0','1','2','3'],'default': '2','variable type': str},
+          'x3' : {'options': ['0','1','2','3'],'default': '3','variable type': str}}
     obj = {'f1': {'ll': 80, 'ul':200, 'goal': 'lt', 'variable type': float}}
     bb.initialize_abstract_level_3(design_variables=dv,objectives=obj)
     bb.set_attr(sm_type='tsp_benchmark')
@@ -634,10 +634,10 @@ def test_exploit_perturb_design_discrete():
                                                           'x2': '2',
                                                           'x3': '3'}}})
     rp.search_method()
-    assert bb.get_blackboard()['level 3']['new'] == {'core_[2, 1, 2, 3]': {'design variables': {'x0': '2', 'x1': '1', 'x2': '2', 'x3': '3'}, 'objective functions': {'f1': 135.0}, 'constraints': {}}, 
-                                                     'core_[0, 0, 2, 3]': {'design variables': {'x0': '0', 'x1': '0', 'x2': '2', 'x3': '3'}, 'objective functions': {'f1': 65.0}, 'constraints': {}}, 
-                                                     'core_[0, 1, 0, 3]': {'design variables': {'x0': '0', 'x1': '1', 'x2': '0', 'x3': '3'}, 'objective functions': {'f1': 60.0}, 'constraints': {}}, 
-                                                     'core_[0, 1, 2, 1]': {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '1'}, 'objective functions': {'f1': 90.0}, 'constraints': {}}}
+    assert bb.get_blackboard()['level 3']['new'] == {'core_[2,1,2,3]': {'design variables': {'x0': '2', 'x1': '1', 'x2': '2', 'x3': '3'}, 'objective functions': {'f1': 135.0}, 'constraints': {}}, 
+                                                     'core_[0,0,2,3]': {'design variables': {'x0': '0', 'x1': '0', 'x2': '2', 'x3': '3'}, 'objective functions': {'f1': 65.0}, 'constraints': {}}, 
+                                                     'core_[0,1,0,3]': {'design variables': {'x0': '0', 'x1': '1', 'x2': '0', 'x3': '3'}, 'objective functions': {'f1': 60.0}, 'constraints': {}}, 
+                                                     'core_[0,1,2,1]': {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '1'}, 'objective functions': {'f1': 90.0}, 'constraints': {}}}
     
     ns.shutdown()
     time.sleep(0.05)
@@ -687,18 +687,18 @@ def test_kalocalrw():
     rp = ka.proxy('ka_rp_exploit')
     rp.set_random_seed(seed=10893)
 
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.4]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4},
+    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.4]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4},
                                                           'objective functions': {'cycle length': 365.0, 'pu mass': 500.0, 'reactivity swing' : 600.0,'burnup' : 50.0}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.set_attr(new_designs=['core_[65.0, 65.0, 0.4]'])
+    rp.set_attr(new_designs=['core_[65.0,65.0,0.4]'])
     rp.search_method()
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0, 65.0, 0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[65.0,65.0,0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
     
     
-    assert list(bb.get_attr('abstract_lvls')['level 3']['new'].keys()) == ['core_[65.0, 64.99541, 0.4]', 'core_[65.00093, 64.99541, 0.4]', 'core_[65.00093, 64.99541, 0.39677]', 'core_[65.01003, 64.99541, 0.39677]', 'core_[65.01003, 64.99541, 0.39262]', 'core_[65.01003, 64.9917, 0.39262]', 'core_[65.01003, 64.9831, 0.39262]', 'core_[65.01003, 64.9831, 0.38717]', 'core_[65.0023, 64.9831, 0.38717]', 'core_[65.0023, 64.98111, 0.38717]']
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new'].keys()) == ['core_[65.0,64.99541,0.4]','core_[65.00093,64.99541,0.4]','core_[65.00093,64.99541,0.39677]','core_[65.01003,64.99541,0.39677]','core_[65.01003,64.99541,0.39262]','core_[65.01003,64.9917,0.39262]','core_[65.01003,64.9831,0.39262]','core_[65.01003,64.9831,0.38717]','core_[65.0023,64.9831,0.38717]','core_[65.0023,64.98111,0.38717]']
     ns.shutdown()
     time.sleep(0.05)
     
@@ -717,11 +717,11 @@ def test_determine_step_steepest_ascent():
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
     rp.set_attr(hc_type='steepest ascent')
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
                                                           'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12},
                                                           'constraints': {'eol keff': 1.1}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
@@ -827,11 +827,11 @@ def test_determine_step_simple():
     bb.connect_agent(ka_rp.KaLocalHC, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12},
                                                           'constraints': {'eol keff': 1.1}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
@@ -926,19 +926,19 @@ def test_kalocalhc():
     rp.set_attr(convergence_criteria=0.005)
     rp.set_attr(hc_type='steepest ascent')
     rp.set_random_seed(seed=1099)
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
-    bb.update_abstract_lvl(3, 'core_[78.65, 65.0, 0.42]', {'design variables': {'height': 78.65, 'smear': 65.0, 'pu_content': 0.42}, 
+    bb.update_abstract_lvl(3, 'core_[78.65,65.0,0.42]', {'design variables': {'height': 78.65, 'smear': 65.0, 'pu_content': 0.42}, 
                                                            'objective functions': {'reactivity swing' : 447.30449, 'burnup' : 490.0}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.set_attr(new_designs=['core_[65.0, 65.0, 0.42]'])
+    rp.set_attr(new_designs=['core_[65.0,65.0,0.42]'])
     rp.search_method()
     time.sleep(0.05)
     
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] ==  ['core_[65.0, 65.0, 0.378]', 'core_[65.0, 65.0, 0.3402]', 'core_[65.0, 65.0, 0.30618]', 'core_[65.0, 65.0, 0.27556]', 'core_[65.0, 65.0, 0.248]', 'core_[65.0, 65.0, 0.2232]', 'core_[65.0, 65.0, 0.20088]', 'core_[65.0, 65.0, 0.18079]', 'core_[65.0, 65.0, 0.16271]', 'core_[65.0, 65.8125, 0.16271]', 'core_[65.0, 65.8125, 0.16068]', 'core_[65.0, 65.8125, 0.15867]', 'core_[65.0, 65.8125, 0.15669]', 'core_[65.8125, 65.8125, 0.15669]', 'core_[65.8125, 65.8125, 0.15473]', 'core_[65.8125, 65.8125, 0.1528]', 'core_[65.8125, 65.8125, 0.15089]', 'core_[66.63516, 65.8125, 0.15089]', 'core_[66.63516, 65.8125, 0.149]', 'core_[66.63516, 65.8125, 0.14714]', 'core_[67.4681, 65.8125, 0.14714]', 'core_[67.4681, 65.8125, 0.1453]', 'core_[68.31145, 65.8125, 0.1453]', 'core_[69.16534, 65.8125, 0.1453]', 'core_[70.02991, 65.8125, 0.1453]', 'core_[70.90528, 65.8125, 0.1453]', 'core_[71.7916, 65.8125, 0.1453]', 'core_[72.689, 65.8125, 0.1453]', 'core_[73.59761, 65.8125, 0.1453]', 'core_[74.51758, 65.8125, 0.1453]', 'core_[75.44905, 65.8125, 0.1453]', 'core_[76.39216, 65.8125, 0.1453]', 'core_[77.34706, 65.8125, 0.1453]', 'core_[78.3139, 65.8125, 0.1453]', 'core_[79.29282, 65.8125, 0.1453]', 'core_[79.29282, 66.63516, 0.1453]', 'core_[79.29282, 67.4681, 0.1453]', 'core_[79.29282, 68.31145, 0.1453]', 'core_[79.29282, 69.16534, 0.1453]', 'core_[79.29282, 69.16534, 0.14348]', 'core_[79.29282, 69.16534, 0.14169]', 'core_[79.29282, 69.16534, 0.13992]', 'core_[79.29282, 69.16534, 0.13817]', 'core_[79.29282, 69.16534, 0.13644]', 'core_[79.29282, 69.16534, 0.13473]', 'core_[79.29282, 69.16534, 0.13305]', 'core_[79.29282, 69.16534, 0.13139]', 'core_[79.29282, 69.16534, 0.12975]', 'core_[79.29282, 69.16534, 0.12813]', 'core_[79.29282, 69.16534, 0.12653]', 'core_[79.29282, 69.16534, 0.12495]', 'core_[79.7884, 69.16534, 0.12495]', 'core_[79.7884, 69.59762, 0.12495]', 'core_[79.7884, 69.59762, 0.12573]', 'core_[79.7884, 69.59762, 0.12652]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] ==  ['core_[65.0,65.0,0.378]','core_[65.0,65.0,0.3402]','core_[65.0,65.0,0.30618]','core_[65.0,65.0,0.27556]','core_[65.0,65.0,0.248]','core_[65.0,65.0,0.2232]','core_[65.0,65.0,0.20088]','core_[65.0,65.0,0.18079]','core_[65.0,65.0,0.16271]','core_[65.0,65.8125,0.16271]','core_[65.0,65.8125,0.16068]','core_[65.0,65.8125,0.15867]','core_[65.0,65.8125,0.15669]','core_[65.8125,65.8125,0.15669]','core_[65.8125,65.8125,0.15473]','core_[65.8125,65.8125,0.1528]','core_[65.8125,65.8125,0.15089]','core_[66.63516,65.8125,0.15089]','core_[66.63516,65.8125,0.149]','core_[66.63516,65.8125,0.14714]','core_[67.4681,65.8125,0.14714]','core_[67.4681,65.8125,0.1453]','core_[68.31145,65.8125,0.1453]','core_[69.16534,65.8125,0.1453]','core_[70.02991,65.8125,0.1453]','core_[70.90528,65.8125,0.1453]','core_[71.7916,65.8125,0.1453]','core_[72.689,65.8125,0.1453]','core_[73.59761,65.8125,0.1453]','core_[74.51758,65.8125,0.1453]','core_[75.44905,65.8125,0.1453]','core_[76.39216,65.8125,0.1453]','core_[77.34706,65.8125,0.1453]','core_[78.3139,65.8125,0.1453]','core_[79.29282,65.8125,0.1453]','core_[79.29282,66.63516,0.1453]','core_[79.29282,67.4681,0.1453]','core_[79.29282,68.31145,0.1453]','core_[79.29282,69.16534,0.1453]','core_[79.29282,69.16534,0.14348]','core_[79.29282,69.16534,0.14169]','core_[79.29282,69.16534,0.13992]','core_[79.29282,69.16534,0.13817]','core_[79.29282,69.16534,0.13644]','core_[79.29282,69.16534,0.13473]','core_[79.29282,69.16534,0.13305]','core_[79.29282,69.16534,0.13139]','core_[79.29282,69.16534,0.12975]','core_[79.29282,69.16534,0.12813]','core_[79.29282,69.16534,0.12653]','core_[79.29282,69.16534,0.12495]','core_[79.7884,69.16534,0.12495]','core_[79.7884,69.59762,0.12495]','core_[79.7884,69.59762,0.12573]','core_[79.7884,69.59762,0.12652]']
    
     ns.shutdown()
     time.sleep(0.05)
@@ -961,16 +961,16 @@ def test_kalocalhc_simple():
     rp.set_attr(step_rate=0.01)
     rp.set_attr(convergence_criteria=0.001)
     rp.set_random_seed(seed=1073)
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
                                                           'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.set_attr(new_designs=['core_[65.0, 65.0, 0.42]'])
+    rp.set_attr(new_designs=['core_[65.0,65.0,0.42]'])
     rp.search_method()
     time.sleep(0.05)
-    assert list(bb.get_attr('abstract_lvls')['level 3']['new']) == ['core_[65.0, 65.0, 0.105]', 'core_[65.0, 65.0, 0.02625]', 'core_[65.0, 65.0, 0.04594]', 'core_[65.0, 65.0, 0.01149]', 'core_[65.0, 65.0, 0.00287]', 'core_[65.0, 65.0, 0.00072]', 'core_[65.0, 65.0, 0.00018]', 'core_[65.0, 65.0, 5e-05]', 'core_[65.0, 65.0, 9e-05]', 'core_[65.0, 65.0, 0.00016]', 'core_[65.0, 65.0, 0.00028]', 'core_[65.0, 65.0, 0.00049]', 'core_[65.0, 65.0, 0.00012]', 'core_[65.0, 65.0, 3e-05]', 'core_[65.0, 65.0, 1e-05]', 'core_[65.0, 65.0, 0.0]']
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new']) == ['core_[65.0,65.0,0.105]','core_[65.0,65.0,0.02625]','core_[65.0,65.0,0.04594]','core_[65.0,65.0,0.01149]','core_[65.0,65.0,0.00287]','core_[65.0,65.0,0.00072]','core_[65.0,65.0,0.00018]','core_[65.0,65.0,5e-05]','core_[65.0,65.0,9e-05]','core_[65.0,65.0,0.00016]','core_[65.0,65.0,0.00028]','core_[65.0,65.0,0.00049]','core_[65.0,65.0,0.00012]','core_[65.0,65.0,3e-05]','core_[65.0,65.0,1e-05]','core_[65.0,65.0,0.0]']
    
     ns.shutdown()
     time.sleep(0.05)
@@ -992,19 +992,19 @@ def test_kchc_search_method_discrete_dv():
     rp.set_random_seed(seed=109873)
     rp.set_attr(hc_type='steepest ascent')
     
-    bb.update_abstract_lvl(3, 'core_[3, 1, 2, 0]', {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'},
+    bb.update_abstract_lvl(3, 'core_[3,1,2,0]', {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'},
                                                    'objective functions': {'f1': 95.0},
                                                    'constraints': {}}, panel='old')
-    bb.update_abstract_lvl(1, 'core_[3, 1, 2, 0]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[3,1,2,0]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
 
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
-    rp.set_attr(new_designs=['core_[3, 1, 2, 0]'])
+    rp.set_attr(new_designs=['core_[3,1,2,0]'])
    
     rp.search_method()
     time.sleep(0.5)
-    assert list(bb.get_attr('abstract_lvls')['level 3']['new']) ==  ['core_[0, 1, 0, 3]', 'core_[0, 1, 0, 1]', 'core_[0, 1, 0, 0]']
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new']) ==  ['core_[0,1,0,3]','core_[0,1,0,1]','core_[0,1,0,0]']
     
     ns.shutdown()
     time.sleep(0.05)
@@ -1019,9 +1019,6 @@ def test_KaLocalGA():
 
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
-    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
     bb.initialize_abstract_level_3()
 
     bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_exploit')
@@ -1030,35 +1027,35 @@ def test_KaLocalGA():
     rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_trigger_number=2)
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.1]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.1}, 
+    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.1]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.1}, 
                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.25]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.25}, 
+    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0,60.0,0.25]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.25}, 
                                                           'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.25]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[70.0,60.0,0.25]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
 
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0, 65.0, 0.25]', 'core_[70.0, 60.0, 0.1]']
-    bb.update_abstract_lvl(3, 'core_[90.0, 80.0, 0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0,65.0,0.25]','core_[70.0,60.0,0.1]']
+    bb.update_abstract_lvl(3, 'core_[90.0,80.0,0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[90.0, 80.0, 0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
-    bb.update_abstract_lvl(3, 'core_[75.0, 65.0, 0.9]', {'design variables': {'height': 75.0, 'smear': 65.0, 'pu_content': 0.90}, 
+    bb.update_abstract_lvl(1, 'core_[90.0,80.0,0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
+    bb.update_abstract_lvl(3, 'core_[75.0,65.0,0.9]', {'design variables': {'height': 75.0, 'smear': 65.0, 'pu_content': 0.90}, 
                                                          'objective functions': {'reactivity swing' : 710.11,'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[75.0, 65.0, 0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[75.0,65.0,0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     rp.set_attr(offspring_per_generation=2)
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[65.0, 65.0, 0.25]', 'core_[70.0, 60.0, 0.1]', 'core_[75.0, 80.0, 0.5]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[65.0,65.0,0.25]','core_[70.0,60.0,0.1]','core_[75.0,80.0,0.5]']
     
     ns.shutdown()
     time.sleep(0.05)
@@ -1069,9 +1066,7 @@ def test_KaLocalGA_linear_crossover():
 
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
-    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
+
     bb.initialize_abstract_level_3()
 
     bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_exploit')
@@ -1081,38 +1076,38 @@ def test_KaLocalGA_linear_crossover():
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_trigger_number=2)
     rp.set_attr(crossover_type='linear crossover')
-    bb.update_abstract_lvl(3, 'core_[50.0, 60.0, 0.1]', {'design variables': {'height': 50.0, 'smear': 60.0, 'pu_content': 0.1}, 
+    bb.update_abstract_lvl(3, 'core_[50.0,60.0,0.1]', {'design variables': {'height': 50.0, 'smear': 60.0, 'pu_content': 0.1}, 
                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[50.0, 60.0, 0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0, 70.0, 0.2]', {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2}, 
+    bb.update_abstract_lvl(1, 'core_[50.0,60.0,0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0,70.0,0.2]', {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2}, 
                                                           'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[70.0, 70.0, 0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[70.0,70.0,0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0, 65.0, 0.15]', 'core_[50.0, 55.0, 0.05]', 'core_[80.0, 70.0, 0.25]']
-    solutions = ['core_[60.0, 65.0, 0.15]', 'core_[50.0, 55.0, 0.05]', 'core_[80.0, 70.0, 0.25]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0,65.0,0.15]','core_[50.0,55.0,0.05]','core_[80.0,70.0,0.25]']
+    solutions = ['core_[60.0,65.0,0.15]','core_[50.0,55.0,0.05]','core_[80.0,70.0,0.25]']
     for solution in solutions:
         assert solution in [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()]
     
-    bb.update_abstract_lvl(3, 'core_[90.0, 80.0, 0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
+    bb.update_abstract_lvl(3, 'core_[90.0,80.0,0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[90.0, 80.0, 0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
-    bb.update_abstract_lvl(3, 'core_[75.0, 65.0, 0.9]', {'design variables': {'height': 55.0, 'smear': 65.0, 'pu_content': 0.90}, 
+    bb.update_abstract_lvl(1, 'core_[90.0,80.0,0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
+    bb.update_abstract_lvl(3, 'core_[75.0,65.0,0.9]', {'design variables': {'height': 55.0, 'smear': 65.0, 'pu_content': 0.90}, 
                                                          'objective functions': {'reactivity swing' : 710.11,'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[75.0, 65.0, 0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[75.0,65.0,0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     rp.set_attr(offspring_per_generation=4)
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0, 65.0, 0.15]', 'core_[50.0, 55.0, 0.05]', 'core_[80.0, 70.0, 0.25]', 'core_[80.0, 75.0, 0.35]', 'core_[80.0, 70.0, 0.65]', 'core_[60.0, 65.0, 0.05]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0,65.0,0.15]','core_[50.0,55.0,0.05]','core_[80.0,70.0,0.25]','core_[80.0,75.0,0.35]','core_[80.0,70.0,0.65]','core_[60.0,65.0,0.05]']
     
     ns.shutdown()
     time.sleep(0.05)
@@ -1134,14 +1129,14 @@ def test_KaLocalGA_full():
     rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_size=2)
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0,  'pu_content': 0.42}, 
+    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0,  'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
+    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0,60.0,0.50]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
                                                           'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[70.0, 60.0, 0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[70.0,60.0,0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
@@ -1151,8 +1146,8 @@ def test_KaLocalGA_full():
     bb.controller()
     bb.send_executor()
     time.sleep(0.05)
-    assert rp.get_attr('analyzed_design') == {'core_[65.0, 65.0, 0.42]': {'Analyzed': True}, 'core_[70.0, 60.0, 0.50]': {'Analyzed': True}}
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0, 65.0, 0.5]', 'core_[70.0, 60.0, 0.42]']
+    assert rp.get_attr('analyzed_design') == {'core_[65.0,65.0,0.42]': {'Analyzed': True}, 'core_[70.0,60.0,0.50]': {'Analyzed': True}}
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0,65.0,0.5]', 'core_[70.0,60.0,0.42]']
 
     # Make sure we don't recombine already examined results
     bb.publish_trigger()
@@ -1160,20 +1155,45 @@ def test_KaLocalGA_full():
     bb.controller()
     bb.send_executor()  
     time.sleep(0.05)
-    assert rp.get_attr('analyzed_design') == {'core_[65.0, 65.0, 0.42]': {'Analyzed': True}, 'core_[70.0, 60.0, 0.50]': {'Analyzed': True}}
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0, 65.0, 0.5]', 'core_[70.0, 60.0, 0.42]']
+    assert rp.get_attr('analyzed_design') == {'core_[65.0,65.0,0.42]': {'Analyzed': True}, 'core_[70.0,60.0,0.50]': {'Analyzed': True}}
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0,65.0,0.5]','core_[70.0,60.0,0.42]']
 
     # Reduce the PF size and ensure we don't execute the GA_KA
     rp.set_attr(pf_size=1)    
-    bb.remove_bb_entry(1, 'core_[65.0, 65.0, 0.42]')
+    bb.remove_bb_entry(1, 'core_[65.0,65.0,0.42]')
     bb.publish_trigger()
     time.sleep(0.05)
     bb.controller()
     bb.send_executor()  
     time.sleep(0.05)
-    assert rp.get_attr('analyzed_design') == {'core_[65.0, 65.0, 0.42]': {'Analyzed': True}, 'core_[70.0, 60.0, 0.50]': {'Analyzed': True}}
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0, 65.0, 0.5]', 'core_[70.0, 60.0, 0.42]']
+    assert rp.get_attr('analyzed_design') == {'core_[65.0,65.0,0.42]': {'Analyzed': True}, 'core_[70.0,60.0,0.50]': {'Analyzed': True}}
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0,65.0,0.5]','core_[70.0,60.0,0.42]']
     
+    ns.shutdown()
+    time.sleep(0.05)
+
+def test_kaga_single_point_crossover():
+    ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3()
+
+    bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_ga')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_ga')
+    rp.set_attr(_design_variables={'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+                                  'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+                                  'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float},
+                                  'exp': {'options': ['exp1', 'expb', 'exp4'], 'default': 'exp1', 'variable type': str}})
+    rp.set_random_seed(seed=1073)
+    genotype1 = {'design variables': {'height':70.0,'smear':65.0,'pu_content':0.50, 'exp': 'exp1'},
+                 'objectives': {},
+                 'constraints': {}}
+    genotype2 = {'design variables': {'height':80.0,'smear':55.0,'pu_content':0.75, 'exp': 'expb'},}
+    new_genotype = rp.single_point_crossover(genotype1, genotype2, 2)
+    assert new_genotype == [{'height': 70.0, 'smear': 65.0, 'pu_content': 0.75, 'exp': 'expb'},
+                            {'height': 80.0, 'smear': 55.0, 'pu_content': 0.5, 'exp': 'exp1'}]   
+ 
+
     ns.shutdown()
     time.sleep(0.05)
     
@@ -1185,10 +1205,18 @@ def test_kaga_random_mutation():
     bb.connect_agent(ka_rp.KaLocalGA, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
+    rp.set_attr(_design_variables={'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float},
+                                  'exp': {'options': ['exp1', 'expb', 'exp4'], 'default': 'exp1', 'variable type': str}})
     rp.set_random_seed(seed=1073)
-    genotype = {'height':70.0,'smear':65.0,'pu_content':0.5}
+    genotype = {'height':70.0,'smear':65.0,'pu_content':0.5, 'exp': 'exp1'}
     new_genotype = rp.random_mutation(genotype)
-    assert new_genotype == {'height': 70.0, 'smear': 65.0, 'pu_content': 0.50213}    
+    assert new_genotype == {'height': 70.0, 'smear': 65.0, 'pu_content': 0.50213, 'exp': 'exp1'}    
+    rp.set_random_seed(seed=10994)
+    new_genotype = rp.random_mutation(genotype)
+    assert new_genotype == {'height': 70.0, 'smear': 65.0, 'pu_content': 0.5, 'exp': 'exp4'}    
+
     ns.shutdown()
     time.sleep(0.05)
     
@@ -1227,31 +1255,31 @@ def test_KaLocalGA_crossover_mutate():
     rp.set_attr(pf_trigger_number=2)
     rp.set_attr(crossover_type='nonsense')
     rp.set_attr(mutation_type='random')
-    bb.update_abstract_lvl(3, 'core_[50.0, 60.0, 0.1]', {'design variables': {'height': 50.0, 'smear': 60.0, 'pu_content': 0.1}, 
+    bb.update_abstract_lvl(3, 'core_[50.0,60.0,0.1]', {'design variables': {'height': 50.0, 'smear': 60.0, 'pu_content': 0.1}, 
                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[50.0, 60.0, 0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0, 70.0, 0.2]', {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2}, 
+    bb.update_abstract_lvl(1, 'core_[50.0,60.0,0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0,70.0,0.2]', {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2}, 
                                                           'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[70.0, 70.0, 0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[70.0,70.0,0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0, 60.0, 0.19013]', 'core_[70.0, 70.0, 0.1]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0,60.0,0.19013]','core_[70.0,70.0,0.1]']
     rp.set_random_seed(seed=1073)
     rp.set_attr(crossover_type='nonsense')
     rp.set_attr(mutation_type='non-uniform')    
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0, 60.0, 0.19013]', 'core_[70.0, 70.0, 0.1]', 'core_[50.0, 60.0, 0.32809]', 'core_[70.0, 50.0, 0.1]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0,60.0,0.19013]','core_[70.0,70.0,0.1]','core_[50.0,60.0,0.32809]','core_[70.0,50.0,0.1]']
     rp.set_random_seed(seed=1073)
     rp.set_attr(crossover_type='nonsense')
     rp.set_attr(mutation_type='nonsense')    
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0, 60.0, 0.19013]', 'core_[70.0, 70.0, 0.1]', 'core_[50.0, 60.0, 0.32809]', 'core_[70.0, 50.0, 0.1]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0,60.0,0.19013]','core_[70.0,70.0,0.1]','core_[50.0,60.0,0.32809]','core_[70.0,50.0,0.1]']
     
     ns.shutdown()
     time.sleep(0.05)

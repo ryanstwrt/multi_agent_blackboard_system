@@ -149,3 +149,6 @@ class reactorInterface(object):
         pu_pin_mass = fuel_pin_mass * pu_content
         assembly_mass = pu_pin_mass * 271 / 1000
         return assembly_mass
+    
+    def get_conversion_ratio(self):
+        pass

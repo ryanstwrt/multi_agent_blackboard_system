@@ -92,6 +92,7 @@ class KaRp(ka.KaBase):
             else:
                 dv_.append(design[dv])
         name += str(dv_).replace("'", "")
+        name = name.replace(" ", "")
         return name
         
 
@@ -503,7 +504,7 @@ class KaLocal(KaRp):
             self.current_design_variables = design
             self._entry_name = self.get_design_name(self.current_design_variables)
             if self._entry_name in self._lvl_data.keys():
-                self.log_debug('Core {} not examinedl found same core in level {}'.format(self._entry_name, self.bb_lvl))
+                self.log_debug('Core {} not examined; found same core in level {}'.format(self._entry_name, self.bb_lvl))
             else:
                 self.determine_model_applicability(dv)
         
