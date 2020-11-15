@@ -8,7 +8,11 @@ import os
 import pickle
 
 def test_controller_init():
-    bb_controller = controller.Controller()
+    try:
+        bb_controller = controller.Controller()
+    except OSError:
+        time.sleep(0.5)
+        bb_controller = controller.Controller()
     assert bb_controller.bb_name == 'bb'
     assert bb_controller.bb_type == blackboard.Blackboard
     assert bb_controller.agent_wait_time == 30
@@ -30,7 +34,22 @@ def test_controller_init_sfr_opt():
           'pu_content': {'ll': 0.5,  'ul': 1.0,  'variable type': float}}
     const = {'eol keff':    {'ll': 1.1, 'ul': 2.5, 'variable type': float}}
     conv_model = {'type': 'dci hvi', 'convergence rate': 1E-6, 'div': {'reactivity swing': 100, 'burnup': 100}, 'interval':5, 'pf size': 5, 'total tvs': 100}
-    bb_controller = controller.Controller(bb_name='sfr_opt', 
+    try:
+        bb_controller = controller.Controller(bb_name='sfr_opt', 
+                                          bb_type=bb_opt.BbOpt, 
+                                          ka=kas, 
+                                          design_variables=dv,
+                                          objectives=obj,
+                                          constraints=const,
+                                          archive='sfr_opt', 
+                                          agent_wait_time=10,
+                                          plot_progress = True,
+                                          convergence_model = conv_model,
+                                          surrogate_model={'sm_type'     : 'gpr', 
+                                                           'pickle file' : './sm_gpr.pkl'})
+    except OSError:
+        time.sleep(0.5)
+        bb_controller = controller.Controller(bb_name='sfr_opt', 
                                           bb_type=bb_opt.BbOpt, 
                                           ka=kas, 
                                           design_variables=dv,
@@ -74,7 +93,24 @@ def test_run_single_agent_bb():
     objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
                            'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}    
-    bb_controller = controller.Controller(bb_name='sfr_opt', 
+    try:
+        bb_controller = controller.Controller(bb_name='sfr_opt', 
+                                          bb_type=bb_opt.BbOpt, 
+                                          ka=kas,
+                                          objectives=objectives,
+                                          archive='sfr_opt', 
+                                          agent_wait_time=5,
+                                          convergence_model={'type': 'hvi', 
+                                                             'convergence rate': 1E-3, 
+                                                             'interval':5, 
+                                                             'pf size': 5, 
+                                                             'total tvs': 100},
+                                          surrogate_model={'sm_type'     : 'gpr', 
+                                                           'pickle file' : './sm_gpr.pkl'},
+                                          random_seed=10983)
+    except:
+        time.sleep(0.5)
+        bb_controller = controller.Controller(bb_name='sfr_opt', 
                                           bb_type=bb_opt.BbOpt, 
                                           ka=kas,
                                           objectives=objectives,
@@ -111,8 +147,25 @@ def test_multi_agent_Bb():
            'ka_br_lvl1': kabr.KaBr_lvl1,}
     objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
-                           'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}    
-    bb_controller = controller.Controller(bb_name='sfr_opt', 
+                           'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}   
+    try:
+        bb_controller = controller.Controller(bb_name='sfr_opt', 
+                                          bb_type=bb_opt.BbOpt, 
+                                          ka=kas,
+                                          objectives=objectives,
+                                          archive='sfr_opt', 
+                                          agent_wait_time=5.0,
+                                          convergence_model={'type': 'hvi', 
+                                                             'convergence rate': 1E-3, 
+                                                             'interval':5, 
+                                                             'pf size': 5, 
+                                                             'total tvs': 1000},
+                                          surrogate_model={'sm_type'     : 'gpr', 
+                                                           'pickle file' : './sm_gpr.pkl'},
+                                          random_seed=10983)
+    except OSError:
+        time.sleep(0.5)
+        bb_controller = controller.Controller(bb_name='sfr_opt', 
                                           bb_type=bb_opt.BbOpt, 
                                           ka=kas,
                                           objectives=objectives,
@@ -155,8 +208,20 @@ def test_BenchmarkController():
            'ka_br_lvl3': kabr.KaBr_lvl3,
            'ka_br_lvl2': kabr.KaBr_lvl2,
            'ka_br_lvl1': kabr.KaBr_lvl1}
-
-    bb_controller = controller.BenchmarkController(bb_name=model, 
+    try:
+        bb_controller = controller.BenchmarkController(bb_name=model, 
+                                      bb_type=bb_opt.BenchmarkBbOpt, 
+                                      ka=kas, 
+                                      archive='{}_benchmark'.format(model),
+                                      objectives=objs, 
+                                      design_variables=dvs,
+                                      benchmark=model, 
+                                      convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 
+                                                         'interval': 5, 'pf size': 10, 'total tvs': 10},
+                                      random_seed=10987)
+    except OSError:
+        time.sleep(0.5)
+        bb_controller = controller.BenchmarkController(bb_name=model, 
                                       bb_type=bb_opt.BenchmarkBbOpt, 
                                       ka=kas, 
                                       archive='{}_benchmark'.format(model),
@@ -192,7 +257,12 @@ def test_BenchmarkController():
 #------------------------------------------------
 
 def test_MTC_init():
-    mtc = controller.Multi_Tiered_Controller()
+    try:
+        mtc = controller.Multi_Tiered_Controller()
+    except OSError:
+        time.sleep(0.5)
+        mtc = controller.Multi_Tiered_Controller()
+        
     assert mtc.master_bb == None
     assert mtc.sub_bb == None
     assert mtc._ns != None
@@ -200,8 +270,11 @@ def test_MTC_init():
     mtc.shutdown()
     time.sleep(0.05)    
     
-def test_MTC_initialize_bb():    
-    mtc = controller.Multi_Tiered_Controller()
+def test_MTC_initialize_bb():  
+    try:
+        mtc = controller.Multi_Tiered_Controller()
+    except OSError:
+        mtc = controller.Multi_Tiered_Controller()
     kas = {'mka_rp_hc': karp.KaLocalHC,
            'mka_rp_pert': karp.KaLocal,
            'mka_rp_ga': karp.KaLocalGA,
@@ -255,7 +328,10 @@ def test_MTC_initialize_bb():
     time.sleep(0.05)
     
 def test_MTC_run_sub_bb():    
-    mtc = controller.Multi_Tiered_Controller()
+    try:
+        mtc = controller.Multi_Tiered_Controller()
+    except OSError:
+        mtc = controller.Multi_Tiered_Controller()        
     kas = {'mka_rp_hc': karp.KaLocalHC,
            'mka_rp_pert': karp.KaLocal,
            'mka_rp_ga': karp.KaLocalGA,
@@ -294,7 +370,11 @@ def test_MTC_run_sub_bb():
     time.sleep(0.05)    
 
 def test_MTC_run_master_bb():    
-    mtc = controller.Multi_Tiered_Controller()
+    try:
+        mtc = controller.Multi_Tiered_Controller()
+    except OSError:
+        mtc = controller.Multi_Tiered_Controller()
+
     kas = {'mka_rp_mc': karp.KaGlobal,
            'mka_rp_hc': karp.KaLocalHC,
            'mka_rp_pert': karp.KaLocal,

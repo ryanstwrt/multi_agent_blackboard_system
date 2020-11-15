@@ -14,7 +14,11 @@ with open('./sm_gpr.pkl', 'rb') as pickle_file:
     sm_ga = pickle.load(pickle_file)
 
 def test_kabr_init():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
     assert ka_b.get_attr('bb') == None
     assert ka_b.get_attr('bb_lvl_write') == 0
@@ -40,7 +44,11 @@ def test_kabr_init():
     time.sleep(0.05)
     
 def test_kabr_clear_entry():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
     ka_b.set_attr(_entry={'valid': True})
     ka_b.set_attr(_entry_name='core_1')
@@ -54,7 +62,11 @@ def test_kabr_clear_entry():
     time.sleep(0.05)
     
 def test_kabr_scale_objective():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
     obj1 = ka_b.scale_objective(2,0,10)
     assert obj1 == 0.2
@@ -66,7 +78,11 @@ def test_kabr_scale_objective():
     time.sleep(0.05)
     
 def test_kabr_scale_objective_list():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
     obj1 = ka_b.scale_list_objective([3.0,5.0,7.0], 0.0, 10.0, 'avg')
     assert obj1 == 0.5
@@ -84,7 +100,11 @@ def test_kabr_scale_objective_list():
     time.sleep(0.05)  
     
 def test_kabr_convert_to_minimize():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_b = run_agent(name='ka_br', base=ka_br.KaBr)    
     ka_b.set_attr(_objectives= {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
                                 'burnup':            {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
@@ -97,7 +117,11 @@ def test_kabr_convert_to_minimize():
     time.sleep(0.05) 
 
 def test_kabr_convert_scaled_objective_to_minimzation():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_b = run_agent(name='ka_br', base=ka_br.KaBr)    
     ka_b.set_attr(_objectives= {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
                                 'burnup':            {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
@@ -111,7 +135,11 @@ def test_kabr_convert_scaled_objective_to_minimzation():
     time.sleep(0.05) 
     
 def test_kabr_update_abstract_level():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
     ka_b.add_blackboard(bb)
@@ -142,7 +170,11 @@ def test_kabr_update_abstract_level():
 #-----------------------------------------
 
 def test_kabr_lvl1_init():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
     assert ka_br1.get_attr('bb') == None
     assert ka_br1.get_attr('bb_lvl_write') == 1
@@ -171,7 +203,11 @@ def test_kabr_lvl1_init():
     time.sleep(0.05)    
 
 def test_kabr_lvl1_update_abstract_levels():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
@@ -200,7 +236,11 @@ def test_kabr_lvl1_update_abstract_levels():
     time.sleep(0.05)
     
 def test_kabr_lvl1_publish():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
@@ -231,7 +271,11 @@ def test_kabr_lvl1_publish():
     time.sleep(0.05)       
     
 def test_kabr_lvl1_executor():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
@@ -286,7 +330,11 @@ def test_kabr_lvl1_executor():
     time.sleep(0.05)  
 
 def test_kabr_lvl1_scale_pareto_front():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
     ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
                               'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
@@ -310,7 +358,11 @@ def test_kabr_lvl1_scale_pareto_front():
     time.sleep(0.05)
     
 def test_kabr_lvl1_calculate_hvi():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
     ka_br1.set_attr(_lower_objective_reference_point=[0,0])
     ka_br1.set_attr(_upper_objective_reference_point=[1,1])
@@ -323,7 +375,11 @@ def test_kabr_lvl1_calculate_hvi():
     time.sleep(0.05)
     
 def test_kabr_lvl1_calculate_hvi_contribution():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
     ka_br1.set_attr(_lower_objective_reference_point=[0,0])
     ka_br1.set_attr(_upper_objective_reference_point=[1,1])
@@ -349,7 +405,11 @@ def test_kabr_lvl1_calculate_hvi_contribution():
     time.sleep(0.05)
     
 def test_kabr_lvl1_calculate_hvi_contribution_equal_to():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
     ka_br1.set_attr(_lower_objective_reference_point=[0,0,0])
     ka_br1.set_attr(_upper_objective_reference_point=[1,1,1])
@@ -372,7 +432,11 @@ def test_kabr_lvl1_calculate_hvi_contribution_equal_to():
     time.sleep(0.05)
 
 def test_kabr_lvl1_calculate_hvi_contribution_list():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
     ka_br1.set_attr(_lower_objective_reference_point=[0,0,0])
     ka_br1.set_attr(_upper_objective_reference_point=[1,1,1])
@@ -400,7 +464,11 @@ def test_kabr_lvl1_calculate_hvi_contribution_list():
     
     
 def test_kabr_lvl1_remove_dominated_entries():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
     ka_br1 = ns.proxy('ka_br_lvl1')
@@ -423,7 +491,11 @@ def test_kabr_lvl1_remove_dominated_entries():
     time.sleep(0.05)    
     
 def test_kabr_lvl1_prune_entries():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(ka_br.KaBr_lvl1, 'ka_br_lvl1')
     bb.initialize_abstract_level_3()
@@ -446,7 +518,11 @@ def test_kabr_lvl1_prune_entries():
 
     
 def test_kabr_lvl1_calculate_dci():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
@@ -519,7 +595,11 @@ def test_kabr_lvl1_calculate_dci():
     time.sleep(0.05)
     
 def test_kabr_lvl1_calculate_dci_list():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
@@ -597,7 +677,11 @@ def test_kabr_lvl1_calculate_dci_list():
 #-----------------------------------------
 
 def test_kabr_lvl2_init():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br2', base=ka_br.KaBr_lvl2)
     assert ka_br2.get_attr('bb') == None
     assert ka_br2.get_attr('bb_lvl_write') == 1
@@ -625,7 +709,11 @@ def test_kabr_lvl2_init():
     time.sleep(0.05)
     
 def test_kabr_lvl2_convert_fitness_to_minimzation():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br2', base=ka_br.KaBr_lvl2)
     ka_br2.set_attr(_objectives = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
                                    'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
@@ -642,7 +730,11 @@ def test_kabr_lvl2_convert_fitness_to_minimzation():
     time.sleep(0.05)
     
 def test_kabr_lvl2_update_abstract_levels():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
@@ -671,7 +763,11 @@ def test_kabr_lvl2_update_abstract_levels():
     time.sleep(0.05)
     
 def test_kabr_lvl2_add_entry():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2) 
     ka_br2.set_attr(_fitness=1.5)
     ka_br2.add_entry(('core_1', 'pareto'))
@@ -683,7 +779,11 @@ def test_kabr_lvl2_add_entry():
     time.sleep(0.05) 
     
 def test_kabr_lvl2_determine_validity():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     ka_br2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
     ka_br2.add_blackboard(bb)
@@ -737,7 +837,11 @@ def test_kabr_lvl2_determine_validity():
     time.sleep(0.05) 
     
 def test_move_curent_entry():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     ka_br2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
     ka_br2.add_blackboard(bb)
@@ -762,7 +866,11 @@ def test_move_curent_entry():
     time.sleep(0.05)
 
 def test_kabr_lvl2_determine_optimal_type():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
     ka_br2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
@@ -797,7 +905,11 @@ def test_kabr_lvl2_determine_optimal_type():
     time.sleep(0.05)
 
 def test_determine_fitness_function():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br', base=ka_br.KaBr_lvl2)
     ka_br2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                  'void_coeff':  {'ll': -200, 'ul': -100, 'goal':'lt', 'variable type': float}, 
@@ -817,7 +929,11 @@ def test_determine_fitness_function():
     time.sleep(0.05)   
     
 def test_kabr_lvl2_handler_trigger_publish():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
     bb.connect_agent(ka_br.KaBr_lvl2, 'ka_br2')
@@ -842,7 +958,11 @@ def test_kabr_lvl2_handler_trigger_publish():
     time.sleep(0.05)
 
 def test_kabr_lvl2_handler_executor():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(ka_br.KaBr_lvl2, 'ka_br')
     ka_br2 = ns.proxy('ka_br')
@@ -907,7 +1027,11 @@ def test_kabr_lvl2_handler_executor():
 #-----------------------------------------
 
 def test_kabr_lvl3_init():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br3', base=ka_br.KaBr_lvl3)
     assert ka_br2.get_attr('bb') == None
     assert ka_br2.get_attr('bb_lvl_write') == 2
@@ -933,7 +1057,11 @@ def test_kabr_lvl3_init():
     time.sleep(0.05)
 
 def test_kabr_lvl3_update_abstract_levels():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
@@ -962,7 +1090,11 @@ def test_kabr_lvl3_update_abstract_levels():
     time.sleep(0.05)
     
 def test_kabr_lvl3_determine_validity():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3(objectives={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
                                                'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}},
@@ -988,7 +1120,11 @@ def test_kabr_lvl3_determine_validity():
     time.sleep(0.05)
     
 def test_kabr_lvl3_determine_validity_constraint():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3(objectives={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
                                                'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}},
@@ -1014,7 +1150,11 @@ def test_kabr_lvl3_determine_validity_constraint():
     time.sleep(0.05)
     
 def test_kabr_lvl3_read_bb_lvl():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3(objectives={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
                                                'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}},
@@ -1038,7 +1178,11 @@ def test_kabr_lvl3_read_bb_lvl():
     time.sleep(0.05)    
 
 def test_kabr_lvl3_handler_trigger_publish():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     br = run_agent(name='ka_br3', base=ka_br.KaBr_lvl3)
     bb.initialize_abstract_level_3()
@@ -1081,7 +1225,11 @@ def test_kabr_lvl3_handler_trigger_publish():
     time.sleep(0.05)
     
 def test_kabr_lvl3_handler_executor():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3(objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                            'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float},
@@ -1115,7 +1263,11 @@ def test_kabr_lvl3_handler_executor():
     time.sleep(0.05)
 
 def test_kabr_lvl3_add_entry():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_br3 = run_agent(name='ka_br', base=ka_br.KaBr_lvl3)
     ka_br3.add_entry(('core_1', None))
     
@@ -1126,7 +1278,11 @@ def test_kabr_lvl3_add_entry():
     time.sleep(0.05)
     
 def test_kabr_lvl3_determine_validity_list():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3(objectives={'keff':            {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
                                                'assembly power':  {'ll': 0.5, 'ul': 7.5, 'goal':'lt', 'variable type': list, 'goal type': 'avg'},
@@ -1161,7 +1317,11 @@ def test_kabr_lvl3_determine_validity_list():
 #-----------------------------------------
 
 def test_kabr_interBB_init():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     br = run_agent(name='ka_br_inter', base=ka_br.KaBr_interBB)
     assert br.get_attr('bb') == None
     assert br.get_attr('bb_lvl_write') == 3
@@ -1191,7 +1351,11 @@ def test_kabr_interBB_init():
     time.sleep(0.05)
 
 def test_kabr_interBB_add_bb():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
     bb.initialize_abstract_level_3()
     bb_master = run_agent(name='bb', base=bb_opt.BbOpt)
@@ -1209,7 +1373,11 @@ def test_kabr_interBB_add_bb():
     time.sleep(0.05) 
     
 def test_kabr_interBB_connect_ka():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
@@ -1240,7 +1408,11 @@ def test_kabr_interBB_connect_ka():
     time.sleep(0.05) 
     
 def test_kabr_interBB_write_to_bb():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
@@ -1269,7 +1441,11 @@ def test_kabr_interBB_write_to_bb():
     time.sleep(0.05) 
     
 def test_kabr_interBB_format_entry():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
@@ -1296,7 +1472,11 @@ def test_kabr_interBB_format_entry():
     time.sleep(0.05) 
     
 def test_kabr_interBB_handler_publish():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
@@ -1324,7 +1504,11 @@ def test_kabr_interBB_handler_publish():
     time.sleep(0.05) 
     
 def test_kabr_interBB_handler_executor():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
