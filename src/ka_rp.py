@@ -526,8 +526,8 @@ class KaLocalHC(KaLocal):
         super().on_init()
         self._base_trigger_val = 5.00001
         self.avg_diff_limit = 5
-        self.step_size = 0.05
-        self.step_rate = 0.01
+        self.step_size = 0.1
+        self.step_rate = 0.1
         self.step_limit = 100
         self.convergence_criteria = 0.001
         self.hc_type = 'simple'
@@ -567,43 +567,52 @@ class KaLocalHC(KaLocal):
         while step > self.convergence_criteria:
             gradient_vector = {}
             next_step = None
-            
+            potential_steps = []
             # Calculate our gradient vector
             for dv, dv_dict in self._design_variables.items():
-                potential_steps = []
                 if dv_dict['variable type'] == float:
                     for direction in ['+', '-']:
                         temp_design = copy.copy(step_design)
                         temp_design[dv] += temp_design[dv] * step if direction == '+' else temp_design[dv] * -step
                         temp_design[dv] = round(temp_design[dv], self._design_accuracy)
                         if temp_design[dv] >= dv_dict['ll'] and temp_design[dv] <= dv_dict['ul']:
-                            potential_steps.append((direction, temp_design))
+                            potential_steps.append((direction, dv, temp_design))
                 else:
                     temp_design = copy.copy(step_design)
                     options = copy.copy(dv_dict['options'])
                     options.remove(step_design[dv])
                     temp_design[dv] = str(random.choice(options))
-                    potential_steps.append(('+', temp_design))
-                for direction, design in potential_steps:
-                    self.current_design_variables = design
-                    self._entry_name = self.get_design_name(self.current_design_variables)
-                    if self._entry_name in self._lvl_data.keys():
-                        self.log_debug('Core {} not examined, found same core in level {}'.format(self._entry_name, self.bb_lvl))
+                    potential_steps.append(('+', dv, temp_design))
+
+            if self.hc_type == 'simple':
+                random.shuffle(potential_steps)
+            while len(potential_steps) != 0:
+                direction, dv, design = potential_steps.pop()
+                self._entry_name = self.get_design_name(design)
+                if self._entry_name in self._lvl_data.keys():
+                    self.log_debug('Core {} not examined, found same core in level {}'.format(self._entry_name, self.bb_lvl))                
+                else:
+                    self.current_design_variables = design 
+                    self.determine_model_applicability(dv)
+                    test_step = {'{} {}'.format(direction,dv) : {'design variables': self.current_design_variables, 
+                                                                 'objective functions': {k:v for k,v in self.current_objectives.items()},
+                                                                 'constraints': self.current_constraints}}
+                    if self.hc_type == 'simple':
+                        next_step, diff = self.determine_step(step_design, step_objs, test_step)
+                        if next_step:
+                            step_design = test_step[next_step]['design variables']
+                            step_objs = test_step[next_step]['objective functions']
+                            break
                     else:
-                        self.calc_objectives()
                         gradient_vector['{} {}'.format(direction,dv)] = {'design variables': self.current_design_variables, 
                                                                          'objective functions': {k:v for k,v in self.current_objectives.items()},
                                                                          'constraints': self.current_constraints}
-                        #self.calculate_derivative(step_design, step_obj, gradient_vector['{} {}'.format(direction,dv)], dv)
-                    
             # Determine which step is the steepest, update our design, and write this to the BB
             if gradient_vector:
                 next_step, diff = self.determine_step(step_design, step_objs, gradient_vector)
                 if next_step:
                     step_design = gradient_vector[next_step]['design variables']
                     step_objs = gradient_vector[next_step]['objective functions']
-                    self.current_design_variables = {k:v for k,v in step_design.items()}
-                    self.determine_model_applicability(next_step.split(' ')[1])
             
             #If we don't have a gradient vector or a next step to take, reduce the step size
             if gradient_vector == {} or next_step == None:
@@ -638,8 +647,6 @@ class KaLocalHC(KaLocal):
                 derivative = self.calculate_derivative(base, base_design, pert_design, dv, obj)
                 design[pert_dv][obj] = derivative
                 design[pert_dv]['total'] += derivative
-                if derivative > 0 and self.hc_type == 'simple':
-                    return(pert_dv, derivative)
                                     
             truth = True
             for constraint, val in pert_design['constraints'].items():
