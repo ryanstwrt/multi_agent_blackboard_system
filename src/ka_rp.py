@@ -41,6 +41,7 @@ class KaRp(ka.KaBase):
         self._lvl_data = {}
         self.agent_time = 0
         self._trigger_event = 0
+        self.learning_factor = 0.5
         
     def set_random_seed(self, seed=None):
         """
@@ -53,6 +54,10 @@ class KaRp(ka.KaBase):
         Send a message to the BB indicating it's completed its action
         """
         self.send(self._complete_alias, (self.name, self.agent_time, self._trigger_event))
+    
+    def clear_entry(self):
+        self._entry = {}
+        self._entry_name = None
         
     def calc_objectives(self):
         """
@@ -63,22 +68,18 @@ class KaRp(ka.KaBase):
 #        time.sleep(5)
         self.log_debug('Determining core parameters based on SM')
         design = [x for x in self.current_design_variables.values()]
+        self._entry_name = self.get_design_name(self.current_design_variables)
         if 'benchmark' in self.sm_type:
-            obj_list = self._sm.predict(self.sm_type.split()[0], design, len(design), len(self._objectives.keys()))
-            for num, obj in enumerate(self._objectives.keys()):
-                if self._objectives[obj]['variable type'] == float:
-                    self.current_objectives[obj] = round(float(obj_list[num]), self._objective_accuracy)
-                elif self._objectives[obj]['variable type'] == str:
-                    self.current_objectives[obj] = str(obj_list[num])
+            self.get_benchmark_objectives(design)
         elif self.sm_type == 'interpolate':
             self.get_interpolate_objectives(design)
         else:
             self.get_sm_objectives()
 
-        self._entry_name = self.get_design_name(self.current_design_variables)
-        self._entry = {'design variables': self.current_design_variables, 
-                       'objective functions': self.current_objectives,
-                       'constraints': self.current_constraints}
+        if self._entry_name:
+            self._entry = {'design variables': self.current_design_variables, 
+                           'objective functions': self.current_objectives,
+                           'constraints': self.current_constraints}
         
     def get_design_name(self, design):
         """
@@ -94,7 +95,17 @@ class KaRp(ka.KaBase):
         name += str(dv_).replace("'", "")
         name = name.replace(" ", "")
         return name
-        
+
+    def get_benchmark_objectives(self, design):
+        """
+        Calculate the objectives based on a benchmark problem.
+        """
+        obj_list = self._sm.predict(self.sm_type.split()[0], design, len(design), len(self._objectives.keys()))
+        for num, obj in enumerate(self._objectives.keys()):
+            if self._objectives[obj]['variable type'] == float:
+                self.current_objectives[obj] = round(float(obj_list[num]), self._objective_accuracy)
+            elif self._objectives[obj]['variable type'] == str:
+                self.current_objectives[obj] = str(obj_list[num])
 
     def get_interpolate_objectives(self, design):
         """
@@ -127,6 +138,7 @@ class KaRp(ka.KaBase):
         blackbaord : str
             required message for sending communication containing current state of BB
         """
+        self.clear_entry()
         t = time.time()
         self._lvl_data = {}
         self._trigger_event = message[0]
@@ -136,7 +148,8 @@ class KaRp(ka.KaBase):
         self.log_debug('Executing agent {}'.format(self.name))
         self.search_method()
         self.calc_objectives()
-        self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
+        if self._entry_name:
+            self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
         self._trigger_val = 0
         self.agent_time = time.time() - t
         self.action_complete()
@@ -201,7 +214,7 @@ class KaGlobal(KaRp):
                         design[pos] = round(random.random() * (dv_dict['dict'][pos]['ul'] - dv_dict['dict'][pos]['ll']) + dv_dict['dict'][pos]['ll'], self._design_accuracy)
                 self.current_design_variables[dv] = design
             elif dv_dict['variable type'] == str:
-                self.current_design_variables[dv] = random.choice(dv_dict['options'])               
+                self.current_design_variables[dv] = random.choice(dv_dict['options']) #if random.random() > 0.5 else dv_dict['default']              
             else:
                 self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         
@@ -422,8 +435,11 @@ class KaLocal(KaRp):
                 return
         
         self.calc_objectives()
-        self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
-        self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
+        if self._entry_name:
+            self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
+            self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
+        else:
+            self.log_debug('Failed to log current design due to a failure in objective calculations.')
         
     def handler_executor(self, message):
         """
@@ -477,13 +493,17 @@ class KaLocal(KaRp):
         These results are written to the BB level 3, so there are design_vars * pert added to level 3.
         """
         
-        core = random.choice(self.new_designs)
+        core = random.choice(self.new_designs) #self.select_core()
         design_ = self._lvl_data[core]['design variables']
+        dv_keys = [x for x in design_.keys()]
+      #  random.shuffle(dv_keys)
         pert = self.perturbation_size if self.neighboorhod_search == 'fixed' else random.uniform(0,self.perturbation_size)
         perts = [1.0 - pert, 1.0 + pert]
         pert_designs = []
             
-        for dv, dv_value in design_.items():
+#        for dv, dv_value in design_.items():
+        for dv in dv_keys:
+            dv_value = design_[dv]
             design = copy.copy(design_)
             if self._design_variables[dv]['variable type'] == str:
                 options = copy.copy(self._design_variables[dv]['options'])
@@ -506,6 +526,20 @@ class KaLocal(KaRp):
         
         self.analyzed_design[core] = {'Analyzed': True}
 
+        if self.sm_type not in ['lr', 'pr', 'gpr', 'ann', 'rf', 'interpolate']:
+            lvl = self.bb.get_blackboard()['level 3']
+            for panel in lvl.values():
+                self._lvl_data.update(panel)
+        
+    def select_core(self):
+        """
+        We select a core from the Pareto front by either selecting tha design with the maximum fitness.
+        Or we can select a random choice in self.new_design.
+        This is based on the `learning_factor`, which is a simple probability.
+        """
+        
+        core = random.choice(self.new_designs) if self.learning_factor else max(self.new_designs['fitness'])
+        
     def read_bb_lvl(self, lvl):
         """
         Determine if there are any 'new' entries on level 1.
@@ -664,6 +698,8 @@ class KaLocalHC(KaLocal):
     def calculate_derivative(self, base_dv, base_obj, step_design, dv, obj):
         obj_dict = self._objectives[obj]
         dv_dict = self._design_variables[dv]
+        
+        
         if step_design['objective functions'][obj] <= obj_dict['ll'] or step_design['objective functions'][obj] >= obj_dict['ul']:
             return -1000.0
         
