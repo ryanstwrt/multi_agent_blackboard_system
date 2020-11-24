@@ -1,6 +1,7 @@
 import src.blackboard as blackboard
 import src.ka_rp as karp
 import src.ka_br as kabr
+import src.utilities as utils
 import osbrain
 from osbrain import proxy
 from osbrain import run_agent
@@ -190,29 +191,11 @@ class BbOpt(blackboard.Blackboard):
             self.hv_indicator()
         else:
             self.convergence_update()
-        
-
-    def list_objective_value(self, obj_list, goal_type):
-        """
-        Returns a single value to use as either a fitness function or Pareto indicator if our objective is a list
-        """
-        
-        if goal_type == 'max':
-            obj_val = max(obj_list)
-        elif goal_type == 'min':
-            obj_val = min(obj_list)
-        else:
-            obj_val = sum(obj_list)/len(obj_list)   
-            
-        return obj_val
     
     def get_objective_value(self, core, obj):
         objective_value = self.abstract_lvls['level 3']['old'][core]['objective functions'][obj]
-        if (type(objective_value) == float) or (type(objective_value) == int):
-            return objective_value
-        elif type(objective_value) == list:
-            return self.list_objective_value(objective_value, self.objectives[obj]['goal type']) 
-        
+        goal = self.objectives[obj]['goal type'] if 'goal type' in self.objectives[obj] else None
+        return utils.get_objective_value(objective_value, goal)
         
     def dc_indicator(self):
         """
@@ -262,48 +245,17 @@ class BbOpt(blackboard.Blackboard):
                     self.send(connections['shutdown'][0], "shutdown")
             self._complete = True
 
-    def scale_objective(self, val, ll, ul):
-        """Scale an objective based on the upper/lower value"""
-        if val < ll or val > ul:
-            return None
-        else:
-            return (val - ll) / (ul - ll)
-
-    def convert_scaled_objective_to_minimization(self, obj, obj_val):
-        """
-        Convert the sclaed objective value to a minimization problem
-        """
-        
-        goal = self.objectives[obj]['goal']
-        if goal == 'gt':
-            return 1.0 - obj_val
-        elif goal =='lt':
-            return obj_val
-        elif goal =='et':
-            target = self.scale_objective(self.objectives[obj]['target'],
-                                          self.objectives[obj]['ll'],
-                                          self.objectives[obj]['ul'])
-            return 2.0 * abs(target - obj_val) 
-    
-    def scale_pareto_front(self, pf):
-        scaled_pf = []
-        for x in pf:
-            design_objectives = []
-            # This part of the loop is identical to the determine fitness function... perhaps create a function in KA_RP and merge
-            for obj in self.objectives.keys():
-                scaled_obj = self.scale_objective(self.get_objective_value(x, obj), self.objectives[obj]['ll'], self.objectives[obj]['ul'])
-
-                design_objectives.append(round(self.convert_scaled_objective_to_minimization(obj, scaled_obj), 7))
-            scaled_pf.append(design_objectives)
-        return scaled_pf    
-    
     def hv_indicator(self):
         """
         Calcualte the Hypervolume for the current pareto front
         """
         pf = []
-        cores = [x for x in self.abstract_lvls['level 1']]
-        pf = self.scale_pareto_front(cores)
+        cores = list(self.abstract_lvls['level 1'].keys())
+        lvl_3 = {}
+        for panel in self.abstract_lvls['level 3'].values():
+            lvl_3.update(panel)
+        
+        pf = utils.scale_pareto_front(cores, self.objectives, lvl_3)
 
         if self.convergence_model['type'] == 'dci hvi':
             self.hv_list[self._trigger_event] = round(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul),10)

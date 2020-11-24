@@ -1,6 +1,7 @@
 import src.ka as ka
 import src.performance_measure as pm
 import src.train_surrogate_models as tm
+import src.utilities as utils
 import copy
 import time
 import numpy as np
@@ -166,10 +167,6 @@ class KaRp(ka.KaBase):
         self._trigger_val += self._base_trigger_val
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
-    
-    def scale_objective(self, val, ll, ul):
-        """Scale an objective based on the upper/lower value"""
-        return (val - ll) / (ul - ll)
 
 class KaGlobal(KaRp):
     """
@@ -703,10 +700,11 @@ class KaLocalHC(KaLocal):
         if step_design['objective functions'][obj] <= obj_dict['ll'] or step_design['objective functions'][obj] >= obj_dict['ul']:
             return -1000.0
         
-        obj_scaled_new = self.scale_objective(step_design['objective functions'][obj], obj_dict['ll'], obj_dict['ul'])
-        obj_scaled_base = self.scale_objective(base_obj[obj], obj_dict['ll'], obj_dict['ul'])
-        dv_scaled_new = self.scale_objective(step_design['design variables'][dv], dv_dict['ll'], dv_dict['ul']) if dv_dict['variable type'] == float else 1.0
-        dv_scaled_base = self.scale_objective(base_dv[dv], dv_dict['ll'], dv_dict['ul']) if dv_dict['variable type'] == float else 0.0
+        obj_scaled_new = utils.scale_value(step_design['objective functions'][obj], obj_dict)
+        obj_scaled_base = utils.scale_value(base_obj[obj], obj_dict)
+        dv_scaled_new = utils.scale_value(step_design['design variables'][dv], dv_dict) if dv_dict['variable type'] == float else 1.0
+        dv_scaled_base = utils.scale_value(base_dv[dv], dv_dict) if dv_dict['variable type'] == float else 0.0
+
         # We are following the steepest ascent, so positive is better
         obj_diff = (obj_scaled_new - obj_scaled_base) if obj_dict['goal'] == 'gt' else (obj_scaled_base - obj_scaled_new)
         dv_diff = abs(dv_scaled_new - dv_scaled_base)

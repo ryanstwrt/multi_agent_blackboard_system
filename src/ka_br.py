@@ -1,5 +1,6 @@
 import src.ka as ka
 import src.performance_measure as pm
+import src.utilities as utils
 import time
 
 class KaBr(ka.KaBase):
@@ -126,9 +127,9 @@ class KaBr(ka.KaBase):
         """Determine if the solution is Pareto, weak, or not optimal"""
         optimal = 0
         pareto_optimal = 0
-        for obj in self._objectives.keys():
-            new_val = self.convert_to_minimize(obj, new_rx[obj])
-            opt_val = self.convert_to_minimize(obj, opt_rx[obj])       
+        for obj, obj_dict in self._objectives.items():
+            new_val = utils.convert_objective_to_minimize(obj_dict, new_rx[obj])
+            opt_val = utils.convert_objective_to_minimize(obj_dict, opt_rx[obj])       
             optimal += 1 if new_val <= opt_val else 0
             pareto_optimal += 1 if new_val < opt_val else 0
             
@@ -138,76 +139,11 @@ class KaBr(ka.KaBase):
             return 'weak'
         else:
             return None
-        
-    def convert_to_minimize(self, obj, obj_val):
-        """
-        Converts maximization and equal to goals to a minimization problem
-        """
-        
-        goal = self._objectives[obj]['goal']
-        if goal == 'gt':
-            return -obj_val
-        elif goal =='lt':
-            return obj_val
-        elif goal =='et':
-            target = self._objectives[obj]['target']
-            return abs(target - obj_val)
-        
-    def convert_scaled_objective_to_minimzation(self, obj, obj_val):
-        """
-        Convert the sclaed objective value to a minimization problem
-        """
-        
-        goal = self._objectives[obj]['goal']
-        if goal == 'gt':
-            return 1.0 - obj_val
-        elif goal =='lt':
-            return obj_val
-        elif goal =='et':
-            target = self.scale_objective(self._objectives[obj]['target'],
-                                          self._objectives[obj]['ll'],
-                                          self._objectives[obj]['ul'])
-            return 2.0 * abs(target - obj_val)  
-            
-    def scale_objective(self, val, ll, ul):
-        """Scale an objective based on the upper/lower value"""
-        if val < ll or val > ul:
-            return None
-        else:
-            return (val - ll) / (ul - ll)
-        
-    def scale_list_objective(self, val_list, ll, ul, goal_type):
-        """Scale an objective based on the upper/lower value"""
-        scaled_list = []
-        for num, val in enumerate(val_list):
-            lower = ll[num] if type(ll) == list else ll
-            upper = ul[num] if type(ul) == list else ul
-            scaled_list.append(self.scale_objective(val, lower, upper))
-
-        scaled_val = self.list_objective_value(scaled_list, goal_type)
-
-        return scaled_val
-    
-    def list_objective_value(self, obj_list, goal_type):
-        """
-        Returns a single value to use as either a fitness function or Pareto indicator if our objective is a list
-        """
-        
-        if goal_type == 'max':
-            obj_val = max(obj_list)
-        elif goal_type == 'min':
-            obj_val = min(obj_list)
-        else:
-            obj_val = sum(obj_list)/len(obj_list)   
-            
-        return obj_val
-    
+                
     def get_objective_value(self, core, obj):
         objective_value = self._lvl_data[core]['objective functions'][obj]
-        if (type(objective_value) == float) or (type(objective_value) == int):
-            return objective_value
-        elif type(objective_value) == list:
-            return self.list_objective_value(objective_value, self._objectives[obj]['goal type'])        
+        goal = self._objectives[obj]['goal type'] if 'goal type' in self._objectives[obj] else None
+        return utils.get_objective_value(objective_value, goal)
 
     def update_abstract_levels(self):
         """
@@ -326,30 +262,10 @@ class KaBr_lvl1(KaBr):
             if contribution < hvi_contribution_limit:
                 removal.append(design)
         self.remove_dominated_entries(removal)
-            
-    def scale_pareto_front(self, pf):
-        """
-        Scale the objective functions for the pareto front and return a scaled pareto front for the hypervolume.
-        """
-        # TODO If scale_objective returns a None, we need to figure out how to deal with it.
-        # Perhaps cancel the current iteration and tell the BB we are done
-        # Should we keep a log of what happened?
-        scaled_pf = []
-        for x in pf:
-            design_objectives = []
-            # This part of the loop is identical to the determine fitness function... perhaps create a function in KA_RP and merge
-            for obj in self._objectives.keys():
-                if (self._objectives[obj]['variable type'] == float) or (self._objectives[obj]['variable type'] ==  int):
-                    scaled_obj = self.scale_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'])
-                elif self._objectives[obj]['variable type'] == list:
-                    scaled_obj = self.scale_list_objective(self._lvl_data[x]['objective functions'][obj], self._objectives[obj]['ll'], self._objectives[obj]['ul'], self._objectives[obj]['goal type'])
-                design_objectives.append(round(self.convert_scaled_objective_to_minimzation(obj, scaled_obj), 7))
-            scaled_pf.append(design_objectives)
-        return scaled_pf
 
     def calculate_hvi_contribution(self):
         pf = [x for x in self.lvl_read.keys()]
-        scaled_pf = self.scale_pareto_front(pf)
+        scaled_pf = utils.scale_pareto_front(pf, self._objectives, self._lvl_data)
 
         hvi = self.calculate_hvi(scaled_pf)
         designs_to_remove = []
@@ -495,9 +411,7 @@ class KaBr_lvl2(KaBr):
         elif goal =='lt':
             return 1.0 - obj_val
         elif goal =='et':
-            target = self.scale_objective(self._objectives[obj]['target'],
-                                          self._objectives[obj]['ll'],
-                                          self._objectives[obj]['ul'])
+            target = utils.scale_value(self._objectives[obj]['target'], self._objectives[obj])
             return (1.0 - 2*abs(target - obj_val))
     
     def determine_fitness_function(self, core_name, core_objectives):
@@ -505,13 +419,12 @@ class KaBr_lvl2(KaBr):
         Calculate the total fitness function based on upper and lower limits.
         """
         fitness = 0
-        for param, obj_dict in self._objectives.items():
-            if (type(core_objectives[param]) == float) or (type(core_objectives[param]) == int):
-                scaled_fit = self.scale_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'])
-            elif type(core_objectives[param]) == list:
-                scaled_fit = self.scale_list_objective(core_objectives[param], obj_dict['ll'], obj_dict['ul'], obj_dict['goal type'])
+        for obj, obj_dict in self._objectives.items():
+            scaled_fit = utils.scale_value(core_objectives[obj], obj_dict)
+            goal = self._objectives[obj]['goal type'] if 'goal type' in self._objectives[obj] else None
+            scaled_fit = utils.get_objective_value(scaled_fit, goal)
             try:
-                fitness += self.convert_fitness_to_minimzation(param, scaled_fit)
+                fitness += self.convert_fitness_to_minimzation(obj, scaled_fit)
             except TypeError:
                 fitness += 0
 

@@ -61,79 +61,6 @@ def test_kabr_clear_entry():
     ns.shutdown()
     time.sleep(0.05)
     
-def test_kabr_scale_objective():
-    try:
-        ns = run_nameserver()
-    except OSError:
-        time.sleep(0.5)
-        ns = run_nameserver()
-    ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
-    obj1 = ka_b.scale_objective(2,0,10)
-    assert obj1 == 0.2
-    obj1 = ka_b.scale_objective(0,-10,10)
-    assert obj1 == 0.5
-    obj1 = ka_b.scale_objective(0,29,5925)
-    assert obj1 == None
-    ns.shutdown()
-    time.sleep(0.05)
-    
-def test_kabr_scale_objective_list():
-    try:
-        ns = run_nameserver()
-    except OSError:
-        time.sleep(0.5)
-        ns = run_nameserver()
-    ka_b = run_agent(name='ka_br', base=ka_br.KaBr)
-    obj1 = ka_b.scale_list_objective([3.0,5.0,7.0], 0.0, 10.0, 'avg')
-    assert obj1 == 0.5
-    obj1 = ka_b.scale_list_objective([2.0,5.0,7.0], 0.0, 10.0, 'min')
-    assert obj1 == 0.2
-    obj1 = ka_b.scale_list_objective([2.0,5.0,7.0], 0.0, 10.0, 'max')
-    assert obj1 == 0.7
-    obj1 = ka_b.scale_list_objective([2.0,5.0,8.0], [0.0,0.0,0.0], [4.0,10.0,10.0], 'avg')
-    assert obj1 == 0.6
-    obj1 = ka_b.scale_list_objective([2.0,5.0,8.0], [0.0,0.0,0.0], [4.0,10.0,10.0], 'min')
-    assert obj1 == 0.5
-    obj1 = ka_b.scale_list_objective([2.0,5.0,8.0], [0.0,0.0,0.0], [4.0,10.0,10.0], 'max')
-    assert obj1 == 0.8   
-    ns.shutdown()
-    time.sleep(0.05)  
-    
-def test_kabr_convert_to_minimize():
-    try:
-        ns = run_nameserver()
-    except OSError:
-        time.sleep(0.5)
-        ns = run_nameserver()
-    ka_b = run_agent(name='ka_br', base=ka_br.KaBr)    
-    ka_b.set_attr(_objectives= {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-                                'burnup':            {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
-                                'keff':              {'ll':1.0, 'ul':2.0,  'target': 1.5, 'goal':'et', 'variable type': float}})
-    assert ka_b.convert_to_minimize('burnup', 200) == -200
-    assert ka_b.convert_to_minimize('reactivity swing', 200) == 200
-    assert ka_b.convert_to_minimize('keff', 1.25) == 0.25
-    assert ka_b.convert_to_minimize('keff', 1.75) == 0.25
-    ns.shutdown()
-    time.sleep(0.05) 
-
-def test_kabr_convert_scaled_objective_to_minimzation():
-    try:
-        ns = run_nameserver()
-    except OSError:
-        time.sleep(0.5)
-        ns = run_nameserver()
-    ka_b = run_agent(name='ka_br', base=ka_br.KaBr)    
-    ka_b.set_attr(_objectives= {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-                                'burnup':            {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
-                                'keff':              {'ll':1.0, 'ul':2.0,  'target': 1.5, 'goal':'et', 'variable type': float}})
-    assert ka_b.convert_scaled_objective_to_minimzation('burnup', 0.75) == 0.25
-    assert ka_b.convert_scaled_objective_to_minimzation('reactivity swing', 0.6) == 0.6
-    assert round(ka_b.convert_scaled_objective_to_minimzation('keff', 0.4),2) == 0.2
-    assert round(ka_b.convert_scaled_objective_to_minimzation('keff', 0.6),2) == 0.2
-
-    ns.shutdown()
-    time.sleep(0.05) 
-    
 def test_kabr_update_abstract_level():
     try:
         ns = run_nameserver()
@@ -304,7 +231,9 @@ def test_kabr_lvl1_executor():
     time.sleep(0.05)
     bb.controller()
     bb.send_executor()
-    time.sleep(0.05) 
+    time.sleep(0.15) 
+    assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
+                                       'core_[75.0, 55.0, 0.30]': 0.0625}
     assert br.get_attr('_pf_size') == 3
     assert br.get_attr('_hvi_dict') == {'core_[65.0, 65.0, 0.42]': 0.0625, 'core_[70.0, 60.0, 0.50]': 0.0625,
                                        'core_[75.0, 55.0, 0.30]': 0.0625}
@@ -329,33 +258,6 @@ def test_kabr_lvl1_executor():
     ns.shutdown()
     time.sleep(0.05)  
 
-def test_kabr_lvl1_scale_pareto_front():
-    try:
-        ns = run_nameserver()
-    except OSError:
-        time.sleep(0.5)
-        ns = run_nameserver()
-    ka_br1 = run_agent(name='ka_br_lvl1', base=ka_br.KaBr_lvl1)
-    ka_br1.set_attr(lvl_read={'core_[75.0, 55.0, 0.30]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
-                              'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
-                              'core_[65.0, 65.0, 0.42]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
-    ka_br1.set_attr(_lvl_data={'core_[65.0, 65.0, 0.42]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                                           'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0, 'power avg':[2.5,5.0,7.5], 'power max':[2.5,5.0,7.5], 'power min':[2.5,5.0,7.5]}},
-                               'core_[70.0, 60.0, 0.50]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
-                                                           'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0, 'power avg':[2.5,5.0,7.5], 'power max':[2.5,5.0,7.5], 'power min':[2.5,5.0,7.5]}},
-                               'core_[75.0, 55.0, 0.30]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
-                                                           'objective functions': {'reactivity swing' : 250.0, 'burnup' : 25.0, 'power avg':[2.5,5.0,7.5], 'power max':[2.5,5.0,7.5], 'power min':[2.5,5.0,7.5]}}})
-    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float},
-            'power avg':        {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'avg'},
-            'power max':        {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'},
-            'power min':        {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'min'}}
-    ka_br1.set_attr(_objectives=objs)
-    pf = ['core_[65.0, 65.0, 0.42]', 'core_[70.0, 60.0, 0.50]', 'core_[75.0, 55.0, 0.30]']
-    scaled_pf = ka_br1.scale_pareto_front(pf)
-    assert scaled_pf == [[0.75,0.25,0.5,0.75,0.25], [0.5,0.5,0.5,0.75,0.25], [0.25,0.75,0.5,0.75,0.25]]
-    ns.shutdown()
-    time.sleep(0.05)
     
 def test_kabr_lvl1_calculate_hvi():
     try:
