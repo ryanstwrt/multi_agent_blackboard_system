@@ -605,7 +605,7 @@ def test_load_h5():
 
     
     bb.update_abstract_lvl(2, 'core_2', {'entry 1': 1, 'entry 2': 1.2})
-    bb.update_abstract_lvl(3, 'core_3', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1,2,3]})
+    bb.update_abstract_lvl(3, 'core_3', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1.1,2.0,3.0]})
     bb.update_abstract_lvl(4, 'core_4', {'entry 1': {'test 1': {'nested_test': 3}}})
     
     time.sleep(0.05)
@@ -616,7 +616,7 @@ def test_load_h5():
     bb_h5_bb = bb_h5.get_attr('abstract_lvls')
     bb_bb = bb.get_attr('abstract_lvls')
 
-    
+    print(bb_h5_bb)
     assert bb_h5_bb == bb_bb
 
     bb.update_abstract_lvl(2, 'core_3', {'entry 1': 1, 'entry 2': 1.2})

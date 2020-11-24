@@ -2,17 +2,17 @@ import src.blackboard as blackboard
 import src.ka_rp as karp
 import src.ka_br as kabr
 import src.utilities as utils
+import src.database_generator as dg
+import src.performance_measure as pm
+import src.train_surrogate_models as tm
 import osbrain
 from osbrain import proxy
 from osbrain import run_agent
 import time
 import os 
-import src.database_generator as dg
 import numpy as np
-import src.train_surrogate_models as tm
 import scipy.interpolate
 import plotly.express as px
-import src.performance_measure as pm
 from numpy import random
 
 

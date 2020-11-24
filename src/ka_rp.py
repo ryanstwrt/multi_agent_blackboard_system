@@ -199,7 +199,7 @@ class KaGlobal(KaRp):
         
     def search_method(self):
         """
-        Determine the core design variables using a monte carlo method.
+        Determine the core design variables using a monte carlo (stochastic) method.
         """        
         for dv, dv_dict in self._design_variables.items():
             if dv_dict['variable type'] == dict:
@@ -211,7 +211,7 @@ class KaGlobal(KaRp):
                         design[pos] = round(random.random() * (dv_dict['dict'][pos]['ul'] - dv_dict['dict'][pos]['ll']) + dv_dict['dict'][pos]['ll'], self._design_accuracy)
                 self.current_design_variables[dv] = design
             elif dv_dict['variable type'] == str:
-                self.current_design_variables[dv] = random.choice(dv_dict['options']) #if random.random() > 0.5 else dv_dict['default']              
+                self.current_design_variables[dv] = random.choice(dv_dict['options']) #if random.random() > self.learning_rate else dv_dict['default']              
             else:
                 self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         

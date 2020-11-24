@@ -571,22 +571,26 @@ def test_read_from_h5():
                                   'experiments': {'length':         2, 
                                                   'dict':  {'0': {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp', 'variable type': str},
                                                             '1': {'options': ['exp_a', 'exp_b', 'exp_c'], 'default': 'no_exp', 'variable type': str}},
-                                                  'variable type': dict}}
+                                                  'variable type': dict},}
     objs = {'reactivity swing': {'ll':0.0,  'ul':1000.0, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0.0,  'ul':100.0,  'goal':'gt', 'variable type': float}}
+            'burnup':           {'ll':0.0,  'ul':100.0,  'goal':'gt', 'variable type': float},
+            'powers':           {'ll': -10,  'ul':10.0,  'goal':'et', 'goal_type': 'max', 'variable type': list},
+            'list_powers':      {'ll': -10,  'ul':10.0,  'goal':'et', 'goal_type': 'max', 'variable type': list},}
 
     bb_h5.initialize_abstract_level_3(objectives=objs, design_variables=dv)    
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': {'0': 'exp_a', '1':'no_exp'}},
-                                         'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0},
+                                         'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0, 'powers': [0.1,0.2,0.3], 'list_powers': [[0.5,0.8,0.7],[0.2,0.9,0.4]]},
                                          'constraints': {'eol keff': 1.02}}, panel='old')    
     bb.write_to_h5()
     bb_bb = bb.get_attr('abstract_lvls')
 
     bb_h5.load_h5(panels={2: ['new','old'], 3: ['new','old']})    
     bb_h5_bb = bb_h5.get_attr('abstract_lvls')
-    assert bb_bb == {'level 1': {}, 'level 2': {'new': {}, 'old': {}}, 'level 100': {}, 'level 3': {'new': {}, 'old': {'core_1': {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': {'0': 'exp_a', '1': 'no_exp'}}, 'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0}, 'constraints': {'eol keff': 1.02}}}}}
-    assert bb_h5_bb == {'level 1': {}, 'level 2': {'new': {}, 'old': {}}, 'level 100': {}, 'level 3': {'new': {}, 'old': {'core_1': {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': {'0': 'exp_a', '1': 'no_exp'}}, 'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0}, 'constraints': {'eol keff': 1.02}}}}}
+
+    assert bb_bb == {'level 1': {}, 'level 2': {'new': {}, 'old': {}}, 'level 100': {}, 'level 3': {'new': {}, 'old': {'core_1': {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': {'0': 'exp_a', '1': 'no_exp'}}, 'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0, 'powers': [0.1,0.2,0.3], 'list_powers': [[0.5,0.8,0.7],[0.2,0.9,0.4]]}, 'constraints': {'eol keff': 1.02}}}}}
+    
+    assert bb_h5_bb == {'level 1': {}, 'level 2': {'new': {}, 'old': {}}, 'level 100': {}, 'level 3': {'new': {}, 'old': {'core_1': {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': {'0': 'exp_a', '1': 'no_exp'}}, 'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0, 'powers': [0.1,0.2,0.3], 'list_powers': [[0.5,0.8,0.7],[0.2,0.9,0.4]]}, 'constraints': {'eol keff': 1.02}}}}}
     
     os.remove('blackboard_archive.h5')
     ns.shutdown()

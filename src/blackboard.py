@@ -343,6 +343,7 @@ class Blackboard(Agent):
                 self.dict_writer(k, v, group_level[data_name])
             elif type(v) == list:
                 group_level[data_name][k] = [self.convert_to_h5_type(type(x), x) for x in v]
+                print(data_name, [self.convert_to_h5_type(type(x), x) for x in v])
                 group_level[data_name][k].attrs['type'] = repr(type(v))
             else:
                 group_level[data_name][k] = self.convert_to_h5_type(type(v), v)
@@ -470,8 +471,15 @@ class Blackboard(Agent):
         data_dict : dict
             dictionary of data to be added to the blackboard
         """
+        
         if data_dict[data_name] == list:
-            return data_dict[data_name](data)
+            data_list = data_dict[data_name](data)
+            if len(data_list[0]) == 1:
+                temp = [np.ndarray.tolist(x) for x in data_list]
+                return [item for sublist in temp for item in sublist]
+            else:
+                return [np.ndarray.tolist(x) for x in data_list]
+
         elif type(data_dict[data_name]) == dict:
             sub_dataset = self.get_data_types(data)
             for d_names, d in data.items():
@@ -730,10 +738,15 @@ class Blackboard(Agent):
         name : str
         """
         group_level.create_group(name)
+        print(group_level)
         for data_name, data_val in data.items():
             data_type = type(data_val)
             if data_type == dict:
                 self.dict_writer(data_name, data_val, group_level[name])
+            elif data_type == list:
+                print([self.convert_to_h5_type(type(x), x) for x in data_val])
+                group_level[name][data_name] = [self.convert_to_h5_type(type(x), x) for x in data_val]
+                group_level[name][data_name].attrs['type'] = repr(type(data_val))   
             else:
                 group_level[name][data_name] = self.convert_to_h5_type(data_type, data_val)
                 group_level[name][data_name].attrs['type'] = repr(data_type)        
