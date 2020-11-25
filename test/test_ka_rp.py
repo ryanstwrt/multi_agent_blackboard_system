@@ -521,6 +521,31 @@ def test_karp_exploit_init_local_hill_climb():
     ns.shutdown()
     time.sleep(0.1)
     
+def test_design_check():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaLocal)
+    rp.set_attr(_lvl_data={})
+    rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                  'experiments': {'options': ['exp_a', 'exp_b', 'exp_c', 'no_exp'], 'default': 'no_exp', 'variable type': list}})
+    
+
+    
+    rp.set_attr(current_design_variables={'height': 65.0, 'smear': 65.0, 'pu_content': 0.42, 'experiments': 'exp_a'})
+    assert rp.design_check() == True
+    rp.set_attr(current_design_variables={'height': 95.0, 'smear': 65.0, 'pu_content': 0.42, 'experiments': 'exp_a'})
+    assert rp.design_check() == False
+    rp.set_attr(current_design_variables={'height': 65.0, 'smear': 65.0, 'pu_content': 0.42, 'experiments': 'exp_x'})
+    assert rp.design_check() == False
+
+    ns.shutdown()
+    time.sleep(0.1)
+    
 def test_determine_model_applicability():
     try:
         ns = run_nameserver()
@@ -1131,7 +1156,7 @@ def test_kalocalhc_simple():
     rp = ka.proxy('ka_rp_exploit')
     rp.set_attr(step_size=0.20)
     rp.set_attr(step_rate=0.2)
-    rp.set_attr(convergence_criteria=0.001)
+    rp.set_attr(convergence_criteria=0.01)
     rp.set_random_seed(seed=1073)
     bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
                                                           'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
@@ -1143,10 +1168,10 @@ def test_kalocalhc_simple():
     rp.search_method()
     time.sleep(0.075)
     
-    assert list(bb.get_attr('abstract_lvls')['level 3']['new']) == ['core_[65.0,52.0,0.42]', 'core_[65.0,65.0,0.336]', 'core_[65.0,54.6,0.336]', 'core_[65.0,65.0,0.28224]', 'core_[56.68,65.0,0.28224]', 'core_[65.0,65.0,0.24611]', 'core_[65.0,65.0,0.22091]', 'core_[59.6752,65.0,0.22091]', 'core_[65.0,59.6752,0.22091]', 'core_[65.0,65.0,0.23901]', 'core_[65.0,65.0,0.20281]', 'core_[65.0,65.0,0.18952]', 'core_[65.0,61.59213,0.18952]', 'core_[65.0,68.40787,0.18952]', 'core_[65.0,68.40787,0.19747]', 'core_[67.7263,68.40787,0.18952]', 'core_[67.7263,68.40787,0.18316]', 'core_[67.7263,68.40787,0.17824]', 'core_[66.27189,68.40787,0.17824]', 'core_[67.7263,69.87692,0.17824]', 'core_[67.7263,69.87692,0.17518]', 'core_[68.65712,69.87692,0.17518]', 'core_[67.90223,69.87692,0.17518]', 'core_[68.65712,69.10862,0.17518]', 'core_[68.65712,69.87692,0.17711]', 'core_[68.65712,69.87692,0.17325]', 'core_[68.65712,69.87692,0.17477]', 'core_[69.26103,69.87692,0.17325]', 'core_[69.26103,69.87692,0.17203]', 'core_[69.26103,69.87692,0.17106]', 'core_[69.57295,69.87692,0.17106]', 'core_[69.57295,69.87692,0.17044]', 'core_[69.57295,69.87692,0.16995]', 'core_[69.57295,69.87692,0.17034]', 'core_[69.73337,69.87692,0.16995]', 'core_[69.73337,69.87692,0.17026]', 'core_[69.60473,69.87692,0.16995]', 'core_[69.86201,69.87692,0.16995]', 'core_[69.75891,69.87692,0.16995]', 'core_[69.86201,69.98004,0.16995]', 'core_[69.94449,69.98004,0.16995]']
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new']) == ['core_[65.0,52.0,0.42]', 'core_[65.0,65.0,0.336]', 'core_[65.0,52.0,0.336]', 'core_[65.0,65.0,0.2688]', 'core_[52.0,65.0,0.2688]', 'core_[65.0,65.0,0.21504]', 'core_[65.0,65.0,0.17203]', 'core_[52.0,65.0,0.17203]', 'core_[65.0,52.0,0.17203]', 'core_[65.0,65.0,0.20644]', 'core_[65.0,65.0,0.13762]', 'core_[78.0,65.0,0.17203]', 'core_[78.0,65.0,0.13762]', 'core_[78.0,52.0,0.13762]', 'core_[62.4,65.0,0.13762]', 'core_[78.0,65.0,0.1101]', 'core_[78.0,65.0,0.08808]', 'core_[78.0,65.0,0.13212]', 'core_[78.0,52.0,0.1101]', 'core_[62.4,65.0,0.1101]', 'core_[78.0,65.0,0.09248]', 'core_[65.52,65.0,0.1101]', 'core_[78.0,65.0,0.12772]', 'core_[78.0,54.6,0.1101]', 'core_[78.0,65.0,0.09601]', 'core_[78.0,56.68,0.1101]', 'core_[68.016,65.0,0.1101]', 'core_[78.0,65.0,0.12419]', 'core_[78.0,65.0,0.10829]', 'core_[68.016,65.0,0.12419]', 'core_[78.0,56.68,0.12419]', 'core_[78.0,65.0,0.14009]', 'core_[70.0128,65.0,0.12419]', 'core_[78.0,65.0,0.13691]', 'core_[78.0,65.0,0.11147]', 'core_[78.0,58.344,0.12419]', 'core_[78.0,65.0,0.11402]', 'core_[71.61024,65.0,0.11402]', 'core_[78.0,59.6752,0.11402]', 'core_[78.0,65.0,0.10468]', 'core_[78.0,65.0,0.12336]', 'core_[78.0,65.0,0.10655]', 'core_[78.0,69.25984,0.11402]', 'core_[78.0,69.25984,0.12149]', 'core_[78.0,69.25984,0.11353]', 'core_[78.0,64.72083,0.12149]', 'core_[78.0,69.25984,0.12945]', 'core_[72.88819,69.25984,0.12149]', 'core_[78.0,69.25984,0.11512]', 'core_[78.0,65.62863,0.12149]', 'core_[78.0,69.25984,0.12786]', 'core_[73.91055,69.25984,0.12149]', 'core_[78.0,69.25984,0.11639]', 'core_[74.72844,69.25984,0.12149]', 'core_[78.0,66.35487,0.12149]', 'core_[78.0,69.25984,0.12659]', 'core_[78.0,69.25984,0.11741]', 'core_[78.0,66.93587,0.11741]', 'core_[75.38275,69.25984,0.11741]', 'core_[78.0,69.25984,0.11347]', 'core_[78.0,69.25984,0.12135]', 'core_[78.0,69.25984,0.12056]', 'core_[78.0,69.25984,0.11732]', 'core_[78.0,69.25984,0.1238]', 'core_[78.0,67.40066,0.12056]', 'core_[75.9062,69.25984,0.12056]', 'core_[78.0,69.25984,0.12315]', 'core_[79.67504,69.25984,0.12056]', 'core_[77.96403,69.25984,0.12056]', 'core_[79.67504,67.7725,0.12056]', 'core_[79.67504,69.25984,0.12315]', 'core_[79.67504,69.25984,0.12579]', 'core_[79.67504,69.25984,0.12849]', 'core_[79.67504,69.25984,0.12309]', 'core_[77.96403,69.25984,0.12579]', 'core_[79.67504,67.7725,0.12579]', 'core_[78.30623,69.25984,0.12579]', 'core_[79.67504,69.25984,0.12795]', 'core_[79.67504,69.25984,0.12363]', 'core_[79.67504,68.06997,0.12579]', 'core_[79.67504,69.25984,0.12406]', 'core_[79.67504,68.30794,0.12579]', 'core_[78.57999,69.25984,0.12579]', 'core_[79.67504,69.25984,0.12752]', 'core_[79.67504,68.30794,0.12752]', 'core_[79.67504,69.25984,0.12577]', 'core_[78.57999,69.25984,0.12752]', 'core_[79.67504,69.25984,0.12927]', 'core_[79.67504,69.25984,0.12612]', 'core_[78.799,69.25984,0.12752]', 'core_[79.67504,69.25984,0.12892]', 'core_[79.67504,68.49832,0.12752]']
     ns.shutdown()
     time.sleep(0.1)
-
+    
 def test_kahc_search_method_discrete_dv():
     try:
         ns = run_nameserver()
@@ -1236,7 +1261,7 @@ def test_KaLocalGA():
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[65.0,65.0,0.25]','core_[70.0,60.0,0.1]','core_[75.0,80.0,0.5]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()] == ['core_[65.0,65.0,0.25]','core_[70.0,60.0,0.1]']
     
     ns.shutdown()
     time.sleep(0.1)
@@ -1292,7 +1317,7 @@ def test_KaLocalGA_linear_crossover():
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0,65.0,0.15]','core_[50.0,55.0,0.05]','core_[80.0,70.0,0.25]','core_[80.0,75.0,0.35]','core_[80.0,70.0,0.65]','core_[60.0,65.0,0.05]']
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0,65.0,0.15]','core_[50.0,55.0,0.05]','core_[80.0,70.0,0.25]','core_[80.0,70.0,0.65]','core_[60.0,65.0,0.05]']
     
     ns.shutdown()
     time.sleep(0.1)

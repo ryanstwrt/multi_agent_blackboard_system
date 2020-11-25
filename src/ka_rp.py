@@ -223,7 +223,7 @@ class KaGlobal(KaRp):
             self.search_method()
                 
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
-                
+        
         
 class KaLHC(KaRp):
     """
@@ -265,12 +265,9 @@ class KaLHC(KaRp):
         """
         
         length = 0
-        for k,v in self._design_variables.items():
-            if v['variable type'] == dict:
-                length += v['length']
-            else:
-                length += 1
-            
+        for v in self._design_variables.values():
+            length += v['length'] if v['variable type'] == dict else 1
+
         lhd = self.lhs(length, samples=self.samples, criterion=self.lhc_criterion)
         self.lhd = lhd.tolist()
 
@@ -302,11 +299,7 @@ class KaLHC(KaRp):
             An n-by-samples design matrix that has been normalized so factor values
             are uniformly spaced between zero and one.
         """
-        samples = self.samples
-        
-        H = self._lhscorrelate(n, samples, iterations)
-    
-        return H
+        return self._lhscorrelate(n, self.samples, iterations)
 
     def _lhsclassic(self, n, samples):
         # Generate the intervals
@@ -416,6 +409,27 @@ class KaLocal(KaRp):
         self.neighboorhod_search = 'fixed'
         self._class = 'local search ns'
 
+    def design_check(self):
+        """
+        Determine if all design variables are within the limits of the design.
+        Check if the design has been examined before.
+        """
+        core_name = self.get_design_name(self.current_design_variables)
+        for dv, dv_dict in self._design_variables.items():
+            dv_val = self.current_design_variables[dv]
+            if dv_dict['variable type'] == float:
+                if dv_val < dv_dict['ll'] or dv_val > dv_dict['ul']:
+                    self.log_warning('Core {} not examined, design variable {} with value {} outside of limits.'.format(core_name, dv, dv_val))
+                    return False
+            elif dv_dict['variable type'] == list:
+                if dv_val not in dv_dict['options']:
+                    self.log_warning('Core {} not examined, design variable {} with value {} not an option'.format(core_name, dv, dv_val))
+                    return False
+        if core_name in self._lvl_data.keys():
+            self.log_info('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl))
+            return False
+        return True
+                
     def determine_model_applicability(self, dv):
         """
         Determine if a design variable is valid, and if the design has already been examined.
@@ -427,21 +441,16 @@ class KaLocal(KaRp):
         dv_cur_val = self.current_design_variables[dv]
         core_name = self.get_design_name(self.current_design_variables)
 
-        if core_name in self._lvl_data.keys():
-            self.log_debug('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl))
-            return
-        if dv_dict['variable type'] == float:
-            if dv_cur_val < dv_dict['ll'] or dv_cur_val > dv_dict['ul']:
-                self.log_debug('Core {} not examined; design outside design variables.'.format(core_name))
-                return
+        if not self.design_check():
+            return False
         
         self.calc_objectives()
-#        print(self._entry_name, self._entry)
         if self._entry_name:
             self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
             self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
         else:
             self.log_warning('Failed to log current design due to a failure in objective calculations.')
+        return True
         
     def handler_executor(self, message):
         """
@@ -503,7 +512,6 @@ class KaLocal(KaRp):
         perts = [1.0 - pert, 1.0 + pert]
         pert_designs = []
             
-#        for dv, dv_value in design_.items():
         for dv in dv_keys:
             dv_value = design_[dv]
             design = copy.copy(design_)
@@ -521,10 +529,7 @@ class KaLocal(KaRp):
         for dv, design in pert_designs:
             self.current_design_variables = design
             self._entry_name = self.get_design_name(self.current_design_variables)
-            if self._entry_name in self._lvl_data.keys():
-                self.log_debug('Core {} not examined; found same core in level {}'.format(self._entry_name, self.bb_lvl))
-            else:
-                self.determine_model_applicability(dv)
+            self.determine_model_applicability(dv)
         
         self.analyzed_design[core] = {'Analyzed': True}
 
@@ -625,26 +630,21 @@ class KaLocalHC(KaLocal):
             while len(potential_steps) != 0:
                 direction, dv, design = potential_steps.pop()
                 self._entry_name = self.get_design_name(design)
-                if self._entry_name in self._lvl_data.keys():
-                    self.log_debug('Core {} not examined, found same core in level {}'.format(self._entry_name, self.bb_lvl))                
-                else:
-                    self.current_design_variables = design 
-                    self.determine_model_applicability(dv)
-                    test_step = {'{} {}'.format(direction,dv) : {'design variables': self.current_design_variables, 
-                                                                 'objective functions': {k:v for k,v in self.current_objectives.items()},
-                                                                 'constraints': self.current_constraints}}
+                self.current_design_variables = design 
+                if self.determine_model_applicability(dv):
+                    gradient_vector['{} {}'.format(direction,dv)] = {'design variables': self.current_design_variables, 
+                                                                     'objective functions': {k:v for k,v in self.current_objectives.items()},
+                                                                     'constraints': self.current_constraints}
                     if self.hc_type == 'simple':
+                        test_step = {'{} {}'.format(direction,dv): gradient_vector['{} {}'.format(direction,dv)]}
                         next_step, diff = self.determine_step(step_design, step_objs, test_step)
                         if next_step:
-                            step_design = test_step[next_step]['design variables']
-                            step_objs = test_step[next_step]['objective functions']
+                            step_design = gradient_vector[next_step]['design variables']
+                            step_objs = gradient_vector[next_step]['objective functions']
                             break
-                    else:
-                        gradient_vector['{} {}'.format(direction,dv)] = {'design variables': self.current_design_variables, 
-                                                                         'objective functions': {k:v for k,v in self.current_objectives.items()},
-                                                                         'constraints': self.current_constraints}
+            
             # Determine which step is the steepest, update our design, and write this to the BB
-            if gradient_vector:
+            if gradient_vector and self.hc_type != 'simple':
                 next_step, diff = self.determine_step(step_design, step_objs, gradient_vector)
                 if next_step:
                     step_design = gradient_vector[next_step]['design variables']
@@ -656,11 +656,7 @@ class KaLocalHC(KaLocal):
             step_number += 1
             if step_number > self.step_limit:
                 break
-                
-        if core:
-            self.write_to_bb(self.bb_lvl_read, core, entry)
-            self.analyzed_design[core] = {'Analyzed': True, 'HV': 0.0}
-
+ 
     def determine_step(self, base, base_design, design_dict):
         """
         Determine which design we should use to take a step, based on a scaled derivative (objectives and dv are scaled)
@@ -678,7 +674,6 @@ class KaLocalHC(KaLocal):
             dv = pert_dv.split(' ')[1]
             design[pert_dv] = {}
             design[pert_dv]['total'] = 0
-            
             for obj, obj_dict in self._objectives.items():
                 derivative = self.calculate_derivative(base, base_design, pert_design, dv, obj)
                 design[pert_dv][obj] = derivative
@@ -705,7 +700,6 @@ class KaLocalHC(KaLocal):
             if step_design['objective functions'][obj] <= obj_dict['ll'] or step_design['objective functions'][obj] >= obj_dict['ul']:
                 return -1000.0
     
-    
         obj_scaled_new = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(step_design['objective functions'][obj], obj_dict), scale=True)
         obj_scaled_base = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(base_obj[obj], obj_dict), scale=True)    
         dv_scaled_new = utils.scale_value(step_design['design variables'][dv], dv_dict) if dv_dict['variable type'] == float else 1.0
@@ -719,7 +713,6 @@ class KaLocalHC(KaLocal):
         obj_diff = (obj_scaled_base - obj_scaled_new)
         dv_diff = abs(dv_scaled_new - dv_scaled_base)
         derivative = obj_diff / dv_diff if dv_diff != 0 else 0
-        
         return round(derivative, 7)
         
 class KaLocalRW(KaLocal):
