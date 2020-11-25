@@ -59,6 +59,9 @@ class KaRp(ka.KaBase):
     def clear_entry(self):
         self._entry = {}
         self._entry_name = None
+#        self.current_design_variables = {}
+#        self.current_constraints = {}
+#        self.current_objectives = {}
         
     def calc_objectives(self):
         """
@@ -419,6 +422,7 @@ class KaLocal(KaRp):
         If the design isn't valid or has already been examined, skip this.
         If the design is new, calculate the objectives and wrtie this to the blackbaord.
         """
+        self.clear_entry()
         dv_dict = self._design_variables[dv]
         dv_cur_val = self.current_design_variables[dv]
         core_name = self.get_design_name(self.current_design_variables)
@@ -432,11 +436,12 @@ class KaLocal(KaRp):
                 return
         
         self.calc_objectives()
+#        print(self._entry_name, self._entry)
         if self._entry_name:
             self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
             self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
         else:
-            self.log_debug('Failed to log current design due to a failure in objective calculations.')
+            self.log_warning('Failed to log current design due to a failure in objective calculations.')
         
     def handler_executor(self, message):
         """
@@ -696,21 +701,26 @@ class KaLocalHC(KaLocal):
         obj_dict = self._objectives[obj]
         dv_dict = self._design_variables[dv]
         
-        
-        if step_design['objective functions'][obj] <= obj_dict['ll'] or step_design['objective functions'][obj] >= obj_dict['ul']:
-            return -1000.0
-        
-        obj_scaled_new = utils.scale_value(step_design['objective functions'][obj], obj_dict)
-        obj_scaled_base = utils.scale_value(base_obj[obj], obj_dict)
+        if obj_dict['variable type'] == float:
+            if step_design['objective functions'][obj] <= obj_dict['ll'] or step_design['objective functions'][obj] >= obj_dict['ul']:
+                return -1000.0
+    
+    
+        obj_scaled_new = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(step_design['objective functions'][obj], obj_dict), scale=True)
+        obj_scaled_base = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(base_obj[obj], obj_dict), scale=True)    
         dv_scaled_new = utils.scale_value(step_design['design variables'][dv], dv_dict) if dv_dict['variable type'] == float else 1.0
         dv_scaled_base = utils.scale_value(base_dv[dv], dv_dict) if dv_dict['variable type'] == float else 0.0
 
+        if obj_dict['variable type'] == list:
+            obj_scaled_new = utils.get_objective_value(obj_scaled_new, goal_type=obj_dict['goal type'])
+            obj_scaled_base = utils.get_objective_value(obj_scaled_base, goal_type=obj_dict['goal type'])
+        
         # We are following the steepest ascent, so positive is better
-        obj_diff = (obj_scaled_new - obj_scaled_base) if obj_dict['goal'] == 'gt' else (obj_scaled_base - obj_scaled_new)
+        obj_diff = (obj_scaled_base - obj_scaled_new)
         dv_diff = abs(dv_scaled_new - dv_scaled_base)
         derivative = obj_diff / dv_diff if dv_diff != 0 else 0
         
-        return derivative
+        return round(derivative, 7)
         
 class KaLocalRW(KaLocal):
     

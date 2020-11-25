@@ -809,7 +809,9 @@ def test_determine_step_steepest_ascent():
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
+            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
+            'eol keff':         {'ll':1.0, 'ul':2.0,   'goal':'et', 'target': 1.5, 'variable type': float},
+            'power':        {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'}}
     bb.initialize_abstract_level_3(objectives=objs)
     bb.initialize_abstract_level_3()
 
@@ -818,7 +820,7 @@ def test_determine_step_steepest_ascent():
     rp = ka.proxy('ka_rp_exploit')
     rp.set_attr(hc_type='steepest ascent')
     bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
-                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12},
+                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.1, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
@@ -827,40 +829,96 @@ def test_determine_step_steepest_ascent():
 
     # Test an increase in burnup (greater than test)
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
-    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.1, 'power': [1.0,2.0,3.0]}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 60.12},
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 60.12, 'eol keff': 1.1, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 67.12},
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 67.12, 'eol keff': 1.1, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
-    assert diff == 0.09
+    assert round(diff,3) == 0.09
     assert pert == '+ height'
     
     # Test an increase in reactivity swing (less than test)
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
-    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.1, 'power': [1.0,2.0,3.0]}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 680.11, 'burnup' : 61.12},
+                                      'objective functions': {'reactivity swing' : 680.11, 'burnup' : 61.12, 'eol keff': 1.1, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 61.12},
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 61.12, 'eol keff': 1.1, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
     assert round(diff, 3) == 0.053
     assert pert == '+ pu_content'
     
-    # Test a postive a change in both objectives
+    # Test an increase in keff (equal to test - below value)
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
-    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.1, 'power': [1.0,2.0,3.0]}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 60.12},
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.4, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 680.11, 'burnup' : 67.12},
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.3, 'power': [1.0,2.0,3.0]},
+                                                          'constraints': {'eol keff': 1.1}}}
+    pert, diff = rp.determine_step(base, base_design, design_dict)
+    
+    assert round(diff, 3) == 20.0
+    assert pert == '+ pu_content'
+
+    # Test an increase in keff (equal to test - above vaalue)
+    base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.9, 'power': [1.0,2.0,3.0]}
+    design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]},
+                                                          'constraints': {'eol keff': 1.1}},
+                   '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.7, 'power': [1.0,2.0,3.0]},
+                                                          'constraints': {'eol keff': 1.1}}}
+    pert, diff = rp.determine_step(base, base_design, design_dict)
+    
+    assert round(diff, 3) == 20.0
+    assert pert == '+ pu_content'
+    
+    # Test an increase in keff (equal to test - cross the value)
+    base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]}
+    design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.45, 'power': [1.0,2.0,3.0]},
+                                                          'constraints': {'eol keff': 1.1}},
+                   '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.57, 'power': [1.0,2.0,3.0]},
+                                                          'constraints': {'eol keff': 1.1}}}
+    pert, diff = rp.determine_step(base, base_design, design_dict)
+    
+    assert round(diff, 3) == 3.333
+    assert pert == '+ pu_content'
+    
+    # Test an increase in power ()
+    base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]}
+    design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.45, 'power': [1.0,2.0,2.5]},
+                                                          'constraints': {'eol keff': 1.1}},
+                   '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                      'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.57, 'power': [1.0,2.0,2.75]},
+                                                          'constraints': {'eol keff': 1.1}}}
+    pert, diff = rp.determine_step(base, base_design, design_dict)
+    
+    assert round(diff, 3) == 5.0
+    assert pert == '+ pu_content'
+    
+    # Test a postive a change in two objectives
+    base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]}
+    design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 60.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]},
+                                                          'constraints': {'eol keff': 1.1}},
+                   '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                      'objective functions': {'reactivity swing' : 680.11, 'burnup' : 67.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
@@ -869,12 +927,12 @@ def test_determine_step_steepest_ascent():
 
     # Test a postive a change in both objectives (both have of ~0.078, but + pu_content is slightly greater})
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
-    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12},
+                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12},
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
@@ -883,12 +941,12 @@ def test_determine_step_steepest_ascent():
     
     # Test a case with no change in design variables
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
-    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12},
+                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}},
                    '+ height' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12},
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 1.1}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     
@@ -897,12 +955,12 @@ def test_determine_step_steepest_ascent():
     
     # Test a postive a change in both objectives (both have of ~0.078, but + pu_content is slightly greater})
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
-    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12}
+    base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
-                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12},
+                                      'objective functions': {'reactivity swing' : 661.51, 'burnup' : 60.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 0.9}},
                    '+ height' : {'design variables': {'height': 66.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12},
+                                      'objective functions': {'reactivity swing' : 710.11, 'burnup' : 67.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]},
                                                           'constraints': {'eol keff': 2.8}}}
     pert, diff = rp.determine_step(base, base_design, design_dict)
     

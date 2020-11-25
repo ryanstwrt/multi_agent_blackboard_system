@@ -343,7 +343,6 @@ class Blackboard(Agent):
                 self.dict_writer(k, v, group_level[data_name])
             elif type(v) == list:
                 group_level[data_name][k] = [self.convert_to_h5_type(type(x), x) for x in v]
-                print(data_name, [self.convert_to_h5_type(type(x), x) for x in v])
                 group_level[data_name][k].attrs['type'] = repr(type(v))
             else:
                 group_level[data_name][k] = self.convert_to_h5_type(type(v), v)
@@ -638,10 +637,14 @@ class Blackboard(Agent):
         panel : bool
             boolean logic to determine if we are writing to a panel on an abstract level
         """
+        
         lvl_name = 'level {}'.format(level)
         abstract_lvl = self.abstract_lvls[lvl_name][panel] if panel else self.abstract_lvls[lvl_name]
         lvl_format = self.abstract_lvls_format[lvl_name][panel] if panel else self.abstract_lvls_format[lvl_name]
-            
+        try:
+            [x for x in entry.keys()]
+        except:
+            print(level, name, entry)
         for entry_name, entry_type in entry.items():
             if entry_name in lvl_format.keys():
                 if type(entry_type) == dict:
@@ -738,13 +741,11 @@ class Blackboard(Agent):
         name : str
         """
         group_level.create_group(name)
-        print(group_level)
         for data_name, data_val in data.items():
             data_type = type(data_val)
             if data_type == dict:
                 self.dict_writer(data_name, data_val, group_level[name])
             elif data_type == list:
-                print([self.convert_to_h5_type(type(x), x) for x in data_val])
                 group_level[name][data_name] = [self.convert_to_h5_type(type(x), x) for x in data_val]
                 group_level[name][data_name].attrs['type'] = repr(type(data_val))   
             else:
