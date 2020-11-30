@@ -71,12 +71,11 @@ class KaRp(ka.KaBase):
         """
 #        time.sleep(5)
         self.log_debug('Determining core parameters based on SM')
-        design = [x for x in self.current_design_variables.values()]
         self._entry_name = self.get_design_name(self.current_design_variables)
         if 'benchmark' in self.sm_type:
-            self.get_benchmark_objectives(design)
+            self.get_benchmark_objectives()
         elif self.sm_type == 'interpolate':
-            self.get_interpolate_objectives(design)
+            self.get_interpolate_objectives()
         else:
             self.get_sm_objectives()
 
@@ -100,10 +99,11 @@ class KaRp(ka.KaBase):
         name = name.replace(" ", "")
         return name
 
-    def get_benchmark_objectives(self, design):
+    def get_benchmark_objectives(self):
         """
         Calculate the objectives based on a benchmark problem.
         """
+        design = [x for x in self.current_design_variables.values()]
         obj_list = self._sm.predict(self.sm_type.split()[0], design, len(design), len(self._objectives.keys()))
         for num, obj in enumerate(self._objectives.keys()):
             if self._objectives[obj]['variable type'] == float:
@@ -111,10 +111,11 @@ class KaRp(ka.KaBase):
             elif self._objectives[obj]['variable type'] == str:
                 self.current_objectives[obj] = str(obj_list[num])
 
-    def get_interpolate_objectives(self, design):
+    def get_interpolate_objectives(self):
         """
         Get the objective functions based on an interpolator function
         """
+        design = [x for x in self.current_design_variables.values()]
         for obj_name, interpolator in self._sm.items():
             if obj_name in self._objectives:
                 self.current_objectives[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
@@ -139,8 +140,8 @@ class KaRp(ka.KaBase):
         
         Parameter
         ---------
-        blackbaord : str
-            required message for sending communication containing current state of BB
+        message : str
+            Push-pull message from blackboard, contains the current state of all abstract levels on BB
         """
         self.clear_entry()
         t = time.time()
@@ -170,6 +171,27 @@ class KaRp(ka.KaBase):
         self._trigger_val += self._base_trigger_val
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
+        
+    def design_check(self):
+        """
+        Determine if all design variables are within the limits of the design.
+        Check if the design has been examined before.
+        """
+        core_name = self.get_design_name(self.current_design_variables)
+        for dv, dv_dict in self._design_variables.items():
+            dv_val = self.current_design_variables[dv]
+            if dv_dict['variable type'] == float:
+                if dv_val < dv_dict['ll'] or dv_val > dv_dict['ul']:
+                    self.log_warning('Core {} not examined, design variable {} with value {} outside of limits.'.format(core_name, dv, dv_val))
+                    return False
+            elif dv_dict['variable type'] == list:
+                if dv_val not in dv_dict['options']:
+                    self.log_warning('Core {} not examined, design variable {} with value {} not an option'.format(core_name, dv, dv_val))
+                    return False
+        if core_name in self._lvl_data.keys():
+            self.log_info('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl))
+            return False
+        return True
 
 class KaGlobal(KaRp):
     """
@@ -219,9 +241,11 @@ class KaGlobal(KaRp):
                 self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         
         self._entry_name = self.get_design_name(self.current_design_variables)
-        if self._entry_name in self._lvl_data.keys():
+        
+        if not self.design_check():
             self.search_method()
-                
+
+            
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
         
         
@@ -402,33 +426,11 @@ class KaLocal(KaRp):
         self._base_trigger_val = 5.00001
         self.bb_lvl_read = 1
         self.perturbation_size = 0.05
-        self._lvl_data = None
         self.lvl_read = None
         self.analyzed_design = {}
         self.new_designs = []
         self.neighboorhod_search = 'fixed'
         self._class = 'local search ns'
-
-    def design_check(self):
-        """
-        Determine if all design variables are within the limits of the design.
-        Check if the design has been examined before.
-        """
-        core_name = self.get_design_name(self.current_design_variables)
-        for dv, dv_dict in self._design_variables.items():
-            dv_val = self.current_design_variables[dv]
-            if dv_dict['variable type'] == float:
-                if dv_val < dv_dict['ll'] or dv_val > dv_dict['ul']:
-                    self.log_warning('Core {} not examined, design variable {} with value {} outside of limits.'.format(core_name, dv, dv_val))
-                    return False
-            elif dv_dict['variable type'] == list:
-                if dv_val not in dv_dict['options']:
-                    self.log_warning('Core {} not examined, design variable {} with value {} not an option'.format(core_name, dv, dv_val))
-                    return False
-        if core_name in self._lvl_data.keys():
-            self.log_info('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl))
-            return False
-        return True
                 
     def determine_model_applicability(self, dv):
         """
@@ -543,9 +545,16 @@ class KaLocal(KaRp):
         We select a core from the Pareto front by either selecting tha design with the maximum fitness.
         Or we can select a random choice in self.new_design.
         This is based on the `learning_factor`, which is a simple probability.
-        """
         
-        core = random.choice(self.new_designs) if self.learning_factor else max(self.new_designs['fitness'])
+        We should look at making this a probability denstiy function rather than just the max PF choice.
+        """
+        if random.random() > self.learning_factor:
+            fitness = {core : self._lvl_data[core]['fitness function'] for core in self.new_designs}
+            core = max(fitness,key=fitness)
+        else:
+            core = random.choice(self.new_designs)
+        print(core)
+        return core
         
     def read_bb_lvl(self, lvl):
         """

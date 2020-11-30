@@ -463,14 +463,38 @@ def test_karp_exploit_init():
     assert rp.get_attr('perturbation_size') == 0.05
     assert rp.get_attr('_objective_accuracy') == 5
     assert rp.get_attr('_design_accuracy') == 5
-    assert rp.get_attr('_lvl_data') == None
+    assert rp.get_attr('_lvl_data') == {}
     assert rp.get_attr('lvl_read') == None
     assert rp.get_attr('analyzed_design') == {}
     assert rp.get_attr('new_designs') == []
 
     ns.shutdown()
     time.sleep(0.1)
-
+    
+def test_ka_local_get_core():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=ka_rp.KaLocal)
+    lvl_data = {'core_[65.0,65.0,0.1]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}, 
+                'core_[70.0,60.0,0.25]': {'pareto type' : 'pareto', 'fitness function' : 1.25}, 
+                'core_[90.0,80.0,0.5]':  {'pareto type' : 'pareto', 'fitness function' : 1.5},
+                'core_[75.0,65.0,0.9]':  {'pareto type' : 'pareto', 'fitness function' : 2.5}}
+    
+    rp.set_attr(_lvl_data=lvl_data)
+    rp.set_attr(new_designs=[x for x in lvl_data.keys()])
+    rp.set_random_seed(seed=10997)
+    rp.set_attr(learning_rate=1.0)
+#    assert rp.select_core() == 'core_[75.0,65.0,0.9]'
+    rp.set_random_seed(seed=10997)
+    rp.set_attr(learning_rate=0.0)
+ #   assert rp.select_core() == 'core_[75.0,65.0,0.9]'
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
 #----------------------------------------------------------
 # Tests fopr KA-Local-HC
 #----------------------------------------------------------
@@ -499,7 +523,7 @@ def test_karp_exploit_init_local_hill_climb():
     assert rp.get_attr('_shutdown_addr') == None
     assert rp.get_attr('_trigger_val') == 0.0
     
-    assert rp.get_attr('_lvl_data') == None
+    assert rp.get_attr('_lvl_data') == {}
     assert rp.get_attr('lvl_read') == None
     assert rp.get_attr('analyzed_design') == {}
     assert rp.get_attr('new_designs') == []
@@ -1542,7 +1566,7 @@ def test_KaSm_init():
     assert rp.get_attr('_shutdown_addr') == None
     assert rp.get_attr('_trigger_val') == 0.0
     
-    assert rp.get_attr('_lvl_data') == None
+    assert rp.get_attr('_lvl_data') == {}
     assert rp.get_attr('lvl_read') == None
     assert rp.get_attr('analyzed_design') == {}
     assert rp.get_attr('new_designs') == []
