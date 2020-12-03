@@ -27,7 +27,7 @@ class Controller(object):
                  agent_wait_time=30, 
                  benchmark=None, 
                  plot_progress=False,
-                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'total tvs': 1E6},
+                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'skipped tvs': 200, 'total tvs': 1E6},
                  surrogate_model={'sm_type': 'lr', 'pickle file': None},
                  random_seed=None):
         
@@ -49,6 +49,7 @@ class Controller(object):
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables, constraints=constraints)
             self.bb.set_attr(sm_type=surrogate_model['sm_type'])
             self.bb.set_attr(convergence_model=convergence_model)
+            self.bb.set_attr(skipped_tvs=convergence_model['skipped tvs'])
             if random_seed:
                 self.bb.set_attr(random_seed=random_seed)
             if surrogate_model['pickle file']:
@@ -111,10 +112,16 @@ class Controller(object):
             responses = False
             # Wait until a response has been recieved
             time_wait = time.time()
+            bb_archived = True
             while time.time() - time_wait  < self.agent_wait_time:
                 try:
-                    if len(self.bb.get_kaar()[trig_num]) == num_agents:
+                    kaar = self.bb.get_kaar()[trig_num]
+                    kaar_val = [x for x in kaar.values()]
+                    if max(kaar_val) > 0.0:
                         break
+                    elif bb_archived:
+                        self.bb.write_to_h5()
+                        bb_archived = False
                 except RuntimeError:
                     pass
                 
@@ -166,7 +173,7 @@ class BenchmarkController(Controller):
                  archive='bb_benchmark', 
                  agent_wait_time=30, 
                  plot_progress=False,
-                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'total tvs': 1E6},
+                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'skipped tvs': 200, 'total tvs': 1E6},
                  random_seed=None):
 
         self.bb_name = bb_name
@@ -221,7 +228,7 @@ class Multi_Tiered_Controller(Controller):
                                     agent_wait_time=30, 
                                     benchmark=None, 
                                     plot_progress=False,
-                                    convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'total tvs': 1E6},
+                                    convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'skipped tvs': 200, 'total tvs': 1E6},
                                     surrogate_model={'sm_type': 'gpr', 'pickle file': 'sm_gpr.pkl'},
                                     random_seed=None):
         

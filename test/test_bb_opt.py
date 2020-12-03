@@ -300,7 +300,7 @@ def test_determine_complete_tvs():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.set_attr(convergence_model={'type': 'hvi', 'convergence rate': 1E-3, 'interval':2,'pf size': 9, 'total tvs': 11})
+    bb.set_attr(convergence_model={'type': 'hvi', 'convergence rate': 1E-3, 'interval':2,'pf size': 9, 'total tvs': 11, 'skipped tvs': 1})
     bb.set_attr(num_calls=2)
     bb.set_attr(total_solutions=9)
     
@@ -331,7 +331,8 @@ def test_determine_complete_hv():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.set_attr(convergence_model={'type': 'hvi', 'convergence rate': 1E-3, 'interval':2,'pf size': 9, 'total tvs': 1E6})
+    bb.set_attr(convergence_model={'type': 'hvi', 'convergence rate': 1E-3, 'interval':2,'pf size': 9, 'total tvs': 1E6, 'skipped tvs': 1})
+    bb.set_attr(skipped_tvs=1)
     bb.set_attr(num_calls=2)
     bb.set_attr(total_solutions=9)
     
@@ -339,6 +340,7 @@ def test_determine_complete_hv():
         bb.update_abstract_lvl(1, 'core_[{}.0, 66.0, 0.42]'.format(i), {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
     bb.set_attr(hv_list=[0,0.25,0.32,0.35,0.5,0.6,0.6,0.6,0.6,0.6])
+    bb.set_attr(_kaar={'a':{'a':1},'b':{'b':2}})
     assert bb.get_attr('_complete') == False
     bb.determine_complete_hv()
     assert bb.get_attr('_complete') == True    

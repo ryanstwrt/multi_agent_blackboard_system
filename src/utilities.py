@@ -51,13 +51,16 @@ def convert_objective_to_minimize(obj_dict, obj_val, scale=False):
     Converts maximization and equal to goals to a minimization problem
     """
     goal = obj_dict['goal']
+    if obj_dict['variable type'] == list:
+        obj_val = get_objective_value(obj_val, goal_type=obj_dict['goal type'])
+    
     if goal == 'gt':
         return (1 - obj_val) if scale else -obj_val
     elif goal =='lt':
         return obj_val
     elif goal =='et':
         if scale:
-            target = scale_value(obj_dict['target'], obj_dict)
+            target = scale_float_value(obj_dict['target'], obj_dict['ll'], obj_dict['ul'])
             return 2 * abs(target - obj_val)
         else:
             return abs(obj_dict['target'] - obj_val)
@@ -79,8 +82,6 @@ def scale_pareto_front(pf, objectives, lvl_data):
         # This part of the loop is identical to the determine fitness function... perhaps create a function in KA_RP and merge
         for obj, obj_dict in objectives.items():
             scaled_obj_value = scale_value(lvl_data[x]['objective functions'][obj], obj_dict)
-            goal = objectives[obj]['goal type'] if 'goal type' in obj_dict else None
-            scaled_obj = get_objective_value(scaled_obj_value, goal)
-            design_objectives.append(round(convert_objective_to_minimize(obj_dict, scaled_obj, scale=True), 7))
+            design_objectives.append(round(convert_objective_to_minimize(obj_dict, scaled_obj_value, scale=True), 7))
         scaled_pf.append(design_objectives)
     return scaled_pf

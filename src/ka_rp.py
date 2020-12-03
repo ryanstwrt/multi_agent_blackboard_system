@@ -236,7 +236,7 @@ class KaGlobal(KaRp):
                         design[pos] = round(random.random() * (dv_dict['dict'][pos]['ul'] - dv_dict['dict'][pos]['ll']) + dv_dict['dict'][pos]['ll'], self._design_accuracy)
                 self.current_design_variables[dv] = design
             elif dv_dict['variable type'] == str:
-                self.current_design_variables[dv] = random.choice(dv_dict['options']) #if random.random() > self.learning_rate else dv_dict['default']              
+                self.current_design_variables[dv] = str(random.choice(dv_dict['options'])) if random.random() > self.learning_factor else dv_dict['default']              
             else:
                 self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
         
@@ -506,7 +506,7 @@ class KaLocal(KaRp):
         These results are written to the BB level 3, so there are design_vars * pert added to level 3.
         """
         
-        core = random.choice(self.new_designs) #self.select_core()
+        core = self.select_core()
         design_ = self._lvl_data[core]['design variables']
         dv_keys = [x for x in design_.keys()]
       #  random.shuffle(dv_keys)
@@ -549,11 +549,10 @@ class KaLocal(KaRp):
         We should look at making this a probability denstiy function rather than just the max PF choice.
         """
         if random.random() > self.learning_factor:
-            fitness = {core : self._lvl_data[core]['fitness function'] for core in self.new_designs}
-            core = max(fitness,key=fitness)
+            fitness = {core : self.lvl_read[core]['fitness function'] for core in self.new_designs}
+            core = max(fitness,key=fitness.get)
         else:
             core = random.choice(self.new_designs)
-        print(core)
         return core
         
     def read_bb_lvl(self, lvl):
@@ -600,7 +599,7 @@ class KaLocalHC(KaLocal):
         entry = None
         # Try catch statement is important in MABS, if an entry in lvl_read is no longer present on the BB
         try:
-            core = random.choice(self.new_designs)
+            core = self.select_core() #random.choice(self.new_designs)
             entry = self.lvl_read[core]
         except KeyError:
             self.new_designs.remove(core)
@@ -713,10 +712,6 @@ class KaLocalHC(KaLocal):
         obj_scaled_base = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(base_obj[obj], obj_dict), scale=True)    
         dv_scaled_new = utils.scale_value(step_design['design variables'][dv], dv_dict) if dv_dict['variable type'] == float else 1.0
         dv_scaled_base = utils.scale_value(base_dv[dv], dv_dict) if dv_dict['variable type'] == float else 0.0
-
-        if obj_dict['variable type'] == list:
-            obj_scaled_new = utils.get_objective_value(obj_scaled_new, goal_type=obj_dict['goal type'])
-            obj_scaled_base = utils.get_objective_value(obj_scaled_base, goal_type=obj_dict['goal type'])
         
         # We are following the steepest ascent, so positive is better
         obj_diff = (obj_scaled_base - obj_scaled_new)

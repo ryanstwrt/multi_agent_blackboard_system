@@ -1,4 +1,5 @@
 import pymop.problems as mop
+import time
 
 class optimization_test_functions(object):
     
@@ -6,6 +7,7 @@ class optimization_test_functions(object):
         self.test_name = test
 
     def predict(self, test_name, x, num_vars=None, num_objs=None):
+#        time.sleep(2.0)
         if self.test_name == 'sf1':
             return self.schaffer_func_1(x)
         elif self.test_name == 'sf2':

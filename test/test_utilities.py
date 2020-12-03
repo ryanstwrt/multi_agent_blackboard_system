@@ -20,6 +20,7 @@ def test_convert_to_minimize():
     rx =  {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float}
     bu =  {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}
     k =   {'ll':1.0, 'ul':2.0,  'target': 1.5, 'goal':'et', 'variable type': float}
+    powers = {'ll': 0.0, 'ul': 10.0, 'target': 2.5, 'goal': 'et', 'goal type': 'max', 'variable type': list} 
     bad = {'ll':0,   'ul':15000, 'goal':'tt', 'variable type': float}
     assert utils.convert_objective_to_minimize(bu, 200) == -200
     assert utils.convert_objective_to_minimize(bu, 0.0, scale=True) == 1.0
@@ -28,6 +29,8 @@ def test_convert_to_minimize():
     assert utils.convert_objective_to_minimize(k, 1.25) == 0.25
     assert utils.convert_objective_to_minimize(k, 1.75) == 0.25
     assert utils.convert_objective_to_minimize(k, 0.25, scale=True) == 0.5
+    assert utils.convert_objective_to_minimize(powers, [1.0,2.0,3.0,4.0,5.0]) == 2.5
+    assert utils.convert_objective_to_minimize(powers, [0.1,0.2,0.3,0.4,0.5], scale=True) == 0.5
 
 def test_get_objective_value():
     assert utils.get_objective_value(9.0) == 9.0

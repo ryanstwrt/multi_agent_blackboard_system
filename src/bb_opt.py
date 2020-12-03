@@ -41,7 +41,7 @@ class BbOpt(blackboard.Blackboard):
         
         self.objectives_ll = []
         self.objectives_ul = []
-        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6, 'interval': 25, 'pf size': 50, 'total tvs': 1E6}
+        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6, 'interval': 25, 'pf size': 50, 'skipped tvs': 200, 'total tvs': 1E6}
 
         self.hv_list = [0.0]
         self._sm = None
@@ -52,6 +52,7 @@ class BbOpt(blackboard.Blackboard):
         self.previous_pf = {}
         self.dci_convergence_list = [0.0]
         self.random_seed = None
+        self.skipped_tvs = 200
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
@@ -171,7 +172,7 @@ class BbOpt(blackboard.Blackboard):
         elif self.convergence_model['type'] == 'hvi':
             self.determine_complete_hv()
         else:
-            self.log_info('convergence_model ({}) not recognized, reverting to hvi'.format(self.convergence_model['type']))
+            self.log_info('convergence_model ({}) not recognized, reverting to total TVs'.format(self.convergence_model['type']))
             pass           
         # Determine if the problem is over our trigger value limit
         if len(self._kaar) >= self.convergence_model['total tvs'] and self._complete == False:
@@ -237,7 +238,12 @@ class BbOpt(blackboard.Blackboard):
         hv_indicator = hv_average
         
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
-        if hv_indicator < self.convergence_model['convergence rate'] and len(self.abstract_lvls['level 1']) > self.convergence_model['pf size']:
+        if len(self._kaar.keys()) < self.skipped_tvs:
+            return
+                                                     
+        # Wait for a number of cycles before we check for convergence
+        if hv_indicator < self.convergence_model['convergence rate']:
+        #if hv_indicator < self.convergence_model['convergence rate'] and len(self.abstract_lvls['level 1']) > self.convergence_model['pf size']:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 # If statement is for inter_BB agent who only have a write function assocaiated with the BB
