@@ -11,16 +11,17 @@ Knowledge agents (KAs) typically write information to the *new* panel, where the
 In memory, the blackboard is a series of nested dictionaries, which allow KAs to rapidly search these for information of value.
 The BA periodically writes the blackboard to an archive in the form of an H5 file.
 The archived blackboard allows for ease of analyzing the PF upon completion, restarting the problem, or storing the PF.
+We note that most of these variables are able to be set through the [controller](/source/controller.md).
 
 ## Attributes
 
 * sm_type (str)
-  * Options : 'interpolate', 'lr', 'pr', 'gpr', 'ann', 'rf', 'custom_plug_in_name'
-  * Default : 'interpolate' 
-  * Note : Allows the user to utilize a surrogate model that has been created previously using the `train_surrogate_model` method. The user can create their own custom plug in to a physics solver using the 'custom_plug_int_name'.
+  * Options : interpolate, lr, pr, gpr, ann, rf, custom_plug_in_name
+  * Default : interpolate
+  * Note : Allows the user to utilize a surrogate model that has been created previously using the `train_surrogate_model` method. The user can create their own custom plug in to a physics solver using the 'custom_plug_in_name'.
   
 * design_variables (dict of dicts)
-    * Continuous Variable Format: {design_variable_name : {'ll': float, 'ul': float, 'variable type': float}}
+    * Continuous Variable Format: ```{design_variable_name : {'ll': float, 'ul': float, 'variable type': float}}```
         * design_variable_name (str):
           * Description : Name of the design variable.
         * ll (float):
@@ -29,7 +30,7 @@ The archived blackboard allows for ease of analyzing the PF upon completion, res
           * Description : Upper limit for the design variable.
         * 'variable type' (float object):
           * Description : Python `float` object to denote the variable type
-    * Discrete Variable Format : {design_variable_name: {'options': list of variable_type, 'default': variable_type, 'variable type': [str,int,float]}}
+    * Discrete Variable Format : ```{design_variable_name: {'options': list of variable_type, 'default': variable_type, 'variable type': [str,int,float]}}```
         * design_variable_name (str):
           * Description : Name of the design variable.  
         * options (list of `variavble type`):
@@ -39,10 +40,10 @@ The archived blackboard allows for ease of analyzing the PF upon completion, res
         * 'variable type' (float object):
           * Description : Python `float` object to denote the variable type
     * Example:
-      * design_variables = ```{'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float}, 'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float}, 'position' :        {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}}```
+      * ```design_variables = {'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float}, 'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float}, 'position' :        {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}}```
 
 * objectives (dict of dicts):
-  * {objective_name : {'ll': float, 'ul': float, 'goal': str, 'target': float, 'goal type': str, variable type': [float,list]}}
+  * ```{objective_name : {'ll': float, 'ul': float, 'goal': str, 'target': float, 'goal type': str, variable type': [float,list]}}```
     * objective_name (str):
         * Description : Name of the objective function.
         * ll (float):
@@ -62,10 +63,10 @@ The archived blackboard allows for ease of analyzing the PF upon completion, res
         * 'variable type' (object):
             * Description : Python `float` or `list` object to denote the variable type.
     * Example:
-        * objectives = ```{'reactivity swing': {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}, 'burnup':           {'ll':0,   'ul':2000, 'goal':'gt', 'variable type': float},  'eol keff':         {'ll':1.0, 'ul':2.0,  'goal':'et', 'target': 1.5, 'variable type': float}, 'power':            {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'}}```
+        * ```objectives = {'reactivity swing': {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}, 'burnup':           {'ll':0,   'ul':2000, 'goal':'gt', 'variable type': float},  'eol keff':         {'ll':1.0, 'ul':2.0,  'goal':'et', 'target': 1.5, 'variable type': float}, 'power':            {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'}}```
 
 * constraints (dict):
-    * {constraint_name : {'ll': float, 'ul': float, 'goal type': str, variable type': [float,list]}}  
+    * ```{constraint_name : {'ll': float, 'ul': float, 'goal type': str, variable type': [float,list]}}```
         * Description : Name of the constraint.
         * ll (float):
             * Description : Lower limit for the design variable.
@@ -78,10 +79,10 @@ The archived blackboard allows for ease of analyzing the PF upon completion, res
         * 'variable type' (object):
             * Description : Python `float` or `list` object to denote the variable type.    
     * Example:
-        * constraints = ```{'reactivity swing': {'ll':0,   'ul':1500, 'variable type': float}, 'burnup':           {'ll':0,   'ul':2000, 'variable type': float}, 'eol keff':         {'ll':1.0, 'ul':2.0,  'variable type': float}, 'power':            {'ll':0,   'ul':10,   'variable type': list, 'goal type':'max'}}```
+        * ```constraints = {'reactivity swing': {'ll':0,   'ul':1500, 'variable type': float}, 'burnup':           {'ll':0,   'ul':2000, 'variable type': float}, 'eol keff':         {'ll':1.0, 'ul':2.0,  'variable type': float}, 'power':            {'ll':0,   'ul':10,   'variable type': list, 'goal type':'max'}}```
                          
 * convergence_model (dict):
-  * {'type': str, 'convergence rate': val, 'interval': int, 'pf size': int, 'skipped tvs': int, 'total tvs': int, dci_dvi : dict}
+  * ```{'type': str, 'convergence rate': val, 'interval': int, 'pf size': int, 'skipped tvs': int, 'total tvs': int, dci_dvi : dict}```
     * type (str):
       * Description : The model used to evaluate the congergence of the problem
       * Options : 'hvi', 'dci hvi', 'total tvs'
