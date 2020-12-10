@@ -11,7 +11,7 @@ Knowledge agents (KAs) typically write information to the *new* panel, where the
 In memory, the blackboard is a series of nested dictionaries, which allow KAs to rapidly search these for information of value.
 The BA periodically writes the blackboard to an archive in the form of an H5 file.
 The archived blackboard allows for ease of analyzing the PF upon completion, restarting the problem, or storing the PF.
-We note that most of these variables are able to be set through the [controller](/source/controller.md).
+We note that most of these variables are able to be set through the [controller](controller.md).
 
 ## Attributes
 
