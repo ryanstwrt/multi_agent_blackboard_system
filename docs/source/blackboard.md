@@ -39,9 +39,7 @@ The archived blackboard allows for ease of analyzing the PF upon completion, res
         * 'variable type' (float object):
           * Description : Python `float` object to denote the variable type
     * Example:
-      * design_variables = ```{{'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float},
-                             'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
-                             'position' :        {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}}```
+      * design_variables = ```{{'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float}, 'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float}, 'position' :        {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}}```
 
 * objectives (dict of dicts):
   * {objective_name : {'ll': float, 'ul': float, 'goal': str, 'target': float, 'goal type': str, variable type': [float,list]}}
@@ -64,10 +62,7 @@ The archived blackboard allows for ease of analyzing the PF upon completion, res
         * 'variable type' (object):
             * Description : Python `float` or `list` object to denote the variable type.
     * Example:
-        * objectives = ```{'reactivity swing': {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float},
-                        'burnup':           {'ll':0,   'ul':2000, 'goal':'gt', 'variable type': float},
-                        'eol keff':         {'ll':1.0, 'ul':2.0,  'goal':'et', 'target': 1.5, 'variable type': float},
-                        'power':            {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'}}```
+        * objectives = ```{'reactivity swing': {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}, 'burnup':           {'ll':0,   'ul':2000, 'goal':'gt', 'variable type': float},  'eol keff':         {'ll':1.0, 'ul':2.0,  'goal':'et', 'target': 1.5, 'variable type': float}, 'power':            {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'}}```
 
 * constraints (dict):
     * {constraint_name : {'ll': float, 'ul': float, 'goal type': str, variable type': [float,list]}}  
@@ -83,10 +78,7 @@ The archived blackboard allows for ease of analyzing the PF upon completion, res
         * 'variable type' (object):
             * Description : Python `float` or `list` object to denote the variable type.    
     * Example:
-        * constraints = ```{'reactivity swing': {'ll':0,   'ul':1500, 'variable type': float},```
-                        ``` 'burnup':           {'ll':0,   'ul':2000, 'variable type': float},```
-                        ``` 'eol keff':         {'ll':1.0, 'ul':2.0,  'variable type': float},```
-                        ``` 'power':            {'ll':0,   'ul':10,   'variable type': list, 'goal type':'max'}}```
+        * constraints = ```{'reactivity swing': {'ll':0,   'ul':1500, 'variable type': float}, 'burnup':           {'ll':0,   'ul':2000, 'variable type': float}, 'eol keff':         {'ll':1.0, 'ul':2.0,  'variable type': float}, 'power':            {'ll':0,   'ul':10,   'variable type': list, 'goal type':'max'}}```
                          
 * convergence_model (dict):
   * {'type': str, 'convergence rate': val, 'interval': int, 'pf size': int, 'skipped tvs': int, 'total tvs': int, dci_dvi : dict}
