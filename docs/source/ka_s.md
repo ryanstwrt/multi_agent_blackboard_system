@@ -74,3 +74,40 @@ This process continues in a manner identical to the `simple` algorithm, and ends
     * Description : Value for determing the rate at which we decrease the step size if no optimal values are present
     * Default 0.1
     * Note : If there is no positive gradient, we multiply the `step_size` by the `step_rate` to get the new `step_size`.
+* step_limit (int):
+    * Description : Used to determine the total number of steps for the `KaLocalHC` algorithm.
+    * Default : 100
+* convergence_criteria (float):
+    * Description : Used to determine a stopping criteria if the step size drops below this value.
+    * Default : 0.001
+* hc_type (str):
+    * Description : Used to define what type of hill-climb algorithm to use.
+    * Default : simple
+    * Options : simple, steepest-ascent
+    
+### KALocalGA
+
+The `KaLocalGA` agents uses a pseudo-genetic algorithm to search for addition optimal solutions.
+We select two designs that are optimal, perform a cross-over of these two designs, and potentially mutate the subsequent designs.
+For crossover, there are two available options: single point and linear crossover.
+For mutation, there are two available options: random_mutation and non_uniform_mutation.
+
+* crossover_type (str):
+    * Description : Crossover algorithm to use.
+    * Default : 'single point'
+    * Options : single point, linear crossover
+* crossover_rate (float):
+    * Description : Fraction of the current pareto front that we want to perform crossover with.
+    * Default : 0.8
+    * Note : If `offspring_per_generation` is reached before `crossover_rate`, we will terminate early.
+* offspring_per_generation (int):
+    * Description: Number of designs to generate each time the `KALocalGA` is triggered.
+    * Default : 20
+    * Note : If `crossover_rate` is reached before `offspring_per_generation`, we will terminate early.
+* mutation_type (str):
+    * Description : Mutation algorithm to use.
+    * Default : random
+    * Options : random, non-uniform 
+* mutation_rate (float):
+    * Description : Fraction of offspring which we will mutate after crossover.
+    * Default : 0.1

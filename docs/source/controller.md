@@ -49,7 +49,7 @@ When initializing the `controller`, there are a number of keywords arguments tha
 * convergence_model (dict):
     * Description : Dictionary for the convergence model to be used in this optimization problem. See [BA](blackboard.md) for full description.
     * Default ```{'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'skipped tvs': 200, 'total tvs': 1E6}```
-* surrogae_model (dict):
+* surrogate_model (dict):
     * Description : Dictionary detailing the surrogate model type and a pickle file where the surrogate model can be found.
     * Default : ```{'sm_type': 'lr', 'pickle file': None}```
     * Note : The surrogate model currently must be build using the `train_surrogate_model` module in MABS.

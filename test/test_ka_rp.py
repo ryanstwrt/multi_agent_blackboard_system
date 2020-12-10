@@ -761,6 +761,7 @@ def test_exploit_perturb_design_discrete():
     rp.set_random_seed(seed=1)
     
     rp.set_attr(new_designs=['core_1'])
+    rp.set_attr(lvl_read={'core_1':  {'pareto type' : 'pareto', 'fitness': 1.0}})
     rp.set_attr(_lvl_data={'core_1': {'design variables': {'x0': '0', 
                                                           'x1': '1',
                                                           'x2': '2',
