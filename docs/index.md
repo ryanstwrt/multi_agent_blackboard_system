@@ -11,6 +11,6 @@ For a typical optimization problem, we require four major components: the blackb
 ## Contents
 
 * [BA](source/blackboard.md)
-* [KA-S](source/kas.md)
-* [KA-BR](source/kas.md)
+* [KA-S](source/ka_s.md)
+* [KA-BR](source/ka_br.md)
 * [Controller](source/controller.md)

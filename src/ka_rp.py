@@ -70,7 +70,7 @@ class KaRp(ka.KaBase):
         Sets the variables for the _entry and _entry_name
         """
 #        time.sleep(5)
-        time.sleep(2)
+#        time.sleep(2)
         self.log_debug('Determining core parameters based on SM')
         self._entry_name = self.get_design_name(self.current_design_variables)
         if 'benchmark' in self.sm_type:
