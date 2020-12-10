@@ -39,7 +39,7 @@ The archived blackboard allows for ease of analyzing the PF upon completion, res
         * 'variable type' (float object):
           * Description : Python `float` object to denote the variable type
     * Example:
-      * design_variables = ```{{'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float}, 'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float}, 'position' :        {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}}```
+      * design_variables = ```{'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float}, 'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float}, 'position' :        {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}}```
 
 * objectives (dict of dicts):
   * {objective_name : {'ll': float, 'ul': float, 'goal': str, 'target': float, 'goal type': str, variable type': [float,list]}}
