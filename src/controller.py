@@ -117,8 +117,9 @@ class Controller(object):
                 try:
                     kaar = self.bb.get_kaar()[trig_num]
                     kaar_val = [x for x in kaar.values()]
-                    if max(kaar_val) > 0.0:
-                        break
+                    if kaar_val != []:
+                        if max(kaar_val) > 0.0:
+                            break
                     elif bb_archived:
                         self.bb.write_to_h5()
                         bb_archived = False

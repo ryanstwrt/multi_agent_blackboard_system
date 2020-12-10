@@ -70,6 +70,7 @@ class KaRp(ka.KaBase):
         Sets the variables for the _entry and _entry_name
         """
 #        time.sleep(5)
+        time.sleep(2)
         self.log_debug('Determining core parameters based on SM')
         self._entry_name = self.get_design_name(self.current_design_variables)
         if 'benchmark' in self.sm_type:
@@ -291,7 +292,6 @@ class KaLHC(KaRp):
         length = 0
         for v in self._design_variables.values():
             length += v['length'] if v['variable type'] == dict else 1
-
         lhd = self.lhs(length, samples=self.samples, criterion=self.lhc_criterion)
         self.lhd = lhd.tolist()
 
@@ -323,7 +323,10 @@ class KaLHC(KaRp):
             An n-by-samples design matrix that has been normalized so factor values
             are uniformly spaced between zero and one.
         """
-        return self._lhscorrelate(n, self.samples, iterations)
+        if criterion == 'simple' or n==1:
+            return self._lhsclassic(n, self.samples)
+        else:
+            return self._lhscorrelate(n, self.samples, iterations)
 
     def _lhsclassic(self, n, samples):
         # Generate the intervals
@@ -354,6 +357,7 @@ class KaLHC(KaRp):
             Hcandidate = self._lhsclassic(n, samples)
             R = np.corrcoef(Hcandidate)
             if np.max(np.abs(R[R!=1]))<mincorr:
+                print('Made it here')
                 mincorr = np.max(np.abs(R-np.eye(R.shape[0])))
                 self.log_debug('new candidate solution found with max,abs corrcoef = {}'.format(mincorr))
                 H = Hcandidate.copy()
@@ -539,7 +543,7 @@ class KaLocal(KaRp):
             lvl = self.bb.get_blackboard()['level 3']
             for panel in lvl.values():
                 self._lvl_data.update(panel)
-        
+                
     def select_core(self):
         """
         We select a core from the Pareto front by either selecting tha design with the maximum fitness.
@@ -548,12 +552,22 @@ class KaLocal(KaRp):
         
         We should look at making this a probability denstiy function rather than just the max PF choice.
         """
+        self.check_new_designs()
         if random.random() > self.learning_factor:
             fitness = {core : self.lvl_read[core]['fitness function'] for core in self.new_designs}
             core = max(fitness,key=fitness.get)
         else:
             core = random.choice(self.new_designs)
         return core
+    
+    def check_new_designs(self):
+        """
+        Check to ensure all designs in `new_designs` are still in `lvl_read`.
+        """
+        new_design_list = copy.copy(self.new_designs)
+        for core in new_design_list:
+            if core not in self.lvl_read.keys():
+                self.new_designs.remove(core)
         
     def read_bb_lvl(self, lvl):
         """

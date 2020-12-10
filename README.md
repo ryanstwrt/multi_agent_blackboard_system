@@ -11,7 +11,7 @@ Users can leverage these components and build a blackboard system which is able 
 
 ## Documentation
 
-Documentation is currently in the works, and will be update periodically.
+Documentation can be found [Here](https://ryanstwrt.github.io/MABS/).
 
 
 ## Multi-Agent Blackboard for Continuous and Discrete Optimization
