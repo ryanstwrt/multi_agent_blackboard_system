@@ -25,9 +25,16 @@ class Controller(object):
                  constraints=None,
                  archive='bb_archive', 
                  agent_wait_time=30, 
+                 min_agent_wait_time=0,
                  benchmark=None, 
                  plot_progress=False,
-                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'skipped tvs': 200, 'total tvs': 1E6},
+                 total_tvs=1E6,
+                 skipped_tvs=200,
+                 convergence_type='hvi',
+                 convergence_rate=1E-5,
+                 convergence_interval=25,
+                 pf_size=200,
+                 dci_div={},
                  surrogate_model={'sm_type': 'lr', 'pickle file': None},
                  random_seed=None):
         
@@ -38,18 +45,22 @@ class Controller(object):
         self._proxy_server = proxy.NSProxy()
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
-        self.bb.set_attr(convergence_model=convergence_model)
         
         self.agent_time = 0
-        self.progress_rate = convergence_model['interval']
+        self.progress_rate = convergence_interval
         self.plot_progress = plot_progress
         self.time = [time.time()]
         
         if bb_type == bb_opt.BbOpt:
             self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables, constraints=constraints)
             self.bb.set_attr(sm_type=surrogate_model['sm_type'])
-            self.bb.set_attr(convergence_model=convergence_model)
-            self.bb.set_attr(skipped_tvs=convergence_model['skipped tvs'])
+            self.bb.set_attr(total_tvs=total_tvs)
+            self.bb.set_attr(skipped_tvs=skipped_tvs)
+            self.bb.set_attr(pf_size=pf_size)
+            self.bb.set_attr(convergence_type=convergence_type)
+            self.bb.set_attr(convergence_rate=convergence_rate)
+            self.bb.set_attr(convergence_interval=convergence_interval)            
+            self.bb.set_attr(dci_div=dci_div)
             if random_seed:
                 self.bb.set_attr(random_seed=random_seed)
             if surrogate_model['pickle file']:
@@ -64,7 +75,13 @@ class Controller(object):
             self.bb.connect_agent(ka_type, ka_name, attr=ka_attributes)
             
     def initialize_blackboard(self):
-        pass
+        self.bb.set_attr(total_tvs=total_tvs)
+        self.bb.set_attr(skipped_tvs=skipped_tvs)
+        self.bb.set_attr(pf_size=pf_size)
+        self.bb.set_attr(convergence_type=convergence_type)
+        self.bb.set_attr(convergence_rate=convergence_rate)
+        self.bb.set_attr(convergence_interval=convergence_interval)            
+        self.bb.set_attr(dci_div=dci_div)
             
     def run_single_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
@@ -173,8 +190,16 @@ class BenchmarkController(Controller):
                  constraints=None,
                  archive='bb_benchmark', 
                  agent_wait_time=30, 
+                 min_agent_wait_time=0,
                  plot_progress=False,
-                 convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'skipped tvs': 200, 'total tvs': 1E6},
+                 total_tvs=1E6,
+                 skipped_tvs=200,
+                 convergence_type='hvi',
+                 convergence_rate=1E-5,
+                 convergence_interval=25,
+                 pf_size=200,
+                 dci_div={},
+                 surrogate_model={'sm_type': 'lr', 'pickle file': None},
                  random_seed=None):
 
         self.bb_name = bb_name
@@ -185,10 +210,17 @@ class BenchmarkController(Controller):
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
         self.bb.set_random_seed(seed=random_seed)
         self.bb.set_attr(archive_name='{}.h5'.format(archive))
-        self.bb.set_attr(convergence_model=convergence_model)
+
+        self.bb.set_attr(total_tvs=total_tvs)
+        self.bb.set_attr(skipped_tvs=skipped_tvs)
+        self.bb.set_attr(pf_size=pf_size)
+        self.bb.set_attr(convergence_type=convergence_type)
+        self.bb.set_attr(convergence_rate=convergence_rate)
+        self.bb.set_attr(convergence_interval=convergence_interval)            
+        self.bb.set_attr(dci_div=dci_div)
         
         self.agent_time = 0
-        self.progress_rate = convergence_model['interval']
+        self.progress_rate = convergence_interval
         self.plot_progress = plot_progress
         self.time = [time.time()]
  
@@ -227,9 +259,15 @@ class Multi_Tiered_Controller(Controller):
                                     constraints=None,
                                     archive='bb_archive', 
                                     agent_wait_time=30, 
-                                    benchmark=None, 
+                                    min_agent_wait_time=0,
                                     plot_progress=False,
-                                    convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'skipped tvs': 200, 'total tvs': 1E6},
+                                    total_tvs=1E6,
+                                    skipped_tvs=200,
+                                    convergence_type='hvi',
+                                    convergence_rate=1E-5,
+                                    convergence_interval=25,
+                                    pf_size=200,
+                                    dci_div={},
                                     surrogate_model={'sm_type': 'gpr', 'pickle file': 'sm_gpr.pkl'},
                                     random_seed=None):
         
@@ -240,11 +278,17 @@ class Multi_Tiered_Controller(Controller):
         bb = getattr(self, bb)
         bb.set_random_seed(seed=random_seed)
         bb.set_attr(archive_name='{}.h5'.format(archive))
-        bb.set_attr(convergence_model=convergence_model)
 
         bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables, constraints=constraints)
         bb.set_attr(sm_type=surrogate_model['sm_type'])
-        bb.set_attr(convergence_model=convergence_model)
+
+        bb.set_attr(total_tvs=total_tvs)
+        bb.set_attr(skipped_tvs=skipped_tvs)
+        bb.set_attr(pf_size=pf_size)
+        bb.set_attr(convergence_type=convergence_type)
+        bb.set_attr(convergence_rate=convergence_rate)
+        bb.set_attr(convergence_interval=convergence_interval)            
+        bb.set_attr(dci_div=dci_div)
         
         if surrogate_model['pickle file']:
             with open(surrogate_model['pickle file'], 'rb') as pickle_file:
@@ -265,7 +309,7 @@ class Multi_Tiered_Controller(Controller):
         time_1 = time.time()
         bb_name = bb.get_attr('name')
         num_agents = len(bb.get_attr('agent_addrs'))
-        conv_criteria = bb.get_attr('convergence_model')
+        convergence_interval=bb.get_attr('convergence_interval')
         bb_attr = self.bb_attr[bb_name]
         if bb_name == 'bb_master':
             num_agents -= 1
@@ -293,10 +337,10 @@ class Multi_Tiered_Controller(Controller):
                     break
             agent_time = time.time() - agent_time
 
-            if len(bb.get_kaar()) % conv_criteria['interval'] == 0:
+            if len(bb.get_kaar()) % convergence_interval == 0:
                 bb.convergence_indicator()
                 bb.write_to_h5()
-                if len(bb.get_hv_list()) > 2 * conv_criteria['interval']:
+                if len(bb.get_hv_list()) > 2 * convergence_interval:
                     bb.determine_complete()
                 if bb_attr['plot']:
                     bb.plot_progress()

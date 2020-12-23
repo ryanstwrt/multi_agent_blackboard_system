@@ -6,7 +6,6 @@ import copy
 import time
 import numpy as np
 from numpy import random
-from math import factorial
 
 class KaRp(ka.KaBase):
     """
@@ -59,9 +58,6 @@ class KaRp(ka.KaBase):
     def clear_entry(self):
         self._entry = {}
         self._entry_name = None
-#        self.current_design_variables = {}
-#        self.current_constraints = {}
-#        self.current_objectives = {}
         
     def calc_objectives(self):
         """
@@ -69,7 +65,6 @@ class KaRp(ka.KaBase):
         This process is performed via an interpolator or a surrogate model.
         Sets the variables for the _entry and _entry_name
         """
-#        time.sleep(5)
 #        time.sleep(2)
         self.log_debug('Determining core parameters based on SM')
         self._entry_name = self.get_design_name(self.current_design_variables)

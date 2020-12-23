@@ -219,14 +219,8 @@ def test_ann_model():
     ann_model = model.models['ann']
     assert ann_model['model'] != None
     assert ann_model['fit'] != None
-    try:
-        assert round(ann_model['score'],6) == 0.827281
-    except AssertionError:
-        assert round(ann_model['score'],6) == round(-1.1035757582289127,6)
-    try:
-        assert round(ann_model['mse_score'],6) == 0.175218
-    except AssertionError:
-        assert round(ann_model['mse_score'],6) == round(2.1035757582289114,6)
+    assert round(ann_model['score'],3) == 0.827
+    assert round(ann_model['mse_score'],3) == 0.175
         
 def test_rf_model():
     model.set_model('rf')

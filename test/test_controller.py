@@ -33,8 +33,7 @@ def test_controller_init_sfr_opt():
           'smear':      {'ll': 70.0, 'ul': 70.0, 'variable type': float},
           'pu_content': {'ll': 0.5,  'ul': 1.0,  'variable type': float}}
     const = {'eol keff':    {'ll': 1.1, 'ul': 2.5, 'variable type': float}}
-    conv_model = {'type': 'dci hvi', 'convergence rate': 1E-6, 'div': {'reactivity swing': 100, 'burnup': 100}, 
-                  'skipped tvs': 0, 'interval':5, 'pf size': 5, 'total tvs': 100}
+
     try:
         bb_controller = controller.Controller(bb_name='sfr_opt', 
                                           bb_type=bb_opt.BbOpt, 
@@ -45,7 +44,7 @@ def test_controller_init_sfr_opt():
                                           archive='sfr_opt', 
                                           agent_wait_time=10,
                                           plot_progress = True,
-                                          convergence_model = conv_model,
+                                          total_tvs=100,
                                           surrogate_model={'sm_type'     : 'gpr', 
                                                            'pickle file' : './sm_gpr.pkl'})
     except OSError:
@@ -59,7 +58,8 @@ def test_controller_init_sfr_opt():
                                           archive='sfr_opt', 
                                           agent_wait_time=10,
                                           plot_progress = True,
-                                          convergence_model = conv_model,
+                                          total_tvs=100,
+                                          
                                           surrogate_model={'sm_type'     : 'gpr', 
                                                            'pickle file' : './sm_gpr.pkl'})
     with open('./sm_gpr.pkl', 'rb') as pickle_file:
@@ -69,7 +69,7 @@ def test_controller_init_sfr_opt():
     assert bb_controller.bb_type == bb_opt.BbOpt
     assert bb_controller.agent_wait_time == 10
     assert bb_controller.plot_progress == True
-    assert bb_controller.progress_rate == 5  
+    assert bb_controller.progress_rate == 25  
 
     agents =  bb_controller.bb.get_attr('agent_addrs')
     bb = bb_controller.bb
@@ -80,7 +80,7 @@ def test_controller_init_sfr_opt():
     assert bb.get_attr('objectives') == obj
     assert bb.get_attr('design_variables') == dv
     assert bb.get_attr('constraints') == const
-    assert bb.get_attr('convergence_model') == conv_model
+
     
     bb_controller._ns.shutdown()
     time.sleep(0.05)
@@ -92,8 +92,8 @@ def test_run_single_agent_bb():
            'ka_br_lvl2': kabr.KaBr_lvl2,
            'ka_br_lvl1': kabr.KaBr_lvl1,}
     objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
-                           'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
-                           'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}    
+                  'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
+                  'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}
     try:
         bb_controller = controller.Controller(bb_name='sfr_opt', 
                                           bb_type=bb_opt.BbOpt, 
@@ -101,12 +101,12 @@ def test_run_single_agent_bb():
                                           objectives=objectives,
                                           archive='sfr_opt', 
                                           agent_wait_time=5,
-                                          convergence_model={'type': 'hvi', 
-                                                             'convergence rate': 1E-3, 
-                                                             'interval':5, 
-                                                             'pf size': 5, 
-                                                             'total tvs': 100,
-                                                             'skipped tvs': 0},
+                                          total_tvs=100,
+                                          skipped_tvs=0,
+                                          convergence_type='hvi',
+                                          convergence_rate=1E-3,
+                                          convergence_interval=5,
+                                          pf_size=5,
                                           surrogate_model={'sm_type'     : 'gpr', 
                                                            'pickle file' : './sm_gpr.pkl'},
                                           random_seed=10983)
@@ -118,12 +118,12 @@ def test_run_single_agent_bb():
                                           objectives=objectives,
                                           archive='sfr_opt', 
                                           agent_wait_time=5,
-                                          convergence_model={'type': 'hvi', 
-                                                             'convergence rate': 1E-3, 
-                                                             'interval':5, 
-                                                             'pf size': 5, 
-                                                             'total tvs': 100,
-                                                             'skipped tvs': 0},
+                                          total_tvs=100,
+                                          skipped_tvs=0,
+                                          convergence_type='hvi',
+                                          convergence_rate=1E-3,
+                                          convergence_interval=5,
+                                          pf_size=5,
                                           surrogate_model={'sm_type'     : 'gpr', 
                                                            'pickle file' : './sm_gpr.pkl'},
                                           random_seed=10983)
@@ -141,7 +141,7 @@ def test_run_single_agent_bb():
     os.remove('sfr_opt.h5')
     time.sleep(0.05)
 
-def test_multi_agent_bb():
+def test_run_multi_agent_bb():
     kas = {'ka_rp_explore': karp.KaGlobal, 
            'ka_rp_exploit': karp.KaLocal,
            'ka_br_lvl3': kabr.KaBr_lvl3,
@@ -157,12 +157,12 @@ def test_multi_agent_bb():
                                           objectives=objectives,
                                           archive='sfr_opt', 
                                           agent_wait_time=5.0,
-                                          convergence_model={'type': 'hvi', 
-                                                             'convergence rate': 1E-3, 
-                                                             'interval':5, 
-                                                             'pf size': 5, 
-                                                             'total tvs': 1000,
-                                                             'skipped tvs': 1},
+                                          total_tvs=100,
+                                          skipped_tvs=0,
+                                          convergence_type='hvi',
+                                          convergence_rate=1E-3,
+                                          convergence_interval=5,
+                                          pf_size=5,
                                           surrogate_model={'sm_type'     : 'gpr', 
                                                            'pickle file' : './sm_gpr.pkl'},
                                           random_seed=10983)
@@ -174,12 +174,12 @@ def test_multi_agent_bb():
                                           objectives=objectives,
                                           archive='sfr_opt', 
                                           agent_wait_time=5.0,
-                                          convergence_model={'type': 'hvi', 
-                                                             'convergence rate': 1E-3, 
-                                                             'interval':5, 
-                                                             'pf size': 5, 
-                                                             'total tvs': 1000,
-                                                             'skipped tvs': 1},
+                                          total_tvs=100,
+                                          skipped_tvs=0,
+                                          convergence_type='hvi',
+                                          convergence_rate=1E-3,
+                                          convergence_interval=5,
+                                          pf_size=5,
                                           surrogate_model={'sm_type'     : 'gpr', 
                                                            'pickle file' : './sm_gpr.pkl'},
                                           random_seed=10983)
@@ -220,8 +220,12 @@ def test_BenchmarkController():
                                       objectives=objs, 
                                       design_variables=dvs,
                                       benchmark=model, 
-                                      convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 
-                                                         'interval': 5, 'pf size': 10, 'total tvs': 10, 'skipped tvs': 1},
+                                      total_tvs=10,
+                                      skipped_tvs=1,
+                                      convergence_type='hvi',
+                                      convergence_rate=1E-5,
+                                      convergence_interval=5,
+                                      pf_size=10,                                                   
                                       random_seed=10987)
     except OSError:
         time.sleep(0.5)
@@ -232,8 +236,12 @@ def test_BenchmarkController():
                                       objectives=objs, 
                                       design_variables=dvs,
                                       benchmark=model, 
-                                      convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 
-                                                         'interval': 5, 'pf size': 10, 'total tvs': 10, 'skipped tvs': 1},
+                                      total_tvs=10,
+                                      skipped_tvs=1,
+                                      convergence_type='hvi',
+                                      convergence_rate=1E-5,
+                                      convergence_interval=5,
+                                      pf_size=10,
                                       random_seed=10987)
     bb = bb_controller.bb
     ka = bb.get_attr('_proxy_server')
@@ -286,12 +294,15 @@ def test_MTC_initialize_bb():
            'mka_br_lvl2': kabr.KaBr_lvl2,
            'mka_br_lvl1': kabr.KaBr_lvl1}
     
-    mtc.initialize_blackboard('master_bb', bb_name='bb_master', bb_type=bb_opt.MasterBbOpt, ka=kas, archive='bb_master')
+    mtc.initialize_blackboard('master_bb', bb_name='bb_master', 
+                              bb_type=bb_opt.MasterBbOpt, 
+                              ka=kas, 
+                              archive='bb_master')
     
     master_bb = mtc.master_bb
     assert master_bb.get_attr('name') == 'bb_master'
     assert master_bb.get_attr('archive_name') == 'bb_master.h5'
-    assert master_bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'total tvs': 1000000.0, 'skipped tvs': 200}
+
     assert master_bb.get_attr('sm_type') == 'gpr'
     assert master_bb.get_attr('objectives') == {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'goal':'gt', 'variable type': float},
                                                 'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
@@ -312,12 +323,15 @@ def test_MTC_initialize_bb():
            'ska_br_lvl1': kabr.KaBr_lvl1,
            'ska_br_inter': kabr.KaBr_interBB}
         
-    mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', bb_type=bb_opt.SubBbOpt, ka=kas,  archive='bb_sub')
+    mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', 
+                              bb_type=bb_opt.SubBbOpt, 
+                              ka=kas,  
+                              archive='bb_sub')
     
     sub_bb = mtc.sub_bb
     assert sub_bb.get_attr('name') == 'bb_sub'
     assert sub_bb.get_attr('archive_name') == 'bb_sub.h5'
-    assert sub_bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-5, 'interval': 25, 'pf size': 200, 'total tvs': 1000000.0, 'skipped tvs': 200}
+
     assert sub_bb.get_attr('sm_type') == 'gpr'
     assert sub_bb.get_attr('objectives') == {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},}
@@ -327,7 +341,7 @@ def test_MTC_initialize_bb():
     assert sub_bb.get_attr('constraints') == {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'variable type': float},
                             'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
     assert mtc.bb_attr == {'bb_master': {'plot': False, 'name': 'bb_master', 'wait time': 30},
-                          'bb_sub': {'plot': False, 'name': 'bb_sub', 'wait time': 30}}
+                           'bb_sub': {'plot': False, 'name': 'bb_sub', 'wait time': 30}}
     mtc.shutdown()
     time.sleep(0.05)
     
@@ -343,7 +357,17 @@ def test_MTC_run_sub_bb():
            'mka_br_lvl2': kabr.KaBr_lvl2,
            'mka_br_lvl1': kabr.KaBr_lvl1}
     
-    mtc.initialize_blackboard('master_bb', bb_name='bb_master', bb_type=bb_opt.MasterBbOpt, ka=kas, archive='bb_master', convergence_model={'type': 'hvi', 'convergence rate': 0.04, 'interval': 5, 'pf size': 5, 'total tvs': 50, 'skipped tvs': 1}, random_seed=1)
+    mtc.initialize_blackboard('master_bb', bb_name='bb_master', 
+                                           bb_type=bb_opt.MasterBbOpt, 
+                                           ka=kas, 
+                                           archive='bb_master', 
+                                           total_tvs=10,
+                                           skipped_tvs=1,
+                                           convergence_type='hvi',
+                                           convergence_rate=0.04,
+                                           convergence_interval=5,
+                                           pf_size=5,
+                                           random_seed=1)
     
     master_bb = mtc.master_bb
     master_bb.set_attr(skipped_tvs=0)
@@ -355,7 +379,17 @@ def test_MTC_run_sub_bb():
            'ska_br_lvl1': kabr.KaBr_lvl1,
            'ska_br_inter': kabr.KaBr_interBB}
         
-    mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', bb_type=bb_opt.SubBbOpt, ka=kas,  archive='bb_sub', convergence_model={'type': 'hvi', 'convergence rate': 0.04, 'interval': 8, 'pf size': 5, 'total tvs': 50, 'skipped tvs': 1}, random_seed=1)
+    mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', 
+                              bb_type=bb_opt.SubBbOpt, 
+                              ka=kas,  
+                              archive='bb_sub', 
+                              total_tvs=50,
+                              skipped_tvs=1,
+                              convergence_type='hvi',
+                              convergence_rate=0.04,
+                              convergence_interval=8,
+                              pf_size=5,                              
+                              random_seed=1)
     
     sub_bb = mtc.sub_bb
     sub_bb.set_attr(skipped_tvs=0)
@@ -387,7 +421,17 @@ def test_MTC_run_master_bb():
            'mka_br_lvl2': kabr.KaBr_lvl2,
            'mka_br_lvl1': kabr.KaBr_lvl1}
     
-    mtc.initialize_blackboard('master_bb', bb_name='bb_master', bb_type=bb_opt.MasterBbOpt, ka=kas, archive='bb_master', convergence_model={'type': 'hvi', 'convergence rate': 0.5, 'interval': 5, 'pf size': 5, 'total tvs': 50, 'skipped tvs': 1}, random_seed=1)
+    mtc.initialize_blackboard('master_bb', bb_name='bb_master', 
+                              bb_type=bb_opt.MasterBbOpt, 
+                              ka=kas, 
+                              archive='bb_master', 
+                              total_tvs=50,
+                              skipped_tvs=1,
+                              convergence_type='hvi',
+                              convergence_rate=0.5,
+                              convergence_interval=5,
+                              pf_size=5, 
+                              random_seed=1)
     
     master_bb = mtc.master_bb
     master_bb.set_attr(skipped_tvs=0)
@@ -399,7 +443,17 @@ def test_MTC_run_master_bb():
            'ska_br_lvl1': kabr.KaBr_lvl1,
            'ska_br_inter': kabr.KaBr_interBB}
         
-    mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', bb_type=bb_opt.SubBbOpt, ka=kas,  archive='bb_sub', convergence_model={'type': 'hvi', 'convergence rate': 0.04, 'interval': 8, 'pf size': 5, 'total tvs': 50, 'skipped tvs': 1}, random_seed=1)
+    mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', 
+                              bb_type=bb_opt.SubBbOpt, 
+                              ka=kas,  
+                              archive='bb_sub', 
+                              total_tvs=50,
+                              skipped_tvs=1,
+                              convergence_type='hvi',
+                              convergence_rate=0.04,
+                              convergence_interval=8,
+                              pf_size=5, 
+                              random_seed=1)
     
     sub_bb = mtc.sub_bb
     sub_bb.set_attr(skipped_tvs=0)

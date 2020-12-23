@@ -41,8 +41,9 @@ class BbOpt(blackboard.Blackboard):
         
         self.objectives_ll = []
         self.objectives_ul = []
-        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-6, 'interval': 25, 'pf size': 50, 'skipped tvs': 200, 'total tvs': 1E6}
-
+        self.total_tvs = 1E6
+        
+        
         self.hv_list = [0.0]
         self._sm = None
         self.sm_type = 'interpolate'
@@ -52,7 +53,13 @@ class BbOpt(blackboard.Blackboard):
         self.previous_pf = {}
         self.dci_convergence_list = [0.0]
         self.random_seed = None
+        
         self.skipped_tvs = 200
+        self.convergence_type = 'hvi'
+        self.convergence_rate = 1E-6
+        self.convergence_interval = 25
+        self.pf_size = 200
+        self.dci_div = {}
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
@@ -149,12 +156,12 @@ class BbOpt(blackboard.Blackboard):
         """
         Determine what to do after a trigger event has been processed
         """
-        if self.convergence_model['type'] == 'dci hvi':
+        if self.convergence_type == 'dci hvi':
             self.dc_indicator()
-        elif self.convergence_model['type'] == 'hvi':
+        elif self.convergence_type == 'hvi':
             self.hv_indicator()
         else:
-            self.log_info('convergence_model ({}) not recognized, reverting to hvi'.format(self.convergence_model['type']))
+            self.log_info('convergence type ({}) not recognized, reverting to hvi'.format(self.convergence_type))
             self.hv_indicator()
             
     def convergence_update(self):
@@ -167,15 +174,15 @@ class BbOpt(blackboard.Blackboard):
         """
         Determine if the problem has converged
         """
-        if self.convergence_model['type'] == 'dci hvi':
+        if self.convergence_type == 'dci hvi':
             self.determine_complete_dci_hvi()
-        elif self.convergence_model['type'] == 'hvi':
+        elif self.convergence_type == 'hvi':
             self.determine_complete_hv()
         else:
-            self.log_info('convergence_model ({}) not recognized, reverting to total TVs'.format(self.convergence_model['type']))
+            self.log_info('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
             pass           
         # Determine if the problem is over our trigger value limit
-        if len(self._kaar) >= self.convergence_model['total tvs'] and self._complete == False:
+        if len(self._kaar) >= self.total_tvs and self._complete == False:
             self.log_info('Problem is over total allowable TVs, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 # If statement is for inter_BB agent who only have a write function assocaiated with the BB
@@ -188,7 +195,7 @@ class BbOpt(blackboard.Blackboard):
         """
         Determine if the problem is complete using the convergence of dci and the hvi
         """        
-        if self.dci_convergence_list[-1] < self.convergence_model['convergence rate']:
+        if self.dci_convergence_list[-1] < self.convergence_rate:
             self.hv_indicator()
         else:
             self.convergence_update()
@@ -216,7 +223,7 @@ class BbOpt(blackboard.Blackboard):
             else:
                 goal.update({obj_name: obj['goal']})
         
-        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, goal=goal, div=self.convergence_model['div'])
+        dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, goal=goal, div=self.dci_div)
         dci._grid_generator()
         dci.compute_dci(current_pf)
         current_dci = dci.dci
@@ -231,14 +238,14 @@ class BbOpt(blackboard.Blackboard):
         """
         Determine if the problem is complete using the convergence of the hypervolume
         """
-        num = self.convergence_model['interval']
+        num = self.convergence_interval
         recent_hv = self.hv_list[-num:]
         prev_hv = self.hv_list[-2*num:-num]
         hv_average = abs(sum(recent_hv) / num - sum(prev_hv) / num)
         hv_indicator = hv_average
         
         # Long term convergence
-        #num = 5 * convergence_model['interval']
+        #num = 5 * self.convergence_interval
         #recent_hv = self.hv_list[-num:]
         #prev_hv = self.hv_list[-2*num:-num]
         #hv_average_long_term = abs(sum(recent_hv) / num - sum(prev_hv) / num)
@@ -250,8 +257,8 @@ class BbOpt(blackboard.Blackboard):
         # Should we add the following to ensure there is something on the BB?
         if len(self._kaar.keys()) < self.skipped_tvs and len(self.abstract_lvls['level 1']) > 1:
             return
-                                                     
-        if hv_indicator < self.convergence_model['convergence rate']:
+
+        if hv_indicator < self.convergence_rate:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 # If statement is for inter_BB agent who only have a write function assocaiated with the BB
@@ -271,7 +278,7 @@ class BbOpt(blackboard.Blackboard):
         
         pf = utils.scale_pareto_front(cores, self.objectives, lvl_3)
 
-        if self.convergence_model['type'] == 'dci hvi':
+        if self.convergence_type == 'dci hvi':
             self.hv_list[self._trigger_event] = round(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul),10)
         else:
             self.hv_list.append(round(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul),10))
@@ -486,7 +493,12 @@ class MasterBbOpt(BbOpt):
                             'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                             'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
         
-        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
+        self.total_tvs = 2E4
+        self.convergence_type = 'hvi'
+        self.convergence_rate = 1E-4
+        self.convergence_interval = 25
+        self.pf_size = 200
+        self.dci_div = {}
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
 
@@ -508,7 +520,14 @@ class SubBbOpt(BbOpt):
         
         self.objectives_ll = []
         self.objectives_ul = []
-        self.convergence_model = {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 200, 'total tvs': 2E4}
+
+        self.total_tvs = 2E4
+        self.convergence_type = 'hvi'
+        self.convergence_rate = 1E-4
+        self.convergence_interval = 25
+        self.pf_size = 200
+        self.dci_div = {}
+        
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
 

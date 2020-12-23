@@ -300,9 +300,11 @@ def test_determine_complete_tvs():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.set_attr(convergence_model={'type': 'hvi', 'convergence rate': 1E-3, 'interval':2,'pf size': 9, 'total tvs': 11, 'skipped tvs': 1})
-    bb.set_attr(num_calls=2)
-    bb.set_attr(total_solutions=9)
+
+    bb.set_attr(convergence_rate=1E-3)
+    bb.set_attr(convergence_interval=2)
+    bb.set_attr(pf_size=9)
+    bb.set_attr(total_tvs=11)
     
     _kaar = {}
     for i in range(60,70):
@@ -331,10 +333,11 @@ def test_determine_complete_hv():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.set_attr(convergence_model={'type': 'hvi', 'convergence rate': 1E-3, 'interval':2,'pf size': 9, 'total tvs': 1E6, 'skipped tvs': 1})
+
     bb.set_attr(skipped_tvs=1)
-    bb.set_attr(num_calls=2)
-    bb.set_attr(total_solutions=9)
+    bb.set_attr(convergence_rate=1E-3)
+    bb.set_attr(convergence_interval=2)
+    bb.set_attr(pf_size=9)
     
     for i in range(60,70):
         bb.update_abstract_lvl(1, 'core_[{}.0, 66.0, 0.42]'.format(i), {'pareto type' : 'pareto', 'fitness function' : 1.0})
@@ -390,7 +393,9 @@ def test_dc_indicator():
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float},
             'power':             {'ll':0,   'ul':10,   'goal':'lt', 'goal type': 'max', 'variable type': list}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.set_attr(convergence_model={'type': 'dci hvi', 'convergence rate': 1E-5, 'div': {'reactivity swing': 100, 'burnup': 100, 'power': 10}, 'total tvs': 1E6})
+    
+    bb.set_attr(convergence_type='dci hvi')
+    bb.set_attr(dci_div={'reactivity swing': 100, 'burnup': 100, 'power': 10})
     
     cores = {'core_[70.0, 65.0, 0.42]': {'reactivity swing' : 500.0, 'burnup' : 70.0, 'power': 7.5}}
 
@@ -444,7 +449,9 @@ def test_determine_complete_dci_hvi():
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float},
             'power':             {'ll':0,   'ul':10,   'goal':'lt', 'goal type': 'avg', 'variable type': list}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.set_attr(convergence_model={'type': 'dci hvi', 'convergence rate': 1E-5, 'div': {'reactivity swing': 1000, 'burnup': 100, 'power': 10}, 'total tvs': 1E6})
+    
+    bb.set_attr(convergence_type='dci hvi')
+    bb.set_attr(dci_div={'reactivity swing': 100, 'burnup': 100, 'power': 10})    
     
     bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
@@ -494,8 +501,9 @@ def test_convergence_indicator_dci_hvi():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.set_attr(convergence_model={'type': 'dci hvi', 'convergence rate': 1E-5, 'div': {'reactivity swing': 1000, 'burnup': 100}, 'total tvs': 1E6})
-    
+
+    bb.set_attr(convergence_type='dci hvi')
+    bb.set_attr(dci_div={'reactivity swing': 100, 'burnup': 100})    
     bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 1000.0, 'burnup' : 0.0}}, panel='old')
@@ -522,8 +530,7 @@ def test_convergence_indicator_hvi():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.set_attr(convergence_model={'type': 'hvi', 'convergence rate': 1E-5, 'interval': 20, 'total tvs': 1E6})
-    
+
     bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 1000.0, 'burnup' : 0.0}}, panel='old')
@@ -545,8 +552,7 @@ def test_convergence_indicator_random():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.set_attr(convergence_model={'type': 'random', 'convergence rate': 1E-5, 'interval': 20, 'total tvs': 1E6})
-    
+
     bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 1000.0, 'burnup' : 0.0}}, panel='old')
@@ -619,7 +625,9 @@ def test_connect_sub_bb():
                                              'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
     assert sub_bb.get_attr('constraints') == {'eol keff': {'ll': 1.0, 'ul': 2.5, 'variable type': float},
                                               'pu mass':  {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
-    assert sub_bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 200, 'total tvs': 2E4}
+    
+    assert sub_bb.get_attr('convergence_interval') == 25
+    assert sub_bb.get_attr('convergence_rate') == 1E-4
     
     ns.shutdown()       
     time.sleep(0.05)    
@@ -641,8 +649,8 @@ def test_MasterBbOpt_init():
                             'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                             'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
     
-    assert bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 25, 'total tvs': 2E4}
-
+    assert bb.get_attr('convergence_interval') == 25
+    assert bb.get_attr('convergence_rate') == 1E-4
     ns.shutdown()       
     time.sleep(0.05)    
     
@@ -662,8 +670,8 @@ def test_SubBbOpt_init():
     assert bb.get_attr('constraints') == {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'variable type': float},
                             'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
     
-    assert bb.get_attr('convergence_model') == {'type': 'hvi', 'convergence rate': 1E-4, 'interval': 25, 'pf size': 200, 'total tvs': 2E4}
-    
+    assert bb.get_attr('convergence_interval') == 25
+    assert bb.get_attr('convergence_rate') == 1E-4    
     ns.shutdown()       
     time.sleep(0.05)     
     
