@@ -237,13 +237,21 @@ class BbOpt(blackboard.Blackboard):
         hv_average = abs(sum(recent_hv) / num - sum(prev_hv) / num)
         hv_indicator = hv_average
         
+        # Long term convergence
+        #num = 5 * convergence_model['interval']
+        #recent_hv = self.hv_list[-num:]
+        #prev_hv = self.hv_list[-2*num:-num]
+        #hv_average_long_term = abs(sum(recent_hv) / num - sum(prev_hv) / num)
+        #hv_indicator_long_term = hv_average        
+        #self.log_info('Convergence Rate: {}, Long-Term Convergence Rate: {}'.format(hv_indicator, hv_average_long_term))
+        
+        # Wait for a number of cycles before we check for convergence        
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
-        if len(self._kaar.keys()) < self.skipped_tvs:
+        # Should we add the following to ensure there is something on the BB?
+        if len(self._kaar.keys()) < self.skipped_tvs and len(self.abstract_lvls['level 1']) > 1:
             return
                                                      
-        # Wait for a number of cycles before we check for convergence
         if hv_indicator < self.convergence_model['convergence rate']:
-        #if hv_indicator < self.convergence_model['convergence rate'] and len(self.abstract_lvls['level 1']) > self.convergence_model['pf size']:
             self.log_info('Problem complete, shutting agents down')
             for agent_name, connections in self.agent_addrs.items():
                 # If statement is for inter_BB agent who only have a write function assocaiated with the BB
@@ -547,3 +555,76 @@ class BenchmarkBbOpt(BbOpt):
             pass
         fig2 = px.line(x=[x for x in range(len(self.hv_list))], y=self.hv_list, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
         fig2.show()
+        
+    def encode_design(self, design):
+        """
+        Encode the design variables into a format which can be passed to train_surrogate_model
+        """
+        level_3 = {}
+        for panel in self.abstract_lvls['level 3'].values():
+            level_3.update(panel)
+        encoded_design = []
+        encoder_dict = utils.encode_dvs(self.design_variables)
+        for dv in self.design_variables.keys():
+            converted_dv = encoder_dict[dv].transform([[level_3[design]['design variables'][dv]]])
+            for num, option in enumerate(self.design_variables[dv]['options']):
+                encoded_design.append(converted_dv[0][num])
+        return encoded_design
+
+    def prepare_sm(self):
+        """
+        Convert the blackboard data to a format which can be interpreted by train_surrogate_model
+        """
+        self.dv_dict = {}
+        self.obj_dict = {}
+        for dv in self.design_variables:
+            if self.design_variables[dv]['variable type'] != float:
+                self.dv_dict.update({str(dv) + str(option) : [] for option in self.design_variables[dv]['options']})
+            else:
+                self.dv_dict.update({dv:[]})
+        for obj in self.objectives.keys():
+            if self.objectives[obj]['variable type'] == list:
+                self.obj_dict.update({str(obj) + str(num) : [] for num in range(0,self.objectives[obj]['length'])})
+            else:
+                self.obj_dict.update({obj:[]})
+        for constraint in self.constraints.keys():
+            if self.constraints[constraint]['variable type'] == list:
+                self.obj_dict.update({str(constraint) + str(num) : [] for num in range(0,self.constraints[constraint]['length'])})
+            else:
+                self.obj_dict.update({constraint:[]})      
+
+    def convert_data_for_sm(self):
+        """
+        Convert data in the blackboard to be sent to a surrogate model
+        """
+        encoder_dict = utils.encode_dvs(self.design_variables)
+
+        level_3 = {}
+        for panel in self.abstract_lvls['level 3'].values():
+            level_3.update(panel)
+
+        for core in level_3.keys():
+            for dv in self.design_variables:
+                if self.design_variables[dv]['variable type'] == str:
+                    encoded_dv = encoder_dict[dv].transform([[level_3[core]['design variables'][dv]]])
+                    for num, option in enumerate(self.design_variables[dv]['options']):
+                        name = str(dv) + str(option)
+                        self.dv_dict[name].append(encoded_dv[0][num])
+                else:
+                    dv_dict[dv].append(level_3[core]['design variables'][dv])
+            for obj in self.objectives.keys():
+                if self.objectives[obj]['variable type'] == list:
+                    for num, obj_val in enumerate(level_3[core]['objective functions'][obj]):
+                        name = str(obj) + str(num)
+                        self.obj_dict[name].append(obj_val)
+                else:
+                    self.obj_dict[obj].append(level_3[core]['objective functions'][obj])
+            for constraint in self.constraints.keys():
+                if self.constraints[constraint]['variable type'] == list:
+                    for num, con_val in enumerate(level_3[core]['constraints'][constraint]):
+                        name = str(constraint) + str(num)
+                        self.obj_dict[name].append(con_val)
+                else:
+                    self.obj_dict[constraint].append(level_3[core]['constraints'][constraint])
+ 
+

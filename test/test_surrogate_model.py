@@ -1,5 +1,6 @@
 import src.train_surrogate_models as tm
 from sklearn.gaussian_process import kernels
+import pandas as pd
 import numpy as np
 import sklearn
 from sklearn import linear_model
@@ -23,10 +24,9 @@ def test_surrogate_model_init():
     assert sm.var_train == None
     assert sm.obj_test == None
     assert sm.obj_train == None
-    assert sm.var_test_scaler == None
-    assert sm.var_train_scaler == None
-    assert sm.obj_test_scaler == None
-    assert sm.obj_train_scaler == None
+    assert sm.ind_scaler == None
+    assert sm.obj_scaler == None
+    
     assert sm.scaled_var_train == None
     assert sm.scaled_var_test  == None
     assert sm.scaled_obj_train == None
@@ -110,6 +110,34 @@ def test_update_database_dict():
     assert len(sm.var_test) == 6
     assert len(sm.obj_test) == 6
     
+def test_update_database_dataframe():
+    sm = tm.Surrogate_Models()
+    variables, objectives = datasets.load_linnerud(return_X_y=True)
+    sm.random = 57757
+    test_dict = {}
+
+    variables = pd.DataFrame(variables, columns = ['a','b','c'])
+    objectives = pd.DataFrame(objectives, columns = ['d','e','f'])
+    sm.update_database(variables, objectives, dataframe=True)
+    ind_var_given = [[ 11, 230,  80,], [  6,  70,  31,], [  2, 110,  43,], [ 14, 215, 105,], [ 15, 225,  73,], [  4,  60,  25,], [ 12, 105,  37,], [ 12, 101, 101,], [ 13, 210, 115,], [ 13, 155,  58,], [  2, 110,  60,], [ 15, 200,  40,], [  6, 125,  40,], [  8, 101,  38,], [ 17, 120,  38,]]
+    obj_var_given = [[157,  32,  52,], [193,  36,  46,], [138,  33,  68,], [154,  34,  64,], [156,  33,  54,], [176,  37,  54,], [162,  35,  62,], [193,  38,  58,], [166,  33,  52,], [189,  35,  46,], [189,  37,  52,], [176,  31,  74,], [167,  34,  60,], [211,  38,  56,], [169,  34,  50,]]
+    
+    np.testing.assert_array_equal(sm.var_train, ind_var_given)
+    np.testing.assert_array_equal(sm.obj_train, obj_var_given)
+    assert len(sm.var_test) == 5
+    assert len(sm.obj_test) == 5
+
+    var_1 = pd.DataFrame([[12, 250, 85], [12, 250, 85]], columns = ['a','b','c'])
+    obj_1 = pd.DataFrame([[165, 33, 57], [165, 33, 57]], columns = ['d','e','f'])
+    print(len(sm.var_train))
+
+    sm.update_database(var_1, obj_1, dataframe=True)
+    print(sm.var_train)
+    assert len(sm.var_train) == 16
+    assert len(sm.obj_train) == 16
+    assert len(sm.var_test) == 6
+    assert len(sm.obj_test) == 6
+    
 def test_clear_database():
     sm = tm.Surrogate_Models()
     variables, objectives = datasets.load_linnerud(return_X_y=True)
@@ -129,32 +157,27 @@ def test_clear_database():
     assert sm.var_train == None
     assert sm.obj_test == None
     assert sm.obj_train == None
-    assert sm.var_test_scaler == None
-    assert sm.var_train_scaler == None
-    assert sm.obj_test_scaler == None
-    assert sm.obj_train_scaler == None
+    assert sm.ind_scaler == None
+    assert sm.obj_scaler == None
     assert sm.scaled_var_train == None
     assert sm.scaled_var_test  == None
     assert sm.scaled_obj_train == None
     assert sm.scaled_obj_test  == None
-
+    
 def test_scale_datasets():
     sm = tm.Surrogate_Models()
     variables, objectives = datasets.load_linnerud(return_X_y=True)
     sm.random = 57757
     sm.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
 
-    assert sm.var_train_scaler.mean_.all() == np.array([[10,         142.46666667,  58.93333333]]).all()
-    assert sm.var_train_scaler.var_.all() == np.array([[22.8,        3171.71555556,  795.92888889]]).all()
-    assert sm.var_test_scaler.mean_.all() == np.array([[7.8, 154.8, 104.4]]).all()
-    assert sm.var_test_scaler.var_.all() == np.array([[34.16, 5246.16, 6053.44]]).all()
-    assert sm.obj_train_scaler.mean_.all() == np.array([[173.06666667,  34.66666667,  56.53333333]]).all()
-    assert sm.obj_train_scaler.var_.all() == np.array([[341.79555556,   4.35555556,  58.38222222]]).all()
-    assert sm.obj_test_scaler.mean_.all() == np.array([[195.2,  37.6,  54.8]]).all()
-    assert sm.obj_test_scaler.var_.all() == np.array([[923.76,  19.44,  20.16]]).all()
+    assert sm.ind_scaler.mean_.all() == np.array([[10,         142.46666667,  58.93333333]]).all()
+    assert sm.ind_scaler.var_.all() == np.array([[22.8,        3171.71555556,  795.92888889]]).all()
+
+    assert sm.obj_scaler.mean_.all() == np.array([[173.06666667,  34.66666667,  56.53333333]]).all()
+    assert sm.obj_scaler.var_.all() == np.array([[341.79555556,   4.35555556,  58.38222222]]).all()
 
 model = tm.Surrogate_Models()
-variables, objectives = datasets.load_linnerud(return_X_y=True)
+variables, objectives = datasets.make_regression(n_informative=10, n_targets=3, random_state=57757)
 model.random = 57757
 model.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
 model._initialize_models()
@@ -172,24 +195,24 @@ def test_linear_model():
     linear_model = model.models['lr']
     assert linear_model['model'] != None
     assert linear_model['fit'] != None
-    assert round(linear_model['score'],6) == round(0.3546058200687729,6)
-    assert round(linear_model['mse_score'],6) == round(0.6453941799312272,6)
+    assert round(linear_model['score'],6) == 0.829221
+    assert round(linear_model['mse_score'],6) == 0.173249
 
 def test_poly_model():
     model.set_model('pr')
     poly_model = model.models['pr']
     assert poly_model['model'] != None
     assert poly_model['fit'] != None
-    assert round(poly_model['score'],6) == round(-0.22259110245070493,6)
-    assert round(poly_model['mse_score'],6) == round(1.2225911024507052,6)
+    assert round(poly_model['score'],6) == -0.126427
+    assert round(poly_model['mse_score'],6) == 1.142721
 
-def test_grp_model():
+def test_gpr_model():
     model.set_model('gpr')
     gpr_model = model.models['gpr']
     assert gpr_model['model'] != None
     assert gpr_model['fit'] != None
-    assert round(gpr_model['score'],6) == round(0.0,6)
-    assert round(gpr_model['mse_score'],6) == round(1.0,6)
+    assert round(gpr_model['score'],6) == -0.039588
+    assert round(gpr_model['mse_score'],6) == 1.054625
 
 def test_ann_model():
     model.set_model('ann')
@@ -197,11 +220,11 @@ def test_ann_model():
     assert ann_model['model'] != None
     assert ann_model['fit'] != None
     try:
-        assert round(ann_model['score'],6) == round(-0.8124181759959282,6)
+        assert round(ann_model['score'],6) == 0.827281
     except AssertionError:
         assert round(ann_model['score'],6) == round(-1.1035757582289127,6)
     try:
-        assert round(ann_model['mse_score'],6) == round(1.8124181759959297,6)
+        assert round(ann_model['mse_score'],6) == 0.175218
     except AssertionError:
         assert round(ann_model['mse_score'],6) == round(2.1035757582289114,6)
         
@@ -210,8 +233,8 @@ def test_rf_model():
     rf_model = model.models['rf']
     assert rf_model['model'] != None
     assert rf_model['fit'] != None
-    assert round(rf_model['score'],6) == round(0.1770111582876811,6)
-    assert round(rf_model['mse_score'],6) == round(0.822988841712319,6)
+    assert round(rf_model['score'],6) == 0.120179
+    assert round(rf_model['mse_score'],6) == 0.892547
 
 def test_add_model():
     ridge = linear_model.Ridge()
@@ -225,7 +248,7 @@ def test_set_added_model():
     ridge_model = model.models['ridge']
     assert ridge_model['model'] != None
     assert ridge_model['fit'] != None
-    assert round(ridge_model['score'],6) == round(0.3602889061502321,6)
+    assert round(ridge_model['score'],6) == 0.825064
 
 def test_add_hyper_parameter_update():
     assert model.hyper_parameters['ann'] == {'hidden_layer_sizes': (2,200,'log-uniform'),
@@ -254,52 +277,55 @@ def test_add_hyper_parameter_poly():
 def test_update_model():
     model.set_model('lr')
     linear_model = model.models['lr']
-    assert round(linear_model['score'],6) == round(0.3546058200687729,6)
-    model.update_database([[ 15, 150,  65,],[ 13, 550,  90,],], [[205,  38,  47,],[145,  32,  77,]])
+    assert round(linear_model['score'],6) == 0.829221
+    variables, objectives = datasets.make_regression(n_samples=2, n_informative=10, n_targets=3, random_state=57757)
+    print()
+    model.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
     model.update_model('lr')
     linear2_model = model.models['lr']
-    assert round(linear2_model['score'],6) == round(-0.5475314374931772,6)
+    assert round(linear2_model['score'],6) == 0.693848
 
 def test_update_all_models():
     model2 = tm.Surrogate_Models()
-    variables, objectives = datasets.load_linnerud(return_X_y=True)
+    variables, objectives = datasets.make_regression(n_samples=100, n_informative=10, n_targets=3, random_state=57757)
     model2.random = 57757
     model2.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
     model2._initialize_models()
 
     model_list = ['lr', 'pr', 'gpr', 'rf']
-    model_scores = [0.3546058200687729, -0.2225911024507033, 0.0, 0.1770111582876811, ]
-    model_scores2 = [-0.5475314374931772, -0.2225911024507033,  0.0, 0.033954767107108486, ]
+    model_scores = [0.8292210344980631, -0.12642744891745702, -0.03958782486855713, 0.12017934578458417]
+    model_scores2 = [0.6938483921146611, -0.12642744891745702,  -0.005224298142109657, 0.07051473867935057 ]
     for model_type in model_list:
         model2.set_model(model_type)
     for model_type, model_score in zip(model_list, model_scores):
         assert round(model2.models[model_type]['score'],6) == round(model_score,6)
         
-    model2.update_database([[ 15, 150,  65,],[ 13, 550,  90,],], [[205,  38,  47,],[145,  32,  77,]])
+    variables, objectives = datasets.make_regression(n_samples=2, n_informative=10, n_targets=3, random_state=57757)
+    model2.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
     model2.update_all_models()
     for model_type, model_score in zip(model_list, model_scores2):
         assert round(model2.models[model_type]['score'],6) == round(model_score,6)
-
 # TODO: Add tests for optimizing all regression techniques        
 
 def test_optimize_pr():
     sm = tm.Surrogate_Models()
-    variables, objectives = datasets.load_linnerud(return_X_y=True)
+    variables, objectives = datasets.load_diabetes(return_X_y=True)
+
     sm.random = 57757
     sm.cv = 3
     sm.number_iters = 3
-    sm.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
+    sm.update_database(np.ndarray.tolist(variables), [[x] for x in np.ndarray.tolist(objectives)])
     sm._initialize_models()
 
     sm.set_model('pr')
     poly_model = sm.models['pr']
-    assert round(poly_model['score'],6) == round(-0.22259110245070493,6)
-    assert round(poly_model['mse_score'],6) == round(1.2225911024507052,6)
-    hyper_parameters = {'poly__degree': (2,4)}
+    assert round(poly_model['score'],6) == 0.367712
+    assert round(poly_model['mse_score'],6) == 0.68185
+    hyper_parameters = {'poly__degree': (2,6)}
     sm.optimize_model('pr', hyper_parameters)
     optimized_pr_model = sm.models['pr']
-    assert round(optimized_pr_model['score'],6) == round(-9.2227093574984,6)
-    assert round(optimized_pr_model['mse_score'],6) == round(10.222709357498402,6)
+    assert round(optimized_pr_model['score'],6) == -31.285009
+    assert round(optimized_pr_model['mse_score'],6) == 34.815645
     assert optimized_pr_model['hyper_parameters'] == {'poly__degree': 4}
     
 def test_optimize_rf():
@@ -314,16 +340,16 @@ def test_optimize_rf():
 
     sm.set_model('rf')
     ann_model = sm.models['rf']
-    assert round(ann_model['score'],6) == round(0.42132316605554143,6)
-    assert round(ann_model['mse_score'],6) == round(0.5786768339444586,6)
+    assert round(ann_model['score'],6) == 0.44652
+    assert round(ann_model['mse_score'],6) == 0.596864
 
     
     hyper_parameters = {'n_estimators': (100,200)}
     sm.optimize_model('rf', hyper_parameters)
     optimized_ann_model = sm.models['rf']
     assert optimized_ann_model['hyper_parameters'] == {'n_estimators': 149}
-    assert round(optimized_ann_model['score'],6) == round(0.4251771319924367,6)
-    assert round(optimized_ann_model['mse_score'],6) == round(0.5748228680075633,6)
+    assert round(optimized_ann_model['score'],6) == 0.439092
+    assert round(optimized_ann_model['mse_score'],6) == 0.604874
     
 def test_return_best_model():
     sm = tm.Surrogate_Models()
@@ -335,7 +361,7 @@ def test_return_best_model():
     for model_type in model_list:
         sm.set_model(model_type)
     best_model = sm.return_best_model()
-    assert best_model == 'lr'
+    assert best_model == 'rf'
 
 def test_predict():
     sm = tm.Surrogate_Models()
@@ -376,12 +402,7 @@ def test_mse():
     sm.update_database(np.ndarray.tolist(variables), np.ndarray.tolist(objectives))
     sm._initialize_models()
     model_list = ['lr', 'pr',  'gpr', 'ann', 'rf']
-    mse_val = [0.6453941799312272, 1.2225911024507052, 1.0, 1.8124181759959297, 0.822988841712319]
-    for known_mse, model_type in zip(mse_val, model_list):
+    for model_type in  model_list:
         sm.set_model(model_type)
-        try:
-            assert round(sm._get_mse(sm.models[model_type]['model']),6) == round(known_mse,6)
-        except AssertionError:
-            # except for Travis-CI testing - likely due to old verion of some package
-            assert round(sm._get_mse(sm.models[model_type]['model']),6) == round(2.1035757582289114,6)
+        sm._get_mse(sm.models[model_type]['model']) > 0.0
             

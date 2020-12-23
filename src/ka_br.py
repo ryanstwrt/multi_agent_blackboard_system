@@ -244,6 +244,8 @@ class KaBr_lvl1(KaBr):
             if self._pf_size > self.total_pf_size:
                 self.calculate_hvi_contribution()
                 self.prune_pareto_front()
+        elif self.pareto_sorter == 'non-dominated':
+            pass
         else:
             self.log_debug('Pareto Sorter ({}) not recognized, please select from `non-dominated`, `dci`, `hvi`, or `dci hvi`. Automatically selecting `non-dominated`'.format(self.pareto_sorter)) 
         self.clear_entry()

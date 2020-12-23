@@ -1,4 +1,5 @@
 import pymop.problems as mop
+from pymop.factory import get_problem
 import time
 
 class optimization_test_functions(object):
@@ -6,21 +7,18 @@ class optimization_test_functions(object):
     def __init__(self, test):
         self.test_name = test
 
-    def predict(self, test_name, x, num_vars=None, num_objs=None):
+    def predict(self, test_name, x, num_vars=2, num_objs=None):
 #        time.sleep(2.0)
         if self.test_name == 'sf1':
             return self.schaffer_func_1(x)
         elif self.test_name == 'sf2':
             return self.schaffer_func_2(x)
-        elif self.test_name == 'zdt1':
-            return self.zdt_1(x, num_vars=num_vars)
-        elif self.test_name == 'zdt2':
-            return self.zdt_2(x, num_vars=num_vars)
-        elif self.test_name == 'zdt3':
-            return self.zdt_3(x, num_vars=num_vars)
+        elif 'zdt' in self.test_name:
+            return self.zdt(x, num_vars)
         elif self.test_name == 'tsp':
             return self.tsp(x)
-        
+        elif 'dtlz' in self.test_name:
+            return self.dtlz(x, num_vars, num_objs)
     
     def schaffer_func_1(self, x):
         """
@@ -46,14 +44,24 @@ class optimization_test_functions(object):
             f1 = 4-x
         else:
             f1 = x-4
-            
         f2 = (x-5) ** 2        
         return [float(f1),float(f2)]
+    
+    def zdt(self, x, num_vars):
+        """
+        ZDT Benchmark from pymop
+        """
+        problem = get_problem(self.test_name, n_var=num_vars)
+        #problem = mop.ZDT1(n_var=num_vars)
+        soln = problem.evaluate(x)
+        return soln
+
     
     def zdt_1(self, x, num_vars):
         """
         DTLZ Benchmark 1 from pymop
         """
+        #p = get_problem("zdt1", n_var)
         problem = mop.ZDT1(n_var=num_vars)
         soln = problem.evaluate(x)
         return soln
@@ -62,6 +70,7 @@ class optimization_test_functions(object):
         """
         DTLZ Benchmark 2 from pymop
         """
+#        p = get_problem("zdt2", n_var=num_vars)
         problem = mop.ZDT2(n_var=num_vars)
         soln = problem.evaluate(x)
         return soln
@@ -70,9 +79,16 @@ class optimization_test_functions(object):
         """
         DTLZ Benchmark 3 from pymop
         """
+#        p = get_problem("zdt3", n_var=num_vars)
         problem = mop.ZDT3(n_var=num_vars)
         soln = problem.evaluate(x)
         return soln
+
+    def dtlz(self, x, num_vars, num_objs):
+        problem = get_problem(self.test_name, n_var=num_vars, n_obj=num_objs)
+ #       problem = mop.DTLZ2(n_var=num_vars, n_obj=num_objs)
+        soln = problem.evaluate(x)
+        return soln     
     
     def tsp(self, x):
         """
@@ -82,7 +98,7 @@ class optimization_test_functions(object):
             x = [int(y) for y in x]
         graph = [[0, 10, 15, 20], [10, 0, 35, 25], 
                  [15, 35, 0, 30], [20, 25, 30, 0]]
-                
+
         path = 0
         k = 0
         for j in x:

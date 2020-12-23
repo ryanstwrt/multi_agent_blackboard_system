@@ -1,12 +1,13 @@
 import src.h5Interface as h5i
 import src.reactorInterface as RI
+import pandas as pd
 
-def get_data(design_variables, objective_variables, database_name='SFR_DB', fixed_cycle_length=120, num_cycles=4, path=None):
+def get_data(design_variables, objective_variables, database_name='SFR_DB', fixed_cycle_length=120, num_cycles=4, path=None, output='list'):
     h5_interface = h5i.h5Interface()
     if path:
         h5_interface.read_h5('{}/{}.h5'.format(path,database_name))        
     else:
-        h5_interface.read_h5('/Users/ryanstewart/projects/sfr_database/{}.h5'.format(path,database_name))
+        h5_interface.read_h5('/Users/ryanstewart/projects/sfr_database/{}.h5'.format(database_name))
     ind_var_array = []
     obj_var_array = []
     data_dict = {}
@@ -53,8 +54,6 @@ def get_data(design_variables, objective_variables, database_name='SFR_DB', fixe
                     avg_bu = rx_.get_assembly_avg(cycle_length, 'burnup') * num_cycles
                     obj_vars.append(avg_bu)
                     data_dict[core_name]['dependent variables'][var] = avg_bu
-#                elif var == 'pu_content':
- #                   obj_vars.append(rx_.rx['independent variables']['pu_content'][0])
                 elif var == 'excess reactivity':
                     given_cycle = rx_.extrapolate_value('keff', 'time', 1.0)
                     rx_swing_1 = rx_.get_reactivity_swing(0.0, cycle_length) * 30 / cycle_length
@@ -67,4 +66,10 @@ def get_data(design_variables, objective_variables, database_name='SFR_DB', fixe
             obj_var_array.append(tuple(obj_vars))
         except:
             pass
-    return ind_var_array, obj_var_array, data_dict
+
+    if output == 'dict':
+        return data_dict
+    elif output == 'list':
+        return ind_var_array, obj_var_array
+    elif output == 'DataFrame':
+        return pd.DataFrame(ind_var_array, columns=design_variables), pd.DataFrame(obj_var_array, columns=objective_variables)

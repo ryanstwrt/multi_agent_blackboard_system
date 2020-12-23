@@ -129,12 +129,12 @@ class Controller(object):
             self.bb.controller()
             self.bb.send_executor()
 
-            
             if len(self.bb.get_kaar()) % self.progress_rate == 0 or self.bb.get_complete_status() == True:
                 self.bb.convergence_indicator()
                 self.bb.write_to_h5()
                 self.bb.diagnostics_replace_agent()
                 if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
+                    self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time.time()-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
                     self.bb.determine_complete()
                 if self.plot_progress:
                     self.bb.plot_progress()
@@ -143,7 +143,7 @@ class Controller(object):
                 agent_time = 0
             time.sleep(0.05)
         self.time.append(time.time())
-        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
+#        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
         self.bb.write_to_h5()        
                 
     def update_bb_trigger_values(self, trig_num):
