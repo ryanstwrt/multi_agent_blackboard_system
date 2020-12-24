@@ -690,3 +690,60 @@ def test_BenchmarkBB_init():
 
     ns.shutdown()       
     time.sleep(0.05) 
+
+import pickle
+with open('./sm_gpr.pkl', 'rb') as pickle_file:
+    sm_ga = pickle.load(pickle_file)
+    
+def test_agent_performing_action():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3()
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga) 
+    bb.connect_agent(karp.KaGlobal, 'ka_rp')
+    rp = ns.proxy('ka_rp')
+    rp.set_attr(debug_wait=True)
+    bb.set_attr(_ka_to_execute=('ka_rp', 2))
+    bb.send_executor()
+    assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == True
+    time.sleep(0.6)
+    assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == False
+    
+    ns.shutdown()       
+    time.sleep(0.05)  
+    
+def test_agent_shutdown():
+    # Testing shutdown of agents who have failed (ka_rp2), who are idel (ka_rp3), and are in the middle of an action (ka_rp).
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3()
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga) 
+    bb.connect_agent(karp.KaGlobal, 'ka_rp')
+    bb.connect_agent(karp.KaLocal, 'ka_rp2')
+    bb.connect_agent(karp.KaGlobal, 'ka_rp3')
+
+    rp2 = ns.proxy('ka_rp2')
+    rp = ns.proxy('ka_rp')
+    bb.send('executor_{}'.format('ka_rp2'), False)
+    
+    rp.set_attr(debug_wait=True)
+    rp.set_attr(debug_wait_time=0.15)
+    bb.set_attr(_ka_to_execute=('ka_rp', 2))
+    bb.send_executor()
+    assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == True
+    while len(bb.get_attr('agent_addrs')) > 0:
+        bb.send_shutdown()
+    time.sleep(0.15)
+    assert ns.agents() == ['blackboard']    
+    ns.shutdown()       
+    time.sleep(0.05)  

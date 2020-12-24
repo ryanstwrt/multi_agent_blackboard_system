@@ -42,6 +42,8 @@ class KaRp(ka.KaBase):
         self.agent_time = 0
         self._trigger_event = 0
         self.learning_factor = 0.5
+        self.debug_wait = False
+        self.debug_wait_time = 0.5
         
     def set_random_seed(self, seed=None):
         """
@@ -139,6 +141,9 @@ class KaRp(ka.KaBase):
         message : str
             Push-pull message from blackboard, contains the current state of all abstract levels on BB
         """
+        if self.debug_wait:
+            time.sleep(self.debug_wait_time)
+        
         self.clear_entry()
         t = time.time()
         self._lvl_data = {}
@@ -350,7 +355,6 @@ class KaLHC(KaRp):
             Hcandidate = self._lhsclassic(n, samples)
             R = np.corrcoef(Hcandidate)
             if np.max(np.abs(R[R!=1]))<mincorr:
-                print('Made it here')
                 mincorr = np.max(np.abs(R-np.eye(R.shape[0])))
                 self.log_debug('new candidate solution found with max,abs corrcoef = {}'.format(mincorr))
                 H = Hcandidate.copy()
@@ -814,7 +818,6 @@ class KaLocalGA(KaLocal):
         num_children = 0
                 
         while num_children < self.offspring_per_generation:
-            print(num_children)
             if len(population) < 2:
                 break
             design1 = population.pop(random.choice(range(len(population))))

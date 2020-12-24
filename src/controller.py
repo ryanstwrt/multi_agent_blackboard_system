@@ -110,6 +110,9 @@ class Controller(object):
                 self.bb.write_to_h5()
                 if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
                     self.bb.determine_complete()
+                    if self.bb.get_complete_status():
+                        while len(self.bb.get_attr('agent_addrs')) > 0:
+                            self.bb.send_shutdown()
                 if self.plot_progress:
                     self.bb.plot_progress()
             else:
@@ -151,8 +154,10 @@ class Controller(object):
                 self.bb.write_to_h5()
                 self.bb.diagnostics_replace_agent()
                 if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
-                    self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time.time()-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
                     self.bb.determine_complete()
+                    if self.bb.get_complete_status():
+                        while len(self.bb.get_attr('agent_addrs')) > 0:
+                            self.bb.send_shutdown()
                 if self.plot_progress:
                     self.bb.plot_progress()
             else:
@@ -160,7 +165,7 @@ class Controller(object):
                 agent_time = 0
             time.sleep(0.05)
         self.time.append(time.time())
-#        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
+        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
         self.bb.write_to_h5()        
                 
     def update_bb_trigger_values(self, trig_num):
@@ -233,9 +238,6 @@ class BenchmarkController(Controller):
             self.bb.connect_agent(ka_type, ka_name, attr=ka_attributes)
             
 
-        
-        
-        
 class Multi_Tiered_Controller(Controller):
     """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
     
@@ -342,6 +344,9 @@ class Multi_Tiered_Controller(Controller):
                 bb.write_to_h5()
                 if len(bb.get_hv_list()) > 2 * convergence_interval:
                     bb.determine_complete()
+                    if bb.get_complete_status():
+                        while len(bb.get_attr('agent_addrs')) > 0:
+                            bb.send_shutdown()
                 if bb_attr['plot']:
                     bb.plot_progress()
             else:

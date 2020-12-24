@@ -184,12 +184,29 @@ class BbOpt(blackboard.Blackboard):
         # Determine if the problem is over our trigger value limit
         if len(self._kaar) >= self.total_tvs and self._complete == False:
             self.log_info('Problem is over total allowable TVs, shutting agents down')
-            for agent_name, connections in self.agent_addrs.items():
-                # If statement is for inter_BB agent who only have a write function assocaiated with the BB
-                if 'shutdown' in list(connections.keys()):
-                    self.send(connections['shutdown'][0], "shutdown")
-            self._complete = True
+            self._complete = True        
         
+    def send_shutdown(self):
+        """
+        Tell each agent to shutdown
+        """
+        import copy
+        agent_addrs = copy.copy(self.agent_addrs)
+        i = 0
+        for agent_name, connections in self.agent_addrs.items():
+        # If statement is for inter_BB agent who only have a write function assocaiated with the BB
+            if 'shutdown' not in list(connections.keys()):
+                agent_addrs.pop(agent_name)
+            elif agent_name in agent_addrs.keys():  
+                if not self.diagnostics_agent_present(agent_name):
+                    agent_addrs.pop(agent_name)
+                elif connections['performing action']:
+                    pass
+                else:
+                    self.send(connections['shutdown'][0], "shutdown")
+                    agent_addrs.pop(agent_name)
+                
+        self.agent_addrs = agent_addrs
         
     def determine_complete_dci_hvi(self):
         """
@@ -260,11 +277,7 @@ class BbOpt(blackboard.Blackboard):
 
         if hv_indicator < self.convergence_rate:
             self.log_info('Problem complete, shutting agents down')
-            for agent_name, connections in self.agent_addrs.items():
-                # If statement is for inter_BB agent who only have a write function assocaiated with the BB
-                if 'shutdown' in list(connections.keys()):
-                    self.send(connections['shutdown'][0], "shutdown")
-            self._complete = True
+            self._complete = True        
 
     def hv_indicator(self):
         """
@@ -381,12 +394,14 @@ class BbOpt(blackboard.Blackboard):
         """
         self._new_entry = True
         self.log_debug('Logging agent {} complete.'.format(message[0]))
+        self.agent_addrs[message[0]].update({'performing action':False})
         self.meta_data_entry(message[0], message[1], message[2])
         
     def send_executor(self):
         """Send an executor message to the triggered KA."""
         if self._ka_to_execute != (None, 0):
             self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], round(self._ka_to_execute[1],2), self._trigger_event))
+            self.agent_addrs[self._ka_to_execute[0]].update({'performing action':True})
             self._new_entry = False
             self.send('executor_{}'.format(self._ka_to_execute[0]), (self._trigger_event,self.abstract_lvls))
         else:

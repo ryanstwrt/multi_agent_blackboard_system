@@ -4,6 +4,7 @@ from osbrain import run_agent
 import numpy as np
 import src.blackboard as blackboard
 import src.ka as ka
+import src.ka_rp as karp
 import time
 import os
 import h5py
@@ -616,7 +617,6 @@ def test_load_h5():
     bb_h5_bb = bb_h5.get_attr('abstract_lvls')
     bb_bb = bb.get_attr('abstract_lvls')
 
-    print(bb_h5_bb)
     assert bb_h5_bb == bb_bb
 
     bb.update_abstract_lvl(2, 'core_3', {'entry 1': 1, 'entry 2': 1.2})
@@ -638,7 +638,7 @@ def test_load_h5():
 
 def test_h5_group_writer():
     """
-    Function cannot current be isolated to test, cannot pickle an H5 file to send to teh agent
+    Function cannot current be isolated to test, cannot pickle an H5 file to send to the agent
     """
     pass
 #    ns = run_nameserver()
@@ -677,4 +677,4 @@ def test_connect_sub_blackboard():
     assert sub_bb.get_attr('archive_name') == 'sub_bb.h5'
     
     ns.shutdown()       
-    time.sleep(0.05)
+    time.sleep(0.05)  

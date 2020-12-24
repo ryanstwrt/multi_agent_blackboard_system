@@ -145,6 +145,7 @@ class Blackboard(Agent):
         ka.connect_complete()
         self.connect_ka_specific(agent_alias, attr=attr)
         self.agent_addrs[agent_alias].update({'class': agent_type})
+        self.agent_addrs[agent_alias].update({'performing action':False})
         self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
 
     def connect_complete(self, message):
@@ -274,6 +275,7 @@ class Blackboard(Agent):
                 return True
             else:
                 ka.kill()
+                self.log_info('Agent {} found non-responsive, killing agent.'.format(agent))
                 return False
         except:
             return False
@@ -405,6 +407,7 @@ class Blackboard(Agent):
         """
         self._new_entry = True
         self.log_debug('Logging agent {} complete.'.format(agent_name))
+        self.agent_addrs[agent_name].update({'performing action':False})
         
     def handler_trigger_response(self, message):
         """
@@ -569,6 +572,7 @@ class Blackboard(Agent):
         if self._ka_to_execute != (None, 0):
             self.log_info('Selecting agent {} (TV: {}) to execute (TE: {})'.format(self._ka_to_execute[0], self._ka_to_execute[1], self._trigger_event))
             self.send('executor_{}'.format(self._ka_to_execute[0]), self._ka_to_execute)
+            self.agent_addrs[self._ka_to_execute[0]].update({'performing action':True})
         else:
             self.log_info('No KA to execute, waiting to sends trigger again.')
             
@@ -671,7 +675,7 @@ class Blackboard(Agent):
         Each abstract level will then have a number of subdirectories, based on what results are written to them.
         """
         if not os.path.isfile(self.archive_name):
-  #          self.log_info('Creating New Database: {}'.format(self.archive_name))
+            self.log_debug('Creating New Database: {}'.format(self.archive_name))
             h5 = h5py.File(self.archive_name, 'w')
             for level, entry in self.abstract_lvls.items():
                 h5.create_group(level)
@@ -680,7 +684,7 @@ class Blackboard(Agent):
                         h5[level].create_group(panel_name)
             h5.close()
                 
- #       self.log_info("Writing blackboard to archive")
+        self.log_debug("Writing blackboard to archive")
                     
         h5 = h5py.File(self.archive_name, 'r+')
         self.h5_delete_entries(h5)
@@ -696,7 +700,7 @@ class Blackboard(Agent):
                             self.h5_group_writer(panel_group, panel_data_name, panel_data)               
                 elif name not in group_level.keys():
                     self.h5_group_writer(group_level, name, data)
-  #      self.log_info("Finished writing to archive")
+        self.log_debug("Finished writing to archive")
         h5.close()
     
     def h5_delete_entries(self, h5):
