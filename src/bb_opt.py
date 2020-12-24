@@ -129,6 +129,9 @@ class BbOpt(blackboard.Blackboard):
         
         ka.set_attr(_objectives=self.objectives)
         ka.set_attr(_constraints=self.constraints)
+        for k,v in attr.items():
+            ka.set_attr(**{k:v})
+        
         if 'search' in agent_class:
             ka.set_random_seed(seed=self.random_seed)
             ka.set_attr(_sm=self._sm)

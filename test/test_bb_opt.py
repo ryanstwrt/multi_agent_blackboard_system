@@ -747,3 +747,22 @@ def test_agent_shutdown():
     assert ns.agents() == ['blackboard']    
     ns.shutdown()       
     time.sleep(0.05)  
+
+    
+def test_pass_agent_dict():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3()
+    bb.set_attr(sm_type='gpr')
+    bb.set_attr(_sm=sm_ga) 
+    bb.connect_agent(karp.KaLocal, 'ka_rp', attr={'perturbation_size' : 0.25})
+
+    rp = ns.proxy('ka_rp')    
+    assert rp.get_attr('perturbation_size') == 0.25
+
+    ns.shutdown()       
+    time.sleep(0.05)  
