@@ -149,7 +149,8 @@ class BbOpt(blackboard.Blackboard):
                 ka.set_attr(_ideal_point=self._ideal_point)
             elif 'inter' in agent_class:
                 ka.set_attr(_design_variables=self.design_variables)
-                ka.connect_bb_to_write(attr[ka.get_attr('name')]['bb'])
+                print(attr)
+                ka.connect_bb_to_write(attr['bb'])
                 
         else:
             self.log_info('Agent type ({}) does not match a known agent type of BbOpt, no specific KA attributes'.format(agent))

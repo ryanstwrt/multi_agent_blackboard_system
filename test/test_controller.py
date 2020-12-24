@@ -23,10 +23,10 @@ def test_controller_init():
     time.sleep(0.05)
     
 def test_controller_init_sfr_opt():
-    kas = {'ka_rp_explore': karp.KaGlobal, 
-           'ka_rp_exploit': karp.KaLocal,
-           'ka_br_lvl3': kabr.KaBr_lvl3,
-           'ka_br_lvl2': kabr.KaBr_lvl2}
+    kas = {'ka_rp_explore': {'type': karp.KaGlobal, 'attr' : {}},
+           'ka_rp_exploit': {'type': karp.KaLocal, 'attr' : {'perturbation_size' : 0.25}},
+           'ka_br_lvl3': {'type': kabr.KaBr_lvl3, 'attr' : {}},
+           'ka_br_lvl2': {'type': kabr.KaBr_lvl2, 'attr' : {}}}
     obj = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
     dv = {'height':     {'ll': 60.0, 'ul': 80.0, 'variable type': float},
@@ -59,7 +59,6 @@ def test_controller_init_sfr_opt():
                                           agent_wait_time=10,
                                           plot_progress = True,
                                           total_tvs=100,
-                                          
                                           surrogate_model={'sm_type'     : 'gpr', 
                                                            'pickle file' : './sm_gpr.pkl'})
     with open('./sm_gpr.pkl', 'rb') as pickle_file:
@@ -80,17 +79,19 @@ def test_controller_init_sfr_opt():
     assert bb.get_attr('objectives') == obj
     assert bb.get_attr('design_variables') == dv
     assert bb.get_attr('constraints') == const
-
+    ps = bb.get_attr('_proxy_server')
+    ka = ps.proxy('ka_rp_exploit')
+    assert ka.get_attr('perturbation_size') == 0.25
     
     bb_controller._ns.shutdown()
     time.sleep(0.05)
     
 def test_run_single_agent_bb():
-    kas = {'ka_rp_explore': karp.KaGlobal, 
-           'ka_rp_exploit': karp.KaLocal,
-           'ka_br_lvl3': kabr.KaBr_lvl3,
-           'ka_br_lvl2': kabr.KaBr_lvl2,
-           'ka_br_lvl1': kabr.KaBr_lvl1,}
+    kas = {'ka_rp_explore': {'type': karp.KaGlobal},
+           'ka_rp_exploit': {'type': karp.KaLocal},
+           'ka_br_lvl3': {'type': kabr.KaBr_lvl3},
+           'ka_br_lvl2': {'type': kabr.KaBr_lvl2},
+           'ka_br_lvl1': {'type': kabr.KaBr_lvl1}}
     objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                   'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
                   'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}
@@ -142,11 +143,11 @@ def test_run_single_agent_bb():
     time.sleep(0.05)
 
 def test_run_multi_agent_bb():
-    kas = {'ka_rp_explore': karp.KaGlobal, 
-           'ka_rp_exploit': karp.KaLocal,
-           'ka_br_lvl3': kabr.KaBr_lvl3,
-           'ka_br_lvl2': kabr.KaBr_lvl2,
-           'ka_br_lvl1': kabr.KaBr_lvl1,}
+    kas = {'ka_rp_explore': {'type': karp.KaGlobal},
+           'ka_rp_exploit': {'type': karp.KaLocal},
+           'ka_br_lvl3': {'type': kabr.KaBr_lvl3},
+           'ka_br_lvl2': {'type': kabr.KaBr_lvl2},
+           'ka_br_lvl1': {'type': kabr.KaBr_lvl1}}
     objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
                            'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}   
@@ -205,13 +206,13 @@ def test_BenchmarkController():
             'f2': {'ll':0, 'ul':4, 'goal':'lt', 'variable type': float}}
     dvs =  {'x1':  {'ll':-10, 'ul':10, 'variable type': float}}
     const = {}
+    kas = {'ka_rp_explore': {'type': karp.KaGlobal},
+           'ka_rp_pert': {'type': karp.KaLocal},
+           'ka_rp_hc':      {'type': karp.KaLocalHC, 'attr' : {'step_limit':15}},
+           'ka_br_lvl3':    {'type': kabr.KaBr_lvl3},
+           'ka_br_lvl2':    {'type': kabr.KaBr_lvl2},
+           'ka_br_lvl1':    {'type': kabr.KaBr_lvl1, 'attr' : {'total_pf_size' : 100, 'pareto_sorter': 'dci', 'dci_div' : {'f1': 80, 'f2': 80}}}}
 
-    kas = {'ka_rp_explore': karp.KaGlobal, 
-           'ka_rp_hc': karp.KaLocalHC,
-           'ka_rp_pert': karp.KaLocal,
-           'ka_br_lvl3': kabr.KaBr_lvl3,
-           'ka_br_lvl2': kabr.KaBr_lvl2,
-           'ka_br_lvl1': kabr.KaBr_lvl1}
     try:
         bb_controller = controller.BenchmarkController(bb_name=model, 
                                       bb_type=bb_opt.BenchmarkBbOpt, 
@@ -244,14 +245,6 @@ def test_BenchmarkController():
                                       pf_size=10,
                                       random_seed=10987)
     bb = bb_controller.bb
-    ka = bb.get_attr('_proxy_server')
-    ka2 = ka.proxy('ka_rp_hc')
-    ka2.set_attr(step_limit=15)
-
-    br1 = ka.proxy('ka_br_lvl1')
-    br1.set_attr(total_pf_size = 100)
-    br1.set_attr(pareto_sorter='dci')
-    br1.set_attr(dci_div={'f1': 80, 'f2': 80})
 
     bb_controller.run_single_agent_bb()    
     assert bb_controller.bb.get_attr('_complete') == True
@@ -287,12 +280,12 @@ def test_MTC_initialize_bb():
         mtc = controller.Multi_Tiered_Controller()
     except OSError:
         mtc = controller.Multi_Tiered_Controller()
-    kas = {'mka_rp_hc': karp.KaLocalHC,
-           'mka_rp_pert': karp.KaLocal,
-           'mka_rp_ga': karp.KaLocalGA,
-           'mka_br_lvl3': kabr.KaBr_lvl3,
-           'mka_br_lvl2': kabr.KaBr_lvl2,
-           'mka_br_lvl1': kabr.KaBr_lvl1}
+    kas = {'mka_rp_hc': {'type': karp.KaLocalHC},
+           'mka_rp_pert': {'type': karp.KaLocal},
+           'mka_rp_ga': {'type': karp.KaLocalGA},
+           'mka_br_lvl3': {'type': kabr.KaBr_lvl3},
+           'mka_br_lvl2': {'type': kabr.KaBr_lvl2},
+           'mka_br_lvl1': {'type': kabr.KaBr_lvl1}}
     
     mtc.initialize_blackboard('master_bb', bb_name='bb_master', 
                               bb_type=bb_opt.MasterBbOpt, 
@@ -313,15 +306,15 @@ def test_MTC_initialize_bb():
                             'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                             'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
     
-    kas = {'ska_rp_mc': karp.KaGlobal, 
-           'ska_rp_hc': karp.KaLocalHC,
-           'ska_rp_lhc': karp.KaLHC,
-           'ska_rp_pert': karp.KaLocal,
-           'ska_rp_ga': karp.KaLocalGA,
-           'ska_br_lvl3': kabr.KaBr_lvl3,
-           'ska_br_lvl2': kabr.KaBr_lvl2,
-           'ska_br_lvl1': kabr.KaBr_lvl1,
-           'ska_br_inter': kabr.KaBr_interBB}
+    kas = {'ska_rp_mc': {'type': karp.KaGlobal}, 
+           'ska_rp_hc': {'type': karp.KaLocalHC},
+           'ska_rp_lhc': {'type': karp.KaLHC},
+           'ska_rp_pert': {'type': karp.KaLocal},
+           'ska_rp_ga': {'type': karp.KaLocalGA},
+           'ska_br_lvl3': {'type': kabr.KaBr_lvl3},
+           'ska_br_lvl2': {'type': kabr.KaBr_lvl2},
+           'ska_br_lvl1': {'type': kabr.KaBr_lvl1},
+           'ska_br_inter': {'type': kabr.KaBr_interBB, 'attr':{'bb': master_bb}}}
         
     mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', 
                               bb_type=bb_opt.SubBbOpt, 
@@ -350,19 +343,19 @@ def test_MTC_run_sub_bb():
         mtc = controller.Multi_Tiered_Controller()
     except OSError:
         mtc = controller.Multi_Tiered_Controller()        
-    kas = {'mka_rp_hc': karp.KaLocalHC,
-           'mka_rp_pert': karp.KaLocal,
-           'mka_rp_ga': karp.KaLocalGA,
-           'mka_br_lvl3': kabr.KaBr_lvl3,
-           'mka_br_lvl2': kabr.KaBr_lvl2,
-           'mka_br_lvl1': kabr.KaBr_lvl1}
+    kas = {'mka_rp_hc': {'type': karp.KaLocalHC},
+           'mka_rp_pert': {'type': karp.KaLocal},
+           'mka_rp_ga': {'type': karp.KaLocalGA},
+           'mka_br_lvl3': {'type': kabr.KaBr_lvl3},
+           'mka_br_lvl2': {'type': kabr.KaBr_lvl2},
+           'mka_br_lvl1': {'type': kabr.KaBr_lvl1}}
     
     mtc.initialize_blackboard('master_bb', bb_name='bb_master', 
                                            bb_type=bb_opt.MasterBbOpt, 
                                            ka=kas, 
                                            archive='bb_master', 
                                            total_tvs=10,
-                                           skipped_tvs=1,
+                                           skipped_tvs=0,
                                            convergence_type='hvi',
                                            convergence_rate=0.04,
                                            convergence_interval=5,
@@ -370,21 +363,20 @@ def test_MTC_run_sub_bb():
                                            random_seed=1)
     
     master_bb = mtc.master_bb
-    master_bb.set_attr(skipped_tvs=0)
-    kas = {'ska_rp_mc': karp.KaGlobal, 
-           'ska_rp_hc': karp.KaLocalHC,
-           'ska_rp_pert': karp.KaLocal,
-           'ska_br_lvl3': kabr.KaBr_lvl3,
-           'ska_br_lvl2': kabr.KaBr_lvl2,
-           'ska_br_lvl1': kabr.KaBr_lvl1,
-           'ska_br_inter': kabr.KaBr_interBB}
+    kas = {'ska_rp_mc': {'type': karp.KaGlobal}, 
+           'ska_rp_hc': {'type': karp.KaLocalHC},
+           'ska_rp_pert': {'type': karp.KaLocal},
+           'ska_br_lvl3': {'type': kabr.KaBr_lvl3},
+           'ska_br_lvl2': {'type': kabr.KaBr_lvl2},
+           'ska_br_lvl1': {'type': kabr.KaBr_lvl1},
+           'ska_br_inter': {'type': kabr.KaBr_interBB, 'attr':{'bb': master_bb}}}
         
     mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', 
                               bb_type=bb_opt.SubBbOpt, 
                               ka=kas,  
                               archive='bb_sub', 
                               total_tvs=50,
-                              skipped_tvs=1,
+                              skipped_tvs=0,
                               convergence_type='hvi',
                               convergence_rate=0.04,
                               convergence_interval=8,
@@ -392,8 +384,6 @@ def test_MTC_run_sub_bb():
                               random_seed=1)
     
     sub_bb = mtc.sub_bb
-    sub_bb.set_attr(skipped_tvs=0)
-    
     mtc.run_sub_bb(sub_bb)
 
     assert list(sub_bb.get_blackboard()['level 1']) == ['core_[73.61973,58.3461,0.55869]', 'core_[70.11403,61.26341,0.55869]', 'core_[70.11403,58.3461,0.53076]', 'core_[69.41289,58.3461,0.55869]', 'core_[69.41289,64.18071,0.17533]', 'core_[77.12543,64.18071,0.11504]', 'core_[77.12543,64.18071,0.10354]', 'core_[77.12543,64.18071,0.10469]', 'core_[70.18414,69.95697,0.10469]', 'core_[77.12543,64.29046,0.11317]', 'core_[71.50299,69.95697,0.11317]', 'core_[77.12543,64.85711,0.11317]', 'core_[77.12543,65.36709,0.10574]', 'core_[72.06523,69.95697,0.10574]', 'core_[77.12543,65.82608,0.10574]', 'core_[77.12543,65.82608,0.11198]', 'core_[77.12543,66.23917,0.11198]', 'core_[73.02667,69.95697,0.11198]', 'core_[77.12543,66.61095,0.10662]', 'core_[77.12543,66.94555,0.11121]', 'core_[77.12543,67.24669,0.11121]', 'core_[77.12543,67.51772,0.10733]', 'core_[79.81463,69.95697,0.10733]', 'core_[79.81463,69.95697,0.10359]', 'core_[79.81463,67.51772,0.10733]', 'core_[79.81463,69.95697,0.11107]', 'core_[79.81463,69.95697,0.1072]', 'core_[79.81463,67.51772,0.11107]', 'core_[79.81463,69.95697,0.11494]', 'core_[79.81463,69.95697,0.11093]', 'core_[79.81463,67.51772,0.11494]', 'core_[79.81463,69.95697,0.11133]', 'core_[79.81463,67.76165,0.11494]', 'core_[79.81463,67.98118,0.11494]', 'core_[79.81463,69.95697,0.11819]', 'core_[79.81463,69.95697,0.11169]', 'core_[79.81463,69.95697,0.11786]', 'core_[79.81463,68.17876,0.11494]', 'core_[79.81463,69.95697,0.11202]', 'core_[79.81463,69.95697,0.11757]', 'core_[79.81463,68.35658,0.11494]', 'core_[79.81463,69.95697,0.11231]', 'core_[79.81463,69.95697,0.11257]', 'core_[79.81463,68.51662,0.11494]', 'core_[79.81463,69.95697,0.11731]', 'core_[79.81463,69.95697,0.11707]', 'core_[79.81463,69.95697,0.11281]', 'core_[79.81463,68.66065,0.11494]', 'core_[79.81463,69.95697,0.11302]', 'core_[79.81463,68.79028,0.11494]', 'core_[79.81463,69.95697,0.11686]', 'core_[79.81463,69.95697,0.11667]', 'core_[79.81463,68.90695,0.11494]', 'core_[79.81463,69.95697,0.11321]', 'core_[79.81463,69.95697,0.11649]', 'core_[79.81463,69.01196,0.11494]', 'core_[79.81463,69.95697,0.11339]', 'core_[79.81463,69.10646,0.11494]', 'core_[79.81463,69.95697,0.11634]', 'core_[79.81463,69.95697,0.11354]', 'core_[79.81463,69.95697,0.1162]', 'core_[79.81463,69.95697,0.11368]', 'core_[79.81463,69.19151,0.11494]', 'core_[79.81463,69.95697,0.11607]', 'core_[79.81463,69.26805,0.11494]', 'core_[79.81463,69.95697,0.11381]', 'core_[79.81463,69.95697,0.11596]', 'core_[79.81463,69.95697,0.11392]', 'core_[79.81463,69.33695,0.11494]', 'core_[79.81463,69.95697,0.11586]', 'core_[79.81463,69.95697,0.11402]', 'core_[79.81463,69.39895,0.11494]', 'core_[79.81463,69.95697,0.11411]', 'core_[79.81463,69.45475,0.11494]', 'core_[79.81463,69.95697,0.11577]', 'core_[79.81463,69.95697,0.11568]', 'core_[79.81463,69.95697,0.1142]', 'core_[79.81463,69.50497,0.11494]', 'core_[79.81463,69.95697,0.11561]', 'core_[79.81463,69.55017,0.11494]', 'core_[79.81463,69.95697,0.11427]', 'core_[79.81463,69.59085,0.11494]', 'core_[79.81463,69.95697,0.11434]', 'core_[79.81463,69.95697,0.11554]', 'core_[79.81463,69.62746,0.11494]', 'core_[79.81463,69.95697,0.1144]', 'core_[79.81463,69.95697,0.11548]', 'core_[79.81463,69.95697,0.11543]', 'core_[79.81463,69.66041,0.11543]', 'core_[79.47629,69.95697,0.11543]', 'core_[79.81463,69.95697,0.11592]', 'core_[79.81463,69.69007,0.11543]', 'core_[79.51012,69.95697,0.11543]', 'core_[79.81463,69.95697,0.11499]', 'core_[79.81463,69.95697,0.11587]', 'core_[79.81463,69.95697,0.11503]', 'core_[79.81463,69.95697,0.11542]', 'core_[79.81463,69.71676,0.11503]', 'core_[79.54057,69.95697,0.11503]', 'core_[79.81463,69.95697,0.11464]', 'core_[79.56798,69.95697,0.11503]', 'core_[79.81463,69.95697,0.11539]', 'core_[79.56798,69.95697,0.11539]', 'core_[79.81463,69.95697,0.11575]', 'core_[79.81463,69.95697,0.11571]', 'core_[79.81463,69.95697,0.11507]', 'core_[79.81463,69.7624,0.11507]', 'core_[79.81463,69.95697,0.11475]', 'core_[79.59264,69.95697,0.11507]', 'core_[79.81463,69.78186,0.11507]', 'core_[79.61484,69.95697,0.11507]', 'core_[79.81463,69.95697,0.11478]', 'core_[79.81463,69.95697,0.11536]', 'core_[79.61484,69.95697,0.11536]', 'core_[79.81463,69.95697,0.11565]', 'core_[79.63482,69.95697,0.11536]', 'core_[79.81463,69.95697,0.1151]', 'core_[79.81463,69.95697,0.11562]', 'core_[79.99444,69.95697,0.11536]', 'core_[79.99444,69.95697,0.11562]', 'core_[79.99444,69.95697,0.11588]', 'core_[79.99444,69.81513,0.11562]', 'core_[79.83225,69.95697,0.11562]', 'core_[79.99444,69.95697,0.11585]', 'core_[79.99444,69.95697,0.11539]', 'core_[79.99444,69.95697,0.11583]', 'core_[79.99444,69.95697,0.11541]', 'core_[79.99444,69.82931,0.11541]', 'core_[79.99444,69.95697,0.1152]', 'core_[79.84847,69.95697,0.11541]', 'core_[79.99444,69.84208,0.11541]', 'core_[79.99444,69.95697,0.1156]', 'core_[79.86306,69.95697,0.11541]', 'core_[79.99444,69.95697,0.11522]', 'core_[79.99444,69.95697,0.11524]', 'core_[79.8762,69.95697,0.11541]', 'core_[79.99444,69.95697,0.11558]', 'core_[79.99444,69.85357,0.11541]', 'core_[79.88803,69.95697,0.11541]', 'core_[79.99444,69.86391,0.11541]', 'core_[79.99444,69.95697,0.11526]', 'core_[79.99444,69.95697,0.11556]', 'core_[79.99444,69.95697,0.11527]', 'core_[79.99444,69.95697,0.11555]', 'core_[79.99444,69.87321,0.11541]', 'core_[79.89867,69.95697,0.11541]', 'core_[79.90824,69.95697,0.11541]', 'core_[79.99444,69.95697,0.11553]', 'core_[79.99444,69.95697,0.11529]', 'core_[79.99444,69.88159,0.11541]']
@@ -414,12 +404,12 @@ def test_MTC_run_master_bb():
     except OSError:
         mtc = controller.Multi_Tiered_Controller()
 
-    kas = {'mka_rp_mc': karp.KaGlobal,
-           'mka_rp_hc': karp.KaLocalHC,
-           'mka_rp_pert': karp.KaLocal,
-           'mka_br_lvl3': kabr.KaBr_lvl3,
-           'mka_br_lvl2': kabr.KaBr_lvl2,
-           'mka_br_lvl1': kabr.KaBr_lvl1}
+    kas = {'mka_rp_mc': {'type': karp.KaGlobal},
+          'mka_rp_hc': {'type': karp.KaLocalHC},
+          'mka_rp_pert': {'type': karp.KaLocal},
+          'mka_br_lvl3': {'type': kabr.KaBr_lvl3},
+          'mka_br_lvl2': {'type': kabr.KaBr_lvl2},
+          'mka_br_lvl1': {'type': kabr.KaBr_lvl1}}
     
     mtc.initialize_blackboard('master_bb', bb_name='bb_master', 
                               bb_type=bb_opt.MasterBbOpt, 
@@ -435,13 +425,13 @@ def test_MTC_run_master_bb():
     
     master_bb = mtc.master_bb
     master_bb.set_attr(skipped_tvs=0)
-    kas = {'ska_rp_mc': karp.KaGlobal, 
-           'ska_rp_hc': karp.KaLocalHC,
-           'ska_rp_pert': karp.KaLocal,
-           'ska_br_lvl3': kabr.KaBr_lvl3,
-           'ska_br_lvl2': kabr.KaBr_lvl2,
-           'ska_br_lvl1': kabr.KaBr_lvl1,
-           'ska_br_inter': kabr.KaBr_interBB}
+    kas = {'ska_rp_mc': {'type': karp.KaGlobal}, 
+           'ska_rp_hc': {'type': karp.KaLocalHC},
+           'ska_rp_pert': {'type': karp.KaLocal},
+           'ska_br_lvl3': {'type': kabr.KaBr_lvl3},
+           'ska_br_lvl2': {'type': kabr.KaBr_lvl2},
+           'ska_br_lvl1': {'type': kabr.KaBr_lvl1},
+           'ska_br_inter': {'type': kabr.KaBr_interBB, 'attr':{'bb': master_bb}}}
         
     mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', 
                               bb_type=bb_opt.SubBbOpt, 

@@ -70,9 +70,9 @@ class Controller(object):
             else:
                 self.bb.generate_sm()
         
-        ka_attributes = {}
-        for ka_name, ka_type in ka.items():
-            self.bb.connect_agent(ka_type, ka_name, attr=ka_attributes)
+        for ka_name, ka_data in ka.items():
+            attr = ka_data['attr'] if 'attr' in ka_data.keys() else {}
+            self.bb.connect_agent(ka_data['type'], ka_name, attr=attr)
             
     def initialize_blackboard(self):
         self.bb.set_attr(total_tvs=total_tvs)
@@ -233,9 +233,9 @@ class BenchmarkController(Controller):
         self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
         self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))
         
-        ka_attributes = {}
-        for ka_name, ka_type in ka.items():
-            self.bb.connect_agent(ka_type, ka_name, attr=ka_attributes)
+        for ka_name, ka_data in ka.items():
+            attr = ka_data['attr'] if 'attr' in ka_data.keys() else {}
+            self.bb.connect_agent(ka_data['type'], ka_name, attr=attr)
             
 
 class Multi_Tiered_Controller(Controller):
@@ -255,7 +255,6 @@ class Multi_Tiered_Controller(Controller):
                                     bb_name='bb', 
                                     bb_type=None, 
                                     ka={}, 
-                                    ka_attr={},
                                     objectives=None, 
                                     design_variables=None,
                                     constraints=None,
@@ -298,12 +297,10 @@ class Multi_Tiered_Controller(Controller):
             bb.set_attr(_sm=sm)            
         else:
             bb.generate_sm()
-        
-        if kabr.KaBr_interBB in [x for x in ka.values()]:
-            ka_attr.update({list(ka.keys())[list(ka.values()).index(kabr.KaBr_interBB)] : {'bb': self.master_bb}})
-            
-        for ka_name, ka_type in ka.items():
-            bb.connect_agent(ka_type, ka_name, attr=ka_attr)
+ 
+        for ka_name, ka_data in ka.items():
+            attr = ka_data['attr'] if 'attr' in ka_data.keys() else {}
+            bb.connect_agent(ka_data['type'], ka_name, attr=attr)
                 
             
     def run_sub_bb(self, bb):

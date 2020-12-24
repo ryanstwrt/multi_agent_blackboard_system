@@ -1284,7 +1284,7 @@ def test_kabr_interBB_connect_ka():
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
     bb.initialize_abstract_level_3()
-    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'ka_br_inter': {'bb': bb_master}})    
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'bb': bb_master})    
   
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')    
@@ -1319,7 +1319,7 @@ def test_kabr_interBB_write_to_bb():
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
     bb.initialize_abstract_level_3()
-    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'ka_br_inter': {'bb': bb_master}})    
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'bb': bb_master})    
   
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')    
@@ -1352,7 +1352,7 @@ def test_kabr_interBB_format_entry():
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
     bb.initialize_abstract_level_3()
-    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'ka_br_inter': {'bb': bb_master}})    
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'bb': bb_master})    
   
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')   
@@ -1383,7 +1383,7 @@ def test_kabr_interBB_handler_publish():
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
     bb.initialize_abstract_level_3()
-    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'ka_br_inter': {'bb': bb_master}})    
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'bb': bb_master})    
   
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')   
@@ -1415,7 +1415,7 @@ def test_kabr_interBB_handler_executor():
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
     bb.initialize_abstract_level_3()
-    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'ka_br_inter': {'bb': bb_master}})    
+    bb.connect_agent(ka_br.KaBr_interBB, 'ka_br_inter', attr={'bb': bb_master})    
   
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')   
