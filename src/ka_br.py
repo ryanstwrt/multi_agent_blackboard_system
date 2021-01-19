@@ -90,7 +90,7 @@ class KaBr(ka.KaBase):
         
         self._trigger_val = 0
         if self.read_bb_lvl():
-            self._trigger_val = self._num_entries / self._num_allowed_entries * self._trigger_val_base if self._num_entries > self._num_allowed_entries else self._trigger_val_base
+            self._trigger_val = self._num_entries / self._num_allowed_entries + self._trigger_val_base if self._num_entries > self._num_allowed_entries else self._trigger_val_base
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
@@ -138,7 +138,9 @@ class KaBr(ka.KaBase):
         elif pareto_optimal > 0:
             return 'weak'
         else:
-            return None
+            #Change this to 'domianted'
+            return 
+        
                 
     def get_objective_value(self, core, obj):
         objective_value = self._lvl_data[core]['objective functions'][obj]

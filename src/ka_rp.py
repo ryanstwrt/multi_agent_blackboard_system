@@ -67,7 +67,9 @@ class KaRp(ka.KaBase):
         This process is performed via an interpolator or a surrogate model.
         Sets the variables for the _entry and _entry_name
         """
-#        time.sleep(2)
+        if self.debug_wait:
+            time.sleep(self.debug_wait_time)
+            
         self.log_debug('Determining core parameters based on SM')
         self._entry_name = self.get_design_name(self.current_design_variables)
 
@@ -102,12 +104,14 @@ class KaRp(ka.KaBase):
         Calculate the objectives based on a benchmark problem.
         """
         design = [x for x in self.current_design_variables.values()]
-        obj_list = self._sm.predict(self.sm_type.split()[0], design, num_vars=len(design), num_objs=len(self._objectives.keys()))
+        obj_dict = self._sm.predict(self.sm_type.split()[0], design, num_vars=len(design), num_objs=len(self._objectives.keys()))
         for num, obj in enumerate(self._objectives.keys()):
             if self._objectives[obj]['variable type'] == float:
-                self.current_objectives[obj] = round(float(obj_list[num]), self._objective_accuracy)
+                self.current_objectives[obj] = round(float(obj_dict['F'][num]), self._objective_accuracy)
             elif self._objectives[obj]['variable type'] == str:
-                self.current_objectives[obj] = str(obj_list[num])
+                self.current_objectives[obj] = str(obj_dict[num])
+        for num, cnst in enumerate(self._constraints.keys()):
+            self.current_constraints[cnst] = round(float(obj_dict['G'][num]), self._constraint_accuracy)
 
     def get_interpolate_objectives(self):
         """
@@ -130,6 +134,9 @@ class KaRp(ka.KaBase):
         for cnst in self._constraints.keys():
             self.current_constraints[cnst] = round(float(obj_dict[cnst]), self._constraint_accuracy)
                 
+    def get_float_val(self, multiplier, ll, ul,  accuracy):
+        return round(multiplier * (ul - ll) + ll, accuracy)
+    
     def handler_executor(self, message):
         """
         Execution handler for KA-RP.
@@ -183,14 +190,14 @@ class KaRp(ka.KaBase):
             dv_val = self.current_design_variables[dv]
             if dv_dict['variable type'] == float:
                 if dv_val < dv_dict['ll'] or dv_val > dv_dict['ul']:
-                    self.log_warning('Core {} not examined, design variable {} with value {} outside of limits.'.format(core_name, dv, dv_val))
+                    self.log_debug('Core {} not examined, design variable {} with value {} outside of limits.'.format(core_name, dv, dv_val))
                     return False
             elif dv_dict['variable type'] == list:
                 if dv_val not in dv_dict['options']:
-                    self.log_warning('Core {} not examined, design variable {} with value {} not an option'.format(core_name, dv, dv_val))
+                    self.log_debug('Core {} not examined, design variable {} with value {} not an option'.format(core_name, dv, dv_val))
                     return False
         if core_name in self._lvl_data.keys():
-            self.log_info('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl_data))
+            self.log_debug('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl_data))
             return False
         return True
 
@@ -234,12 +241,12 @@ class KaGlobal(KaRp):
                     if dv_dict['dict'][pos]['variable type'] == str:
                         design[pos] = random.choice(dv_dict['dict'][pos]['options'])
                     else:
-                        design[pos] = round(random.random() * (dv_dict['dict'][pos]['ul'] - dv_dict['dict'][pos]['ll']) + dv_dict['dict'][pos]['ll'], self._design_accuracy)
+                        design[pos] = self.get_float_val(random.random(), dv_dict['dict'][pos]['ll'], dv_dict['dict'][pos]['ul'], self._design_accuracy)
                 self.current_design_variables[dv] = design
             elif dv_dict['variable type'] == str:
                 self.current_design_variables[dv] = str(random.choice(dv_dict['options'])) if random.random() > self.learning_factor else dv_dict['default']              
             else:
-                self.current_design_variables[dv] = round(random.random() * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
+                self.current_design_variables[dv] = self.get_float_val(random.random(), dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
         
         self._entry_name = self.get_design_name(self.current_design_variables)
         if not self.design_check():
@@ -270,6 +277,34 @@ class KaLHC(KaRp):
         Sets the random seed number to provide a reproducabel result
         """
         random.seed(seed=seed)
+
+    def handler_executor(self, message):
+        """
+        Execution handler for KA-RP.
+        KA-RP determines a core design and runs a physics simulation using a surrogate model.
+        Upon completion, KA-RP sends the BB a writer message to write to the BB.
+        
+        Parameter
+        ---------
+        message : str
+            Push-pull message from blackboard, contains the current state of all abstract levels on BB
+        """
+        if self.debug_wait:
+            time.sleep(self.debug_wait_time)
+        
+        self.clear_entry()
+        t = time.time()
+        self._lvl_data = {}
+        self._trigger_event = message[0]
+        for panel in message[1]['level {}'.format(self.bb_lvl_data)].values():
+            self._lvl_data.update(panel)
+            
+        self.log_debug('Executing agent {}'.format(self.name))
+        self.search_method()
+
+        self._trigger_val = 0
+        self.agent_time = time.time() - t
+        self.action_complete()
         
     def generate_lhc(self):
         """
@@ -366,32 +401,36 @@ class KaLHC(KaRp):
         """
         Determine the core design variables using a LHC method.
         """
+        if len(self.lhd) == 0:
+            return
+        
         cur_design = self.lhd.pop(0)
         num = 0
         for dv, dv_dict in self._design_variables.items():
             if dv_dict['variable type'] == dict:
-                length = dv_dict['length']
                 design = {}
                 for pos in dv_dict['dict']:
                     if dv_dict['dict'][pos]['variable type'] != float:
-                        val = int(length * cur_design[num])
+                        val = int(dv_dict['length'] * cur_design[num])
                         design[pos] = dv_dict['dict'][pos]['options'][val]
                     else:
-                        design[pos] = round(cur_design[num] * (dv_dict['dict'][pos]['ul'] - dv_dict['dict'][pos]['ll']) + dv_dict['dict'][pos]['ll'], self._design_accuracy)
+                        design[pos] = self.get_float_val(cur_design[num], dv_dict['dict'][pos]['ll'], dv_dict['dict'][pos]['ul'], self._design_accuracy)
                     num +=1
 
                 self.current_design_variables[dv] = design
             elif dv_dict['variable type'] == str:
                 self.current_design_variables[dv] = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]              
             else:
-                self.current_design_variables[dv] = round(cur_design[num] * (dv_dict['ul'] - dv_dict['ll']) + dv_dict['ll'], self._design_accuracy)
+                self.current_design_variables[dv] = self.get_float_val(cur_design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
             num += 1
             
         self._entry_name = self.get_design_name(self.current_design_variables)
-        if len(self.lhd) == 0:
-            return
-        elif self._entry_name in self._lvl_data.keys():
-            self.search_method()
+        if self._entry_name not in self._lvl_data.keys():
+            self.calc_objectives()
+            self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
+            self.clear_entry()
+            
+        self.search_method()
             
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
         
@@ -445,7 +484,6 @@ class KaLocal(KaRp):
         dv_dict = self._design_variables[dv]
         dv_cur_val = self.current_design_variables[dv]
         core_name = self.get_design_name(self.current_design_variables)
-
         if not self.design_check():
             return False
         
@@ -551,11 +589,13 @@ class KaLocal(KaRp):
         This is based on the `learning_factor`, which is a simple probability.
         
         We should look at making this a probability denstiy function rather than just the max PF choice.
+        We could also try and have it select the design that has the highest hvi or something to do with dci?
+        
         """
         self.check_new_designs()
         if len(self.new_designs) < 1:
             return False
-        if random.random() > self.learning_factor:
+        if random.random() > self.learning_factor and self.bb_lvl_read == 1:
             fitness = {core : self.lvl_read[core]['fitness function'] for core in self.new_designs}
             core = max(fitness,key=fitness.get)
         else:
@@ -581,7 +621,14 @@ class KaLocal(KaRp):
             False -  if level is empty
         """
         lvl = lvl['level {}'.format(self.bb_lvl_read)]
-        self.new_designs = [key for key in lvl if key not in self.analyzed_design.keys()]
+        if self.bb_lvl_read == 1:
+            self.new_designs = [key for key in lvl if key not in self.analyzed_design.keys()]
+        else:
+            designs_on_lvl = {}
+            for values in lvl.values():
+                designs_on_lvl.update(values)
+            self.new_designs = [key for key in designs_on_lvl.keys() if key not in self.analyzed_design.keys()]
+            
         return True if self.new_designs else False            
         
 class KaLocalHC(KaLocal):
@@ -763,7 +810,7 @@ class KaLocalGA(KaLocal):
      
     def on_init(self):
         super().on_init()
-        self._base_trigger_val = 5.00004
+        self._base_trigger_val = 5.00001
         self.previous_populations = {}
         self.crossover_rate = 0.8
         self.offspring_per_generation = 20
@@ -800,7 +847,7 @@ class KaLocalGA(KaLocal):
         lvl = message['level {}'.format(self.bb_lvl_read)]
         new = set(list(lvl.keys()))
         old = set(list(self.analyzed_design.keys()))
-        intersection = old.intersection(new)
+
         self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
@@ -812,8 +859,14 @@ class KaLocalGA(KaLocal):
         Currently two crossover types are allowed: single-point and linear.
         Currently two mutation types are allowed: random and non-uniform.
         """
-        population = list(self.lvl_read.keys())
-        original_pop_len = len(population)
+        if self.bb_lvl_read != 1:
+            population = {}
+            for panel in self.lvl_read.values():
+                population.update(panel)
+            population = list(population)
+        else:
+            population = list(self.lvl_read.keys())
+            
         children = []
         num_children = 0
                 

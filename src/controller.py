@@ -35,6 +35,7 @@ class Controller(object):
                  convergence_interval=25,
                  pf_size=200,
                  dci_div={},
+                 function_evals=1E6,
                  surrogate_model={'sm_type': 'lr', 'pickle file': None},
                  random_seed=None):
         
@@ -58,6 +59,7 @@ class Controller(object):
             self.bb.set_attr(skipped_tvs=skipped_tvs)
             self.bb.set_attr(pf_size=pf_size)
             self.bb.set_attr(convergence_type=convergence_type)
+            self.bb.set_attr(function_evals=function_evals)
             self.bb.set_attr(convergence_rate=convergence_rate)
             self.bb.set_attr(convergence_interval=convergence_interval)            
             self.bb.set_attr(dci_div=dci_div)
@@ -204,6 +206,7 @@ class BenchmarkController(Controller):
                  convergence_interval=25,
                  pf_size=200,
                  dci_div={},
+                 function_evals=1E6,
                  surrogate_model={'sm_type': 'lr', 'pickle file': None},
                  random_seed=None):
 
@@ -223,6 +226,7 @@ class BenchmarkController(Controller):
         self.bb.set_attr(convergence_rate=convergence_rate)
         self.bb.set_attr(convergence_interval=convergence_interval)            
         self.bb.set_attr(dci_div=dci_div)
+        self.bb.set_attr(function_evals=function_evals)
         
         self.agent_time = 0
         self.progress_rate = convergence_interval

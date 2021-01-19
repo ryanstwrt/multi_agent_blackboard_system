@@ -24,9 +24,9 @@ def test_init():
         
 def test_get_assem_avg():
     avg_pow = rx.get_assembly_avg(300, 'power fraction')
-    assert round(avg_pow, 6) == 0.012987
+    assert round(avg_pow, 6) == .012821
     avg_bu = rx.get_assembly_avg(300, 'burnup')
-    assert round(avg_bu, 6) == 38.055065
+    assert round(avg_bu, 6) == 37.567179
 
 def test_get_assem_min():
     min_pow = rx.get_assembly_min(300, 'power fraction')
@@ -46,9 +46,9 @@ def test_get_assem_max():
 
 def test_get_peak_to_avg():
     peak_power = rx.get_peak_to_average(300, 'power fraction')
-    assert (peak_power[0], round(peak_power[1],4)) == ('122', round((0.01684/0.012987),4))
+    assert (peak_power[0], round(peak_power[1],4)) == ('122', 1.3135)
     peak_bu = rx.get_peak_to_average(300, 'burnup')
-    assert (peak_bu[0], round(peak_bu[1],4)) == ('222', round((50.70/38.055),4))
+    assert (peak_bu[0], round(peak_bu[1],4)) == ('222', 1.3496)
 
 def test_get_doppler_coefficient():
     dopp = rx.get_doppler_coefficient()
@@ -87,13 +87,23 @@ def test_get_bu_list():
 
 def test_get_assembly_to_avg():
     avg_pow = rx.get_assembly_to_avg(300, 'power fraction', '122')
-    assert round(avg_pow, 4) == 1.2967
+    assert round(avg_pow, 4) == 1.3135
     avg_bu = rx.get_assembly_to_avg(300, 'burnup', '122')
-    assert round(avg_bu, 4) == 1.3312
+    assert round(avg_bu, 4) == 1.3485
 
+def test_get_pu_ratio():
+    bu_list = rx.assemblies['step_0']['1002']['actinide inventory']
+    pu_ratio = rx.get_pu_ratio(bu_list)
+    assert round(pu_ratio,2) == 0.94
+
+def test_get_pu240_pu239_ratio():
+    bu_list = rx.assemblies['step_0']['1002']['actinide inventory']
+    pu_ratio = rx.get_pu240_pu239_ratio(bu_list)
+    assert round(pu_ratio,3) == 0.064
+    
 def test_get_pu_mass():
     pu_mass = rx.get_assembly_pu_mass()
-    assert round(pu_mass,2) == 73.64
+    assert round(pu_mass,2) == 8.01
     
     
 os.remove('reactor_interface.h5')

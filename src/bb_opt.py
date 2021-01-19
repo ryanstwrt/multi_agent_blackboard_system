@@ -59,6 +59,7 @@ class BbOpt(blackboard.Blackboard):
         self.convergence_rate = 1E-6
         self.convergence_interval = 25
         self.pf_size = 200
+        self.function_evals = 1E6
         self.dci_div = {}
         
         # Initialize an abstract level which holds meta-data about the problem
@@ -165,8 +166,9 @@ class BbOpt(blackboard.Blackboard):
         elif self.convergence_type == 'hvi':
             self.hv_indicator()
         else:
-            self.log_info('convergence type ({}) not recognized, reverting to hvi'.format(self.convergence_type))
-            self.hv_indicator()
+            self.log_debug('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
+            self.hv_list.append(0.0)
+#            self.hv_indicator()
             
     def convergence_update(self):
         """
@@ -182,9 +184,17 @@ class BbOpt(blackboard.Blackboard):
             self.determine_complete_dci_hvi()
         elif self.convergence_type == 'hvi':
             self.determine_complete_hv()
+        elif self.convergence_type == 'function evals':
+            lvl3 = {}
+            for panel in self.abstract_lvls['level 3'].values():
+                lvl3.update(panel)
+            if len(lvl3) > self.function_evals:
+                self.log_info('Problem is over total allowable function evals, shutting agents down')
+                self._complete = True 
+                return
         else:
-            self.log_info('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
-            pass           
+            self.log_debug('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
+            pass     
         # Determine if the problem is over our trigger value limit
         if len(self._kaar) >= self.total_tvs and self._complete == False:
             self.log_info('Problem is over total allowable TVs, shutting agents down')
@@ -202,10 +212,11 @@ class BbOpt(blackboard.Blackboard):
             if 'shutdown' not in list(connections.keys()):
                 agent_addrs.pop(agent_name)
             elif agent_name in agent_addrs.keys():  
-                if not self.diagnostics_agent_present(agent_name):
-                    agent_addrs.pop(agent_name)
-                elif connections['performing action']:
+                if connections['performing action']:
                     pass
+                elif not self.diagnostics_agent_present(agent_name):
+                    agent_addrs.pop(agent_name)
+ 
                 else:
                     self.send(connections['shutdown'][0], "shutdown")
                     agent_addrs.pop(agent_name)
@@ -273,11 +284,16 @@ class BbOpt(blackboard.Blackboard):
         #hv_indicator_long_term = hv_average        
         #self.log_info('Convergence Rate: {}, Long-Term Convergence Rate: {}'.format(hv_indicator, hv_average_long_term))
         
+        # Should we add the following to ensure there is something on the BB?
+        if len(self._kaar.keys()) < self.skipped_tvs:
+            self.log_info('Below minimum skipped trigger values, skipping convergence check')
+            return
+        if len(self.abstract_lvls['level 1']) < self.pf_size:
+            self.log_info('Number of solutions on Pareto Front ({}) less than desired Pareto Front ({})'.format(len(self.abstract_lvls['level 1']), self.pf_size))
+            return
         # Wait for a number of cycles before we check for convergence        
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
-        # Should we add the following to ensure there is something on the BB?
-        if len(self._kaar.keys()) < self.skipped_tvs and len(self.abstract_lvls['level 1']) > 1:
-            return
+            
 
         if hv_indicator < self.convergence_rate:
             self.log_info('Problem complete, shutting agents down')
@@ -362,7 +378,9 @@ class BbOpt(blackboard.Blackboard):
                       'cycle length': 'Cycle Length (days)',
                       'pu mass': 'Pu Mass (kg/year)',
                       'reactivity swing' : 'Rx Swing (pcm/month)',
-                      'eol keff': 'EOC k-eff'}
+                      'eol keff': 'EOC k-eff',
+                      'pu ratio': 'Pu239/Pu Ratio',
+                      'pu disposed': 'Pu/cycle (kg)'}
         dv_labels = {'height' : 'Height (cm)',
                      'smear' : 'Smear',
                      'pu_content' : 'Pu Fraction'}

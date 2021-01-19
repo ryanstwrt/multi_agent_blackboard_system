@@ -708,10 +708,11 @@ def test_agent_performing_action():
     bb.connect_agent(karp.KaGlobal, 'ka_rp')
     rp = ns.proxy('ka_rp')
     rp.set_attr(debug_wait=True)
+    rp.set_attr(debug_wait_time=0.25)
     bb.set_attr(_ka_to_execute=('ka_rp', 2))
     bb.send_executor()
     assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == True
-    time.sleep(0.6)
+    time.sleep(0.75)
     assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == False
     
     ns.shutdown()       

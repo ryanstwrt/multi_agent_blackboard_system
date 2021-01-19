@@ -57,7 +57,7 @@ class reactorInterface(object):
         for num, assem in enumerate(self.assemblies['step_0'].keys()):
             val = self.extrapolate_value('time', param, time, assem=assem)
             assem_tot += val
-        return assem_tot/num
+        return assem_tot/(num+1) #+1 needed to account for starting numbering at 0
 
     def get_assembly_to_avg(self, time, param, assem):
         """Get the ratio of the given assembly paramter to the average value"""
@@ -115,19 +115,57 @@ class reactorInterface(object):
         """Interpolate/extrapolate a value if needed."""
         params1 = self.get_bu_list(param1, assem)
         params2 = self.get_bu_list(param2, assem)
+     
         #Try function is only here until the database is complete
         try:
             interp_func = interp(params1, params2, kind=fit_type, fill_value="extrapolate")
             return interp_func(value).flat[0] #flatten the array and return just the value
         except ValueError:
             pass
+        
 
+    def get_pu_ratio(self, actinide_dict):
+        fissile = 0.0
+        pu239 = 0.0
+        for k,v in actinide_dict.items():
+            if '94' in k:
+                fissile+=v[0]
+            if '94239' in k:
+                pu239+=v[0]
+        if fissile == 0:
+            return 0.0
+        else:
+            return pu239/fissile
+    
+    def get_pu240_pu239_ratio(self, actinide_dict):
+        pu240 = 0.0
+        pu239 = 0.0
+        for k,v in actinide_dict.items():
+            if '94239' in k:
+                pu239+=v[0]
+            if '94240' in k:
+                pu240+=v[0] 
+        if pu240 == 0:
+            return 0.0
+        else:
+            return pu240/pu239    
+                
+    def get_pu_disposed_mass(self, actinide_dict):
+        pu_mass = 0.0
+        for k,v in actinide_dict.items():
+            pu_mass += v[0] if '94' in k else 0.0
+        return pu_mass / 1000.0
+        
     def get_bu_list(self, param, assem):
-        if 'time' in param:
-            # Grab the first assembly to get the time
-            p = [time_step['1002'][param][0] for time_step in self.assemblies.values()]
-        elif assem:
+        if param in ['burnup', 'duration', 'power fraction', 'time']:
+            assem = assem if assem else '1002'
             p = [time_step[assem][param][0] for time_step in self.assemblies.values()]
+        elif param == 'pu ratio':
+            p = [self.get_pu_ratio(time_step[assem]['actinide inventory']) for time_step in self.assemblies.values()]
+        elif param == 'pu240 ratio':
+            p = [self.get_pu240_pu239_ratio(time_step[assem]['actinide inventory']) for time_step in self.assemblies.values()]
+        elif param == 'pu disposed':
+            p = [self.get_pu_disposed_mass(time_step[assem]['actinide inventory']) for time_step in self.assemblies.values()]
         else:
             p = [time_step[param][0] for time_step in self.rx_step_params.values()]
         return p
@@ -140,14 +178,7 @@ class reactorInterface(object):
 
     def get_assembly_pu_mass(self):
         """Get the mass of a fuel assembly"""
-        height = self.rx['independent variables']['height'][0]
-        smear  = self.rx['independent variables']['smear'][0]
-        pu_content = self.rx['independent variables']['pu_content'][0]
-        inner_clad_radius = 0.358
-        fuel_radius = math.sqrt(smear/100) * inner_clad_radius
-        fuel_pin_mass = height * math.pi * fuel_radius ** 2 * self.density
-        pu_pin_mass = fuel_pin_mass * pu_content
-        assembly_mass = pu_pin_mass * 271 / 1000
+        assembly_mass = self.get_pu_disposed_mass(self.assemblies['step_0']['1002']['actinide inventory'])
         return assembly_mass
     
     def get_conversion_ratio(self):

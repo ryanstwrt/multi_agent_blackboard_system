@@ -17,6 +17,8 @@ class optimization_test_functions(object):
             return self.zdt(x, num_vars)
         elif self.test_name == 'tsp':
             return self.tsp(x)
+        elif self.test_name == 'wb':
+            return self.welded_beam(x)
         elif 'dtlz' in self.test_name:
             return self.dtlz(x, num_vars, num_objs)
     
@@ -27,7 +29,7 @@ class optimization_test_functions(object):
         """
         f1 = x[0] ** 2
         f2 = (x[0]-2) ** 2
-        return [f1, f2]
+        return {'F': [float(f1),float(f2)]}
 
     def schaffer_func_2(self, x):
         """
@@ -45,7 +47,7 @@ class optimization_test_functions(object):
         else:
             f1 = x-4
         f2 = (x-5) ** 2        
-        return [float(f1),float(f2)]
+        return {'F': [float(f1),float(f2)]}
     
     def zdt(self, x, num_vars):
         """
@@ -53,41 +55,14 @@ class optimization_test_functions(object):
         """
         problem = get_problem(self.test_name, n_var=num_vars)
         #problem = mop.ZDT1(n_var=num_vars)
-        soln = problem.evaluate(x)
+        soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)
         return soln
 
-    
-    def zdt_1(self, x, num_vars):
-        """
-        DTLZ Benchmark 1 from pymop
-        """
-        #p = get_problem("zdt1", n_var)
-        problem = mop.ZDT1(n_var=num_vars)
-        soln = problem.evaluate(x)
-        return soln
-
-    def zdt_2(self, x, num_vars):
-        """
-        DTLZ Benchmark 2 from pymop
-        """
-#        p = get_problem("zdt2", n_var=num_vars)
-        problem = mop.ZDT2(n_var=num_vars)
-        soln = problem.evaluate(x)
-        return soln
-    
-    def zdt_3(self, x, num_vars):
-        """
-        DTLZ Benchmark 3 from pymop
-        """
-#        p = get_problem("zdt3", n_var=num_vars)
-        problem = mop.ZDT3(n_var=num_vars)
-        soln = problem.evaluate(x)
-        return soln
 
     def dtlz(self, x, num_vars, num_objs):
         problem = get_problem(self.test_name, n_var=num_vars, n_obj=num_objs)
  #       problem = mop.DTLZ2(n_var=num_vars, n_obj=num_objs)
-        soln = problem.evaluate(x)
+        soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)
         return soln     
     
     def tsp(self, x):
@@ -105,7 +80,11 @@ class optimization_test_functions(object):
             path += graph[k][j]
             k=j
         path += graph[k][0]
+        return {'F': [path]}
         
-        return [path]
-
+    def welded_beam(self, x):
+        problem = get_problem('welded_beam')
+        soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)
+        return soln
         
+       

@@ -193,6 +193,7 @@ class Surrogate_Models(object):
                 self.obj_var.append(obj)
         else:
             print('Unable to handle variables of type {}, please choose from: dict, Pandas DataFrame, or list')
+        
         self._split_database()
         self._scale_data_sets()      
         
