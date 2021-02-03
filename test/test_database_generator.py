@@ -19,3 +19,7 @@ def test_dbg():
                                  database_name='db_test', fixed_cycle_length=False, num_cycles=4, path='test/mcnp_output/', output='DataFrame')
     assert df_dv.equals(pd.DataFrame([(75.0, 65.0, 0.875)], columns=design_variables)) == True
     assert df_obj.equals(pd.DataFrame([(602.4030176530645, 430.156354505801, 156.24960000000002, 858.7551867219967, 1.20837, 1.0, -0.45124404126092305, -60.34416518672346, 858.7551867219967, 0.0)], columns=objective_functions)) == True
+    
+    out = dbg.get_data(design_variables, objective_functions, 
+                                 database_name='db_test', fixed_cycle_length=120, num_cycles=4, path='test/mcnp_output/', output='dict')
+    assert out == {'/FS65_H75_23Pu4U10Zr': {'independent variables': {'height': 75.0, 'smear': 65.0, 'pu_content': 0.875}, 'dependent variables': {'reactivity swing': 610.4504415038448, 'burnup': 60.10803076923076, 'pu mass': 156.24960000000002, 'cycle length': 120, 'bol keff': 1.20837, 'eol keff': 1.178864, 'doppler': -0.45124404126092305, 'void': -60.34416518672346, 'excess reactivity': 15172.572917656313}}}

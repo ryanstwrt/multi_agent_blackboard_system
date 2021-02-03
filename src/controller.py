@@ -113,8 +113,11 @@ class Controller(object):
                 if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
                     self.bb.determine_complete()
                     if self.bb.get_complete_status():
-                        while len(self.bb.get_attr('agent_addrs')) > 0:
-                            self.bb.send_shutdown()
+                        while len(self.bb.get_attr('agent_addrs')) > 0:           
+                            if True in [agent['performing action'] for agent in self.bb.get_attr('agent_addrs').values()]:
+                                time.sleep(1)
+                            else:
+                                self.bb.send_shutdown()
                 if self.plot_progress:
                     self.bb.plot_progress()
             else:
@@ -158,8 +161,12 @@ class Controller(object):
                 if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
                     self.bb.determine_complete()
                     if self.bb.get_complete_status():
-                        while len(self.bb.get_attr('agent_addrs')) > 0:
-                            self.bb.send_shutdown()
+                        while len(self.bb.get_attr('agent_addrs')) > 0:                                   
+                            if True in [agent['performing action'] for agent in self.bb.get_attr('agent_addrs').values()]:
+                                time.sleep(1)
+                            else:
+                                self.bb.send_shutdown()
+                            
                 if self.plot_progress:
                     self.bb.plot_progress()
             else:

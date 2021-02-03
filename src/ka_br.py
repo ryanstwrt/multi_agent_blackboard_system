@@ -516,7 +516,7 @@ class KaBr_interBB(KaBr):
     def connect_bb_to_write(self, bb):
         """Connect the BB and writer message to the BB we want to write to"""
         bb_agent_addr = bb.get_attr('agent_addrs')
-        bb_agent_addr[self.name] = {}
+        bb_agent_addr[self.name] = {'trigger response': None, 'executor': None, 'shutdown':None, 'performing action': False, 'class': KaBr_interBB}
         bb.set_attr(agent_addrs=bb_agent_addr)
         self._new_entry_format = {'design variables': bb.get_attr('design_variables'),
                                   'objective functions': bb.get_attr('objectives'),

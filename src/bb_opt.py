@@ -14,6 +14,8 @@ import numpy as np
 import scipy.interpolate
 import plotly.express as px
 from numpy import random
+import copy
+
 
 
 cur_dir = os.path.dirname(__file__)
@@ -61,6 +63,7 @@ class BbOpt(blackboard.Blackboard):
         self.pf_size = 200
         self.function_evals = 1E6
         self.dci_div = {}
+        self.final_trigger = 3        
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
@@ -150,7 +153,6 @@ class BbOpt(blackboard.Blackboard):
                 ka.set_attr(_ideal_point=self._ideal_point)
             elif 'inter' in agent_class:
                 ka.set_attr(_design_variables=self.design_variables)
-                print(attr)
                 ka.connect_bb_to_write(attr['bb'])
                 
         else:
@@ -188,6 +190,8 @@ class BbOpt(blackboard.Blackboard):
             lvl3 = {}
             for panel in self.abstract_lvls['level 3'].values():
                 lvl3.update(panel)
+            self.log_info('Problem is at {} of {} total allowable function evals'.format(len(lvl3), self.function_evals))
+                
             if len(lvl3) > self.function_evals:
                 self.log_info('Problem is over total allowable function evals, shutting agents down')
                 self._complete = True 
@@ -199,24 +203,36 @@ class BbOpt(blackboard.Blackboard):
         if len(self._kaar) >= self.total_tvs and self._complete == False:
             self.log_info('Problem is over total allowable TVs, shutting agents down')
             self._complete = True        
-        
+            
     def send_shutdown(self):
         """
         Tell each agent to shutdown
         """
-        import copy
-        agent_addrs = copy.copy(self.agent_addrs)
-        i = 0
+        # Wait until all agents have finished performing their actions
+        for ka in self.agent_addrs.values():
+            print(ka)
+            print(ka['performing action'])
+        
+        if True in [ka['performing action'] for ka in self.agent_addrs.values()]:
+            return
+        
+        if self.final_trigger > 0:
+            ka_ = [ka for ka, ka_dict in self.agent_addrs.items() if str(self.final_trigger) in ka_dict['class'].__name__]
+            self._ka_to_execute=(ka_[0], 2)
+            self.send_executor()
+            self.final_trigger -= 1
+            return
+
+        agent_addrs = copy.copy(self.agent_addrs)      
         for agent_name, connections in self.agent_addrs.items():
         # If statement is for inter_BB agent who only have a write function assocaiated with the BB
             if 'shutdown' not in list(connections.keys()):
                 agent_addrs.pop(agent_name)
             elif agent_name in agent_addrs.keys():  
                 if connections['performing action']:
-                    pass
+                    self.log_info((agent_name, connections['performing action']))
                 elif not self.diagnostics_agent_present(agent_name):
                     agent_addrs.pop(agent_name)
- 
                 else:
                     self.send(connections['shutdown'][0], "shutdown")
                     agent_addrs.pop(agent_name)
@@ -451,59 +467,7 @@ class BbOpt(blackboard.Blackboard):
         self.log_debug('\n\nPublishing Trigger Event {}'.format(self._trigger_event))
         self._kaar[self._trigger_event] = {}
         self.send(self._pub_trigger_alias, self.abstract_lvls)
-
-
-#    def h5_delete_entries(self, h5):
-#        """
-#        Examine the H5 file and current blackbaord dabstract levels and remove entries in the H5 file that are no longer in the BB bastract levels. (likely this is due to solution no longer being on the Pareto front)
-#        
-#        Parameters
-#        ----------
-#        h5 : h5-group object
-#            H5 entry that is no longer in the abstract level
-#        
-#        """
-#        bb = self.abstract_lvls
-#        del_entries = []
-#        for level, entry in h5.items():
-#            if level in self._pareto_level:
-#                for entry_name, entry_data in entry.items():
-#                    if level in self._panels.keys():
-#                        panel_entries = [panel for panel in entry_data]
-#                        for panel_entry in panel_entries:
-#                            if panel_entry not in bb[level][entry_name]:
-#                                del_entries.append((level, entry_name, panel_entry))   
-#                    if entry_name not in bb[level]:
-#                        del_entries.append((level, entry_name))
-
-
-#        for entry in del_entries:
-#            if len(entry) == 3:
-#                del h5[entry[0]][entry[1]][entry[2]]
-#                self.log_debug('Removing entry {} on level {} panel {}'.format(entry[2],entry[0],entry[1]))
-#            else:
-#                del h5[entry[0]][entry[1]]          
-#                self.log_debug('Removing entry {} on level {}'.format(entry[1],entry[0]))
-                
-#    def delete_data_entries(self):
-#        pf = [x for x in self.abstract_lvls['level 1'].keys()]
-#        lvl2 = self.abstract_lvls['level 2']['old']
-#        lvl3 = self.abstract_lvls['level 3']['old']
         
-#        lvl2_list = []
-#        lvl3_list = []
-#        for core, entry in lvl2.items():
-#            if core not in pf:
-#                lvl2_list.append(core)
-#        for core in lvl2_list:
-#            self.remove_bb_entry(2, core, 'old')
-#
-#        for core, entry in lvl3.items():
-#            if core not in pf:
-#                lvl3_list.append(core)
-#        for core in lvl3_list:
-#            self.remove_bb_entry(3, core, 'old')
-#        
     def meta_data_entry(self, name, time, trigger_event):
         """
         Add an entry to abstract level 100 for meta-data

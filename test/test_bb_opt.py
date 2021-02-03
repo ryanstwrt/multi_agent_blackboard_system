@@ -732,20 +732,35 @@ def test_agent_shutdown():
     bb.connect_agent(karp.KaGlobal, 'ka_rp')
     bb.connect_agent(karp.KaLocal, 'ka_rp2')
     bb.connect_agent(karp.KaGlobal, 'ka_rp3')
+    bb.connect_agent(kabr.KaBr_lvl1, 'ka_br_lvl1')
+    bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
+    bb.connect_agent(kabr.KaBr_lvl3, 'ka_br_lvl3')
 
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 100.0, 'cycle length': 120.0, 'pu mass': 10.0},
+                                                          'constraints' : {'eol keff': 1.01}}, panel='new')     
+    
     rp2 = ns.proxy('ka_rp2')
+    # Force the agent to fail due to passing False
     rp = ns.proxy('ka_rp')
     bb.send('executor_{}'.format('ka_rp2'), False)
     
     rp.set_attr(debug_wait=True)
-    rp.set_attr(debug_wait_time=0.15)
+    rp.set_attr(debug_wait_time=0.1)
     bb.set_attr(_ka_to_execute=('ka_rp', 2))
+    rp.set_random_seed(seed=1)
     bb.send_executor()
     assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == True
     while len(bb.get_attr('agent_addrs')) > 0:
         bb.send_shutdown()
-    time.sleep(0.15)
-    assert ns.agents() == ['blackboard']    
+        time.sleep(0.01)
+    time.sleep(0.05)
+    assert ns.agents() == ['blackboard'] 
+    assert bb.get_attr('final_trigger') == 0
+    assert list(bb.get_blackboard()['level 3']['old'].keys()) == ['core_[62.51066,64.40649,0.00011]', 'core_[65.0, 65.0, 0.42]']
+    assert list(bb.get_blackboard()['level 2']['old'].keys()) == ['core_[65.0, 65.0, 0.42]']
+    assert list(bb.get_blackboard()['level 1'].keys()) == ['core_[65.0, 65.0, 0.42]']
+
     ns.shutdown()       
     time.sleep(0.05)  
 

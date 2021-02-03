@@ -502,10 +502,12 @@ class KaLocal(KaRp):
         KA will perturb the core via the perturbations method and write all results the BB
         """
         t = time.time()
-        self._lvl_data = {}
         self._trigger_event = message[0]
         self.log_debug('Executing agent {}'.format(self.name))
         self.lvl_read = message[1]['level {}'.format(self.bb_lvl_read)]
+        self._lvl_data = {}
+        #self._lvl_data = {**self._lvl_data['new'], **self._lvl_data['old']}
+
         for panel in message[1]['level {}'.format(self.bb_lvl_data)].values():
             self._lvl_data.update(panel)
             
@@ -576,11 +578,6 @@ class KaLocal(KaRp):
             self.determine_model_applicability(dv)
         
         self.analyzed_design[core] = {'Analyzed': True}
-
-#        if self.sm_type not in ['lr', 'pr', 'gpr', 'ann', 'rf', 'interpolate']:
-#            lvl = self.bb.get_blackboard()['level 3']
-#            for panel in lvl.values():
-#                self._lvl_data.update(panel)
                 
     def select_core(self):
         """
@@ -621,10 +618,11 @@ class KaLocal(KaRp):
             False -  if level is empty
         """
         lvl = lvl['level {}'.format(self.bb_lvl_read)]
+               
         if self.bb_lvl_read == 1:
             self.new_designs = [key for key in lvl if key not in self.analyzed_design.keys()]
         else:
-            designs_on_lvl = {}
+            #designs_on_lvl = {**lvl['new'], **lvl['old']}
             for values in lvl.values():
                 designs_on_lvl.update(values)
             self.new_designs = [key for key in designs_on_lvl.keys() if key not in self.analyzed_design.keys()]

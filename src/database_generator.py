@@ -91,12 +91,10 @@ def get_data(design_variables, objective_variables, database_name='SFR_DB', fixe
                     obj_vars.append(pu_disp)
                     data_dict[core_name]['dependent variables'][var] = pu_disp                      
                 elif var == 'excess reactivity':
-                    given_cycle = rx_.extrapolate_value('keff', 'time', 1.0)
-                    rx_swing_1 = rx_.get_reactivity_swing(0.0, cycle_length) * 30 / cycle_length
-                    rx_swing_2 = rx_.get_reactivity_swing(0.0, given_cycle) * 30 / cycle_length
-                    swing = rx_swing_1 - rx_swing_2
-                    obj_vars.append(swing)
-                    data_dict[core_name]['dependent variables'][var] = swing
+                    eol_keff = rx_.extrapolate_value('time', 'keff', cycle_length)
+                    excess = (eol_keff - 1.0) / (eol_keff) * 1E5
+                    obj_vars.append(excess)
+                    data_dict[core_name]['dependent variables'][var] = excess
 
             ind_var_array.append(tuple(ind_vars))
             obj_var_array.append(tuple(obj_vars))

@@ -444,7 +444,6 @@ class Blackboard(Agent):
         
         if not self._agent_writing:
             self._agent_writing = True
-            self.log_debug('Agent {} given permission to write'.format(agent_name))
             if remove:
                 self.log_debug('Removing BB Entry {} on BB Level {}, panel {}'.format(entry_name, bb_lvl, panel))
                 self.remove_bb_entry(bb_lvl, entry_name, panel=panel)
@@ -561,11 +560,14 @@ class Blackboard(Agent):
         panel : str
             Panel name if present
         """
-        if panel:
-            del self.abstract_lvls['level {}'.format(level)][panel][name]
-        else:
-            del self.abstract_lvls['level {}'.format(level)][name]
-        self.log_debug('Removing entry {} from BB abstract level {}.'.format(name, level))
+        try:
+            if panel:
+                del self.abstract_lvls['level {}'.format(level)][panel][name]
+            else:
+                del self.abstract_lvls['level {}'.format(level)][name]
+            self.log_debug('Removing entry {} from BB abstract level {}.'.format(name, level))
+        except KeyError:
+            pass
         
     def send_executor(self):
         """Send an executor message to the triggered KA."""
