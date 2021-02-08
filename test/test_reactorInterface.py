@@ -1,5 +1,5 @@
-import src.h5Interface as h5I
-import src.reactorInterface as rI
+import src.utils.h5Interface as h5I
+import src.utils.reactorInterface as rI
 import os
 
 h5_interface = h5I.h5Interface(output_name='reactor_interface')

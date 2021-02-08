@@ -1,4 +1,3 @@
-import osbrain
 from osbrain import Agent
 
 class KaBase(Agent):

@@ -1,6 +1,6 @@
-from src.ka_brs.base import KaBr
-import src.performance_measure as pm
-import src.utilities as utils
+from src.ka.ka_brs.base import KaBr
+import src.utils.performance_measure as pm
+import src.utils.utilities as utils
 import time
 
 class KaBrLevel1(KaBr):

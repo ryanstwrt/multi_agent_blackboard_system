@@ -1,4 +1,4 @@
-from src.ka_brs.base import KaBr
+from src.ka.ka_brs.base import KaBr
 import time
 
 class InterBB(KaBr):

@@ -1,11 +1,11 @@
-from src.ka_brs.level2 import KaBrLevel2
+from src.ka.ka_brs.level2 import KaBrLevel2
 import src.bb.blackboard as blackboard
 import src.bb.blackboard_optimization as bb_opt
 import time
 from osbrain import run_nameserver
 from osbrain import run_agent
 import pickle
-import src.utilities as utils
+import src.utils.utilities as utils
 
 with open('./sm_gpr.pkl', 'rb') as pickle_file:
     sm_ga = pickle.load(pickle_file)

@@ -1,8 +1,8 @@
 import src.bb.blackboard as blackboard
-import src.utilities as utils
-import src.database_generator as dg
-import src.performance_measure as pm
-import src.train_surrogate_models as tm
+import src.utils.utilities as utils
+import src.utils.database_generator as dg
+import src.utils.performance_measure as pm
+import src.utils.train_surrogate_models as tm
 import osbrain
 from osbrain import proxy
 from osbrain import run_agent

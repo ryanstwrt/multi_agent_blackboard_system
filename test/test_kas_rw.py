@@ -1,6 +1,6 @@
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka_s.random_walk as rw
+import src.ka.ka_s.random_walk as rw
 import src.bb.blackboard_optimization as bb_opt
 import pickle
 import time

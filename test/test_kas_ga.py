@@ -1,6 +1,6 @@
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka_s.genetic_algorithm as ga
+import src.ka.ka_s.genetic_algorithm as ga
 import src.bb.blackboard_optimization as bb_opt
 import time
 import pickle

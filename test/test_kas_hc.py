@@ -1,10 +1,10 @@
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka_s.hill_climb as hc
+import src.ka.ka_s.hill_climb as hc
 import src.bb.blackboard_optimization as bb_opt
 import time
 import pickle
-import src.moo_benchmarks as moo
+import src.utils.moo_benchmarks as moo
 
 with open('./sm_gpr.pkl', 'rb') as pickle_file:
     sm_ga = pickle.load(pickle_file)

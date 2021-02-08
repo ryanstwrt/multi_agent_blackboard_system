@@ -1,5 +1,5 @@
-from src.ka_brs.base import KaBr
-import src.utilities as utils
+from src.ka.ka_brs.base import KaBr
+import src.utils.utilities as utils
 import time
 
 class KaBrLevel2(KaBr):

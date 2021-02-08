@@ -1,4 +1,4 @@
-import src.database_generator as dbg
+import src.utils.database_generator as dbg
 import pandas as pd
 import pickle
 

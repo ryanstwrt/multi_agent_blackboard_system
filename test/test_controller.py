@@ -4,15 +4,15 @@ import src.bb.blackboard_optimization as bb_opt
 import time
 import os
 import pickle
-from src.ka_s.stochastic import Stochastic
-from src.ka_s.latin_hypercube import LatinHypercube
-from src.ka_s.neighborhood_search import NeighborhoodSearch
-from src.ka_s.hill_climb import HillClimb
-from src.ka_s.genetic_algorithm import GeneticAlgorithm
-from src.ka_brs.level3 import KaBrLevel3
-from src.ka_brs.level2 import KaBrLevel2
-from src.ka_brs.level1 import KaBrLevel1
-from src.ka_brs.inter_bb import InterBB
+from src.ka.ka_s.stochastic import Stochastic
+from src.ka.ka_s.latin_hypercube import LatinHypercube
+from src.ka.ka_s.neighborhood_search import NeighborhoodSearch
+from src.ka.ka_s.hill_climb import HillClimb
+from src.ka.ka_s.genetic_algorithm import GeneticAlgorithm
+from src.ka.ka_brs.level3 import KaBrLevel3
+from src.ka.ka_brs.level2 import KaBrLevel2
+from src.ka.ka_brs.level1 import KaBrLevel1
+from src.ka.ka_brs.inter_bb import InterBB
 
 
 def test_controller_init():

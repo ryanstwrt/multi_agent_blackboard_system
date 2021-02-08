@@ -1,9 +1,9 @@
-import src.ka as ka
+from src.ka.base import KaBase
 import copy
 import time
 from numpy import random
 
-class KaS(ka.KaBase):
+class KaS(KaBase):
     """
     Knowledge agent to solve portions reactor physics problems using Dakota & Mammoth
     

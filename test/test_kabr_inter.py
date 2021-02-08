@@ -2,7 +2,7 @@ from osbrain import run_nameserver
 from osbrain import run_agent
 import src.bb.blackboard as blackboard
 import src.bb.blackboard_optimization as bb_opt
-from src.ka_brs.inter_bb import InterBB 
+from src.ka.ka_brs.inter_bb import InterBB 
 import time
 
 

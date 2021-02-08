@@ -1,4 +1,4 @@
-import src.utilities as utils
+import src.utils.utilities as utils
 
 def test_scale_float_value():
     assert utils.scale_float_value(5, 0, 10) == 0.5

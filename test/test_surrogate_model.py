@@ -1,4 +1,4 @@
-import src.train_surrogate_models as tm
+import src.utils.train_surrogate_models as tm
 from sklearn.gaussian_process import kernels
 import pandas as pd
 import numpy as np

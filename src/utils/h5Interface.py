@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-import src.outputInterface as OI
+import src.utils.outputInterface as OI
 
 class h5Interface(object):
     

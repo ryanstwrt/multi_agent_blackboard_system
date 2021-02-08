@@ -2,7 +2,7 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import time
-import src.ka_s.pymoo_plugin as pm
+import src.ka.ka_s.pymoo_plugin as pm
 import src.bb.blackboard_optimization as bb_opt
 import numpy as np
 import pickle

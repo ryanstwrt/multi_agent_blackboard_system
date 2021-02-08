@@ -1,6 +1,6 @@
 from osbrain import run_nameserver
 from osbrain import run_agent
-from src.ka_brs.base import KaBr
+from src.ka.ka_brs.base import KaBr
 import time
 import src.bb.blackboard as blackboard
 import src.bb.blackboard_optimization as bb_opt

@@ -1,5 +1,5 @@
-import src.h5Interface as h5i
-import src.reactorInterface as RI
+import src.utils.h5Interface as h5i
+import src.utils.reactorInterface as RI
 import pandas as pd
 
 def get_data(design_variables, objective_variables, database_name='SFR_DB', fixed_cycle_length=120, num_cycles=4, path=None, output='list'):

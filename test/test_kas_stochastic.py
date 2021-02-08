@@ -1,7 +1,7 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka_s.stochastic as stochastic
+import src.ka.ka_s.stochastic as stochastic
 import src.bb.blackboard_optimization as bb_opt
 import numpy as np
 import pickle

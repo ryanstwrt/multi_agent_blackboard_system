@@ -1,5 +1,5 @@
-import src.outputInterface as OI
-import src.h5Interface as h5I
+import src.utils.outputInterface as OI
+import src.utils.h5Interface as h5I
 import h5py
 import os
 import numpy as np

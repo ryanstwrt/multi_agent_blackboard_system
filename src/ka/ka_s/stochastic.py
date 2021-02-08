@@ -1,4 +1,4 @@
-from src.ka_s.base import KaS
+from src.ka.ka_s.base import KaS
 from numpy import random
 
 class Stochastic(KaS):

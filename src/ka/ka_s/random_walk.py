@@ -1,4 +1,4 @@
-from src.ka_s.base import KaLocal
+from src.ka.ka_s.base import KaLocal
 from numpy import random
 
 

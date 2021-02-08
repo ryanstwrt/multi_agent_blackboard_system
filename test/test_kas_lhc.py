@@ -1,6 +1,6 @@
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka_s.latin_hypercube as lhc
+import src.ka.ka_s.latin_hypercube as lhc
 import src.bb.blackboard_optimization as bb_opt
 import time
 import pickle

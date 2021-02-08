@@ -1,4 +1,4 @@
-from src.ka_s.base import KaLocal
+from src.ka.ka_s.base import KaLocal
 import numpy as np
 from numpy import random
 from pymoo.model.problem import Problem
@@ -7,7 +7,7 @@ from pymoo.model.callback import Callback
 from pymoo.optimize import minimize
 from pymoo.model.population import Population
 from pymoo.model.evaluator import Evaluator
-import src.utilities as utils
+import src.utils.utilities as utils
 
 
 class PyMooAlgorithm(KaLocal):

@@ -5,13 +5,13 @@ import src.bb.blackboard as blackboard
 import src.bb.blackboard_optimization as bb_opt
 import time
 import os
-from src.ka_s.stochastic import Stochastic
-from src.ka_s.latin_hypercube import LatinHypercube
-from src.ka_s.neighborhood_search import NeighborhoodSearch
-from src.ka_brs.level3 import KaBrLevel3
-from src.ka_brs.level2 import KaBrLevel2
-from src.ka_brs.level1 import KaBrLevel1
-import src.ka as ka
+from src.ka.ka_s.stochastic import Stochastic
+from src.ka.ka_s.latin_hypercube import LatinHypercube
+from src.ka.ka_s.neighborhood_search import NeighborhoodSearch
+from src.ka.ka_brs.level3 import KaBrLevel3
+from src.ka.ka_brs.level2 import KaBrLevel2
+from src.ka.ka_brs.level1 import KaBrLevel1
+import src.ka.base as ka
 
 #----------------------------------------------------------
 # Tests fopr BbOpt

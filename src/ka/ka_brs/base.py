@@ -1,6 +1,6 @@
-from src.ka import KaBase
+from src.ka.base import KaBase
 import time
-import src.utilities as utils
+import src.utils.utilities as utils
 
 class KaBr(KaBase):
     """

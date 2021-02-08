@@ -1,9 +1,9 @@
 import platypus as plat
-import src.performance_measure as pm
+import src.utils.performance_measure as pm
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-from src.ka_s.hill_climb import HillClimb
+from src.ka.ka_s.hill_climb import HillClimb
 import src.bb.blackboard_optimization as bb_opt
 import pickle
 import time

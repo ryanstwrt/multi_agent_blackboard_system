@@ -1,7 +1,7 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka_s.base as base
+import src.ka.ka_s.base as base
 import time
 
 def test_init():
