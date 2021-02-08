@@ -5,12 +5,12 @@ except ImportError:
     
 setup(
     name='multi agent blackboard system',
-    version='0.0.1',
+    version='0.0.2',
     description='blank',
     author='Ryan Stewart',
     python_requires='>=3.6',
     zip_file=False,
-    install_requirement=['osbrain', 'numpy', 'pandas', 'h5py', 'scipy', 'osbrain', 'plotly', 'platypus-opt', 'pymop', 'scikit-learn', 'scikit-optimize', 'matplotlib'],
+    install_requirement=['osbrain', 'numpy', 'pandas', 'h5py', 'scipy', 'osbrain', 'plotly', 'platypus-opt', 'pymop', 'scikit-learn', 'scikit-optimize', 'matplotlib', 'pymoo'],
     packages=['mabs'],
     package_dir={'mabs': 'src'},
     include_package_data=True)
