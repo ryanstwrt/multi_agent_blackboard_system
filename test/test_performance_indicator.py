@@ -3,8 +3,8 @@ import src.performance_measure as pm
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka_rp as ka_rp 
-import src.bb_opt as bb_opt
+from src.ka_s.hill_climb import HillClimb
+import src.bb.blackboard_optimization as bb_opt
 import pickle
 import time
 import copy
@@ -21,9 +21,7 @@ def test_hypervolume_indicator_base():
     pf =[[.5,.5]]
     hv = pm.hypervolume_indicator(pf, lower_ref, upper_ref)
     assert hv == 0.25
-
     
-
 def test_hypervolume_indicator_sfr():
     ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
@@ -37,7 +35,7 @@ def test_hypervolume_indicator_sfr():
     bb.initialize_abstract_level_3(objectives=objs)
     bb.initialize_abstract_level_3()
 
-    bb.connect_agent(ka_rp.KaLocalHC, 'ka_rp_exploit')
+    bb.connect_agent(HillClimb, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
     rp.set_attr(step_rate=0.5)
@@ -69,11 +67,11 @@ def test_hypervolume_indicator_sfr():
     hv3 = pm.hypervolume_indicator(pf, lower_ref, upper_ref)
     
     ## Keep this in mind for determining the importance of an objective
-    for num, var in enumerate(pf):   
-        pf_test = copy.copy(pf)
-        pf_test.pop(num)
-        hv = pm.hypervolume_indicator(pf_test, lower_ref, upper_ref)
-        print('New Volume: {}, Contribution: {}'.format(hv, hv3-hv))
+#    for num, var in enumerate(pf):   
+#        pf_test = copy.copy(pf)
+#        pf_test.pop(num)
+#        hv = pm.hypervolume_indicator(pf_test, lower_ref, upper_ref)
+#        print('New Volume: {}, Contribution: {}'.format(hv, hv3-hv))
     ns.shutdown()
     
 def test_dci_init():

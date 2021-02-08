@@ -647,10 +647,6 @@ class Blackboard(Agent):
         lvl_name = 'level {}'.format(level)
         abstract_lvl = self.abstract_lvls[lvl_name][panel] if panel else self.abstract_lvls[lvl_name]
         lvl_format = self.abstract_lvls_format[lvl_name][panel] if panel else self.abstract_lvls_format[lvl_name]
-        try:
-            [x for x in entry.keys()]
-        except:
-            print(level, name, entry)
         for entry_name, entry_type in entry.items():
             if entry_name in lvl_format.keys():
                 if type(entry_type) == dict:

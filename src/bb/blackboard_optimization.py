@@ -1,6 +1,4 @@
-import src.blackboard as blackboard
-import src.ka_rp as karp
-import src.ka_br as kabr
+import src.bb.blackboard as blackboard
 import src.utilities as utils
 import src.database_generator as dg
 import src.performance_measure as pm
@@ -15,8 +13,6 @@ import scipy.interpolate
 import plotly.express as px
 from numpy import random
 import copy
-
-
 
 cur_dir = os.path.dirname(__file__)
 test_path = os.path.join(cur_dir, '../test/')
@@ -208,11 +204,6 @@ class BbOpt(blackboard.Blackboard):
         """
         Tell each agent to shutdown
         """
-        # Wait until all agents have finished performing their actions
-        for ka in self.agent_addrs.values():
-            print(ka)
-            print(ka['performing action'])
-        
         if True in [ka['performing action'] for ka in self.agent_addrs.values()]:
             return
         

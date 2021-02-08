@@ -1,15 +1,18 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.blackboard as blackboard
-import src.bb_opt as bb_opt
+import src.bb.blackboard as blackboard
+import src.bb.blackboard_optimization as bb_opt
 import time
 import os
-import src.ka_rp as karp
-import src.ka_br as kabr
+from src.ka_s.stochastic import Stochastic
+from src.ka_s.latin_hypercube import LatinHypercube
+from src.ka_s.neighborhood_search import NeighborhoodSearch
+from src.ka_brs.level3 import KaBrLevel3
+from src.ka_brs.level2 import KaBrLevel2
+from src.ka_brs.level1 import KaBrLevel1
 import src.ka as ka
 
-    
 #----------------------------------------------------------
 # Tests fopr BbOpt
 #----------------------------------------------------------
@@ -139,8 +142,8 @@ def test_connect_agent():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.connect_agent(karp.KaGlobal, 'ka_rp')
-    bb.connect_agent(kabr.KaBr_lvl3, 'ka_br')
+    bb.connect_agent(Stochastic, 'ka_rp')
+    bb.connect_agent(KaBrLevel3, 'ka_br')
     bb.connect_agent(ka.KaBase, 'ka')
     
     agents = bb.get_attr('agent_addrs')
@@ -170,12 +173,12 @@ def test_add_ka_specific():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.connect_agent(karp.KaGlobal, 'ka_rp_explore')
-    bb.connect_agent(karp.KaLHC, 'ka_rp_lhc')
-    bb.connect_agent(karp.KaLocal, 'ka_rp_exploit')
-    bb.connect_agent(kabr.KaBr_lvl1, 'ka_br_lvl1')
-    bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
-    bb.connect_agent(kabr.KaBr_lvl3, 'ka_br_lvl3')
+    bb.connect_agent(Stochastic, 'ka_rp_explore')
+    bb.connect_agent(LatinHypercube, 'ka_rp_lhc')
+    bb.connect_agent(NeighborhoodSearch, 'ka_rp_exploit')
+    bb.connect_agent(KaBrLevel1, 'ka_br_lvl1')
+    bb.connect_agent(KaBrLevel2, 'ka_br_lvl2')
+    bb.connect_agent(KaBrLevel3, 'ka_br_lvl3')
 
     
 
@@ -261,8 +264,8 @@ def test_handler_writer():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    rp = run_agent(name='explore', base=karp.KaGlobal)
-    rp1 = run_agent(name='exploit', base=karp.KaLocal)
+    rp = run_agent(name='explore', base=Stochastic)
+    rp1 = run_agent(name='exploit', base=NeighborhoodSearch)
     bb.initialize_abstract_level_3()
     rp.add_blackboard(bb)
     rp1.add_blackboard(bb)
@@ -705,7 +708,7 @@ def test_agent_performing_action():
     bb.initialize_abstract_level_3()
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga) 
-    bb.connect_agent(karp.KaGlobal, 'ka_rp')
+    bb.connect_agent(Stochastic, 'ka_rp')
     rp = ns.proxy('ka_rp')
     rp.set_attr(debug_wait=True)
     rp.set_attr(debug_wait_time=0.25)
@@ -729,12 +732,12 @@ def test_agent_shutdown():
     bb.initialize_abstract_level_3()
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga) 
-    bb.connect_agent(karp.KaGlobal, 'ka_rp')
-    bb.connect_agent(karp.KaLocal, 'ka_rp2')
-    bb.connect_agent(karp.KaGlobal, 'ka_rp3')
-    bb.connect_agent(kabr.KaBr_lvl1, 'ka_br_lvl1')
-    bb.connect_agent(kabr.KaBr_lvl2, 'ka_br_lvl2')
-    bb.connect_agent(kabr.KaBr_lvl3, 'ka_br_lvl3')
+    bb.connect_agent(Stochastic, 'ka_rp')
+    bb.connect_agent(NeighborhoodSearch, 'ka_rp2')
+    bb.connect_agent(Stochastic, 'ka_rp3')
+    bb.connect_agent(KaBrLevel1, 'ka_br_lvl1')
+    bb.connect_agent(KaBrLevel2, 'ka_br_lvl2')
+    bb.connect_agent(KaBrLevel3, 'ka_br_lvl3')
 
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 500.0, 'burnup' : 100.0, 'cycle length': 120.0, 'pu mass': 10.0},
@@ -775,7 +778,7 @@ def test_pass_agent_dict():
     bb.initialize_abstract_level_3()
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga) 
-    bb.connect_agent(karp.KaLocal, 'ka_rp', attr={'perturbation_size' : 0.25})
+    bb.connect_agent(NeighborhoodSearch, 'ka_rp', attr={'perturbation_size' : 0.25})
 
     rp = ns.proxy('ka_rp')    
     assert rp.get_attr('perturbation_size') == 0.25

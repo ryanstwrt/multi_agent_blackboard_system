@@ -1,11 +1,19 @@
 import src.controller as controller
-import src.blackboard as blackboard
-import src.bb_opt as bb_opt
-import src.ka_rp as karp
-import src.ka_br as kabr
+import src.bb.blackboard as blackboard
+import src.bb.blackboard_optimization as bb_opt
 import time
 import os
 import pickle
+from src.ka_s.stochastic import Stochastic
+from src.ka_s.latin_hypercube import LatinHypercube
+from src.ka_s.neighborhood_search import NeighborhoodSearch
+from src.ka_s.hill_climb import HillClimb
+from src.ka_s.genetic_algorithm import GeneticAlgorithm
+from src.ka_brs.level3 import KaBrLevel3
+from src.ka_brs.level2 import KaBrLevel2
+from src.ka_brs.level1 import KaBrLevel1
+from src.ka_brs.inter_bb import InterBB
+
 
 def test_controller_init():
     try:
@@ -23,10 +31,10 @@ def test_controller_init():
     time.sleep(0.05)
     
 def test_controller_init_sfr_opt():
-    kas = {'ka_rp_explore': {'type': karp.KaGlobal, 'attr' : {}},
-           'ka_rp_exploit': {'type': karp.KaLocal, 'attr' : {'perturbation_size' : 0.25}},
-           'ka_br_lvl3': {'type': kabr.KaBr_lvl3, 'attr' : {}},
-           'ka_br_lvl2': {'type': kabr.KaBr_lvl2, 'attr' : {}}}
+    kas = {'ka_rp_explore': {'type': Stochastic, 'attr' : {}},
+           'ka_rp_exploit': {'type': NeighborhoodSearch, 'attr' : {'perturbation_size' : 0.25}},
+           'ka_br_lvl3': {'type': KaBrLevel3, 'attr' : {}},
+           'ka_br_lvl2': {'type': KaBrLevel2, 'attr' : {}}}
     obj = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
     dv = {'height':     {'ll': 60.0, 'ul': 80.0, 'variable type': float},
@@ -87,11 +95,11 @@ def test_controller_init_sfr_opt():
     time.sleep(0.05)
     
 def test_run_single_agent_bb():
-    kas = {'ka_rp_explore': {'type': karp.KaGlobal},
-           'ka_rp_exploit': {'type': karp.KaLocal},
-           'ka_br_lvl3': {'type': kabr.KaBr_lvl3},
-           'ka_br_lvl2': {'type': kabr.KaBr_lvl2},
-           'ka_br_lvl1': {'type': kabr.KaBr_lvl1}}
+    kas = {'ka_rp_explore': {'type': Stochastic},
+           'ka_rp_exploit': {'type': NeighborhoodSearch},
+           'ka_br_lvl3': {'type': KaBrLevel3},
+           'ka_br_lvl2': {'type': KaBrLevel2},
+           'ka_br_lvl1': {'type': KaBrLevel1}}
     objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                   'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
                   'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}
@@ -143,11 +151,11 @@ def test_run_single_agent_bb():
     time.sleep(0.05)
 
 def test_run_multi_agent_bb():
-    kas = {'ka_rp_explore': {'type': karp.KaGlobal},
-           'ka_rp_exploit': {'type': karp.KaLocal},
-           'ka_br_lvl3': {'type': kabr.KaBr_lvl3},
-           'ka_br_lvl2': {'type': kabr.KaBr_lvl2},
-           'ka_br_lvl1': {'type': kabr.KaBr_lvl1}}
+    kas = {'ka_rp_explore': {'type': Stochastic},
+           'ka_rp_exploit': {'type': NeighborhoodSearch},
+           'ka_br_lvl3': {'type': KaBrLevel3},
+           'ka_br_lvl2': {'type': KaBrLevel2},
+           'ka_br_lvl1': {'type': KaBrLevel1}}
     objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
                            'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float}}   
@@ -206,12 +214,12 @@ def test_BenchmarkController():
             'f2': {'ll':0, 'ul':4, 'goal':'lt', 'variable type': float}}
     dvs =  {'x1':  {'ll':-10, 'ul':10, 'variable type': float}}
     const = {}
-    kas = {'ka_rp_explore': {'type': karp.KaGlobal},
-           'ka_rp_pert': {'type': karp.KaLocal},
-           'ka_rp_hc':      {'type': karp.KaLocalHC, 'attr' : {'step_limit':15}},
-           'ka_br_lvl3':    {'type': kabr.KaBr_lvl3},
-           'ka_br_lvl2':    {'type': kabr.KaBr_lvl2},
-           'ka_br_lvl1':    {'type': kabr.KaBr_lvl1, 'attr' : {'total_pf_size' : 100, 'pareto_sorter': 'dci', 'dci_div' : {'f1': 80, 'f2': 80}}}}
+    kas = {'ka_rp_explore': {'type': Stochastic},
+           'ka_rp_pert': {'type': NeighborhoodSearch},
+           'ka_rp_hc':      {'type': HillClimb, 'attr' : {'step_limit':15}},
+           'ka_br_lvl3':    {'type': KaBrLevel3},
+           'ka_br_lvl2':    {'type': KaBrLevel2},
+           'ka_br_lvl1':    {'type': KaBrLevel1, 'attr' : {'total_pf_size' : 100, 'pareto_sorter': 'dci', 'dci_div' : {'f1': 80, 'f2': 80}}}}
 
     try:
         bb_controller = controller.BenchmarkController(bb_name=model, 
@@ -280,12 +288,12 @@ def test_MTC_initialize_bb():
         mtc = controller.Multi_Tiered_Controller()
     except OSError:
         mtc = controller.Multi_Tiered_Controller()
-    kas = {'mka_rp_hc': {'type': karp.KaLocalHC},
-           'mka_rp_pert': {'type': karp.KaLocal},
-           'mka_rp_ga': {'type': karp.KaLocalGA},
-           'mka_br_lvl3': {'type': kabr.KaBr_lvl3},
-           'mka_br_lvl2': {'type': kabr.KaBr_lvl2},
-           'mka_br_lvl1': {'type': kabr.KaBr_lvl1}}
+    kas = {'mka_rp_hc': {'type': HillClimb},
+           'mka_rp_pert': {'type': NeighborhoodSearch},
+           'mka_rp_ga': {'type': GeneticAlgorithm},
+           'mka_br_lvl3': {'type': KaBrLevel3},
+           'mka_br_lvl2': {'type': KaBrLevel2},
+           'mka_br_lvl1': {'type': KaBrLevel1}}
     
     mtc.initialize_blackboard('master_bb', bb_name='bb_master', 
                               bb_type=bb_opt.MasterBbOpt, 
@@ -306,15 +314,15 @@ def test_MTC_initialize_bb():
                             'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
                             'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
     
-    kas = {'ska_rp_mc': {'type': karp.KaGlobal}, 
-           'ska_rp_hc': {'type': karp.KaLocalHC},
-           'ska_rp_lhc': {'type': karp.KaLHC},
-           'ska_rp_pert': {'type': karp.KaLocal},
-           'ska_rp_ga': {'type': karp.KaLocalGA},
-           'ska_br_lvl3': {'type': kabr.KaBr_lvl3},
-           'ska_br_lvl2': {'type': kabr.KaBr_lvl2},
-           'ska_br_lvl1': {'type': kabr.KaBr_lvl1},
-           'ska_br_inter': {'type': kabr.KaBr_interBB, 'attr':{'bb': master_bb}}}
+    kas = {'ska_rp_mc': {'type': Stochastic}, 
+           'ska_rp_hc': {'type': HillClimb},
+           'ska_rp_lhc': {'type': LatinHypercube},
+           'ska_rp_pert': {'type': NeighborhoodSearch},
+           'ska_rp_ga': {'type': GeneticAlgorithm},
+           'ska_br_lvl3': {'type': KaBrLevel3},
+           'ska_br_lvl2': {'type': KaBrLevel2},
+           'ska_br_lvl1': {'type': KaBrLevel1},
+           'ska_br_inter': {'type': InterBB, 'attr':{'bb': master_bb}}}
         
     mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', 
                               bb_type=bb_opt.SubBbOpt, 
@@ -343,12 +351,12 @@ def test_MTC_run_sub_bb():
         mtc = controller.Multi_Tiered_Controller()
     except OSError:
         mtc = controller.Multi_Tiered_Controller()        
-    kas = {'mka_rp_hc': {'type': karp.KaLocalHC},
-           'mka_rp_pert': {'type': karp.KaLocal},
-           'mka_rp_ga': {'type': karp.KaLocalGA},
-           'mka_br_lvl3': {'type': kabr.KaBr_lvl3},
-           'mka_br_lvl2': {'type': kabr.KaBr_lvl2},
-           'mka_br_lvl1': {'type': kabr.KaBr_lvl1}}
+    kas = {'mka_rp_hc': {'type': HillClimb},
+           'mka_rp_pert': {'type': NeighborhoodSearch},
+           'mka_rp_ga': {'type': GeneticAlgorithm},
+           'mka_br_lvl3': {'type': KaBrLevel3},
+           'mka_br_lvl2': {'type': KaBrLevel2},
+           'mka_br_lvl1': {'type': KaBrLevel1}}
     
     mtc.initialize_blackboard('master_bb', bb_name='bb_master', 
                                            bb_type=bb_opt.MasterBbOpt, 
@@ -363,13 +371,13 @@ def test_MTC_run_sub_bb():
                                            random_seed=1)
     
     master_bb = mtc.master_bb
-    kas = {'ska_rp_mc': {'type': karp.KaGlobal}, 
-           'ska_rp_hc': {'type': karp.KaLocalHC},
-           'ska_rp_pert': {'type': karp.KaLocal},
-           'ska_br_lvl3': {'type': kabr.KaBr_lvl3},
-           'ska_br_lvl2': {'type': kabr.KaBr_lvl2},
-           'ska_br_lvl1': {'type': kabr.KaBr_lvl1},
-           'ska_br_inter': {'type': kabr.KaBr_interBB, 'attr':{'bb': master_bb}}}
+    kas = {'ska_rp_mc': {'type': Stochastic}, 
+           'ska_rp_hc': {'type': HillClimb},
+           'ska_rp_pert': {'type': NeighborhoodSearch},
+           'ska_br_lvl3': {'type': KaBrLevel3},
+           'ska_br_lvl2': {'type': KaBrLevel2},
+           'ska_br_lvl1': {'type': KaBrLevel1},
+           'ska_br_inter': {'type': InterBB, 'attr':{'bb': master_bb}}}
         
     mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', 
                               bb_type=bb_opt.SubBbOpt, 
@@ -404,12 +412,12 @@ def test_MTC_run_master_bb():
     except OSError:
         mtc = controller.Multi_Tiered_Controller()
 
-    kas = {'mka_rp_mc': {'type': karp.KaGlobal},
-          'mka_rp_hc': {'type': karp.KaLocalHC},
-          'mka_rp_pert': {'type': karp.KaLocal},
-          'mka_br_lvl3': {'type': kabr.KaBr_lvl3},
-          'mka_br_lvl2': {'type': kabr.KaBr_lvl2},
-          'mka_br_lvl1': {'type': kabr.KaBr_lvl1}}
+    kas = {'mka_rp_mc': {'type': Stochastic},
+          'mka_rp_hc': {'type': HillClimb},
+          'mka_rp_pert': {'type': NeighborhoodSearch},
+          'mka_br_lvl3': {'type': KaBrLevel3},
+          'mka_br_lvl2': {'type': KaBrLevel2},
+          'mka_br_lvl1': {'type': KaBrLevel1}}
     
     mtc.initialize_blackboard('master_bb', bb_name='bb_master', 
                               bb_type=bb_opt.MasterBbOpt, 
@@ -425,13 +433,13 @@ def test_MTC_run_master_bb():
     
     master_bb = mtc.master_bb
     master_bb.set_attr(skipped_tvs=0)
-    kas = {'ska_rp_mc': {'type': karp.KaGlobal}, 
-           'ska_rp_hc': {'type': karp.KaLocalHC},
-           'ska_rp_pert': {'type': karp.KaLocal},
-           'ska_br_lvl3': {'type': kabr.KaBr_lvl3},
-           'ska_br_lvl2': {'type': kabr.KaBr_lvl2},
-           'ska_br_lvl1': {'type': kabr.KaBr_lvl1},
-           'ska_br_inter': {'type': kabr.KaBr_interBB, 'attr':{'bb': master_bb}}}
+    kas = {'ska_rp_mc': {'type': Stochastic}, 
+           'ska_rp_hc': {'type': HillClimb},
+           'ska_rp_pert': {'type': NeighborhoodSearch},
+           'ska_br_lvl3': {'type': KaBrLevel3},
+           'ska_br_lvl2': {'type': KaBrLevel2},
+           'ska_br_lvl1': {'type': KaBrLevel1},
+           'ska_br_inter': {'type': InterBB, 'attr':{'bb': master_bb}}}
         
     mtc.initialize_blackboard('sub_bb', bb_name='bb_sub', 
                               bb_type=bb_opt.SubBbOpt, 

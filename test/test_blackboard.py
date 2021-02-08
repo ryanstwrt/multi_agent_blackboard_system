@@ -2,9 +2,8 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import numpy as np
-import src.blackboard as blackboard
+import src.bb.blackboard as blackboard
 import src.ka as ka
-import src.ka_rp as karp
 import time
 import os
 import h5py
