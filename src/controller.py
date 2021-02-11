@@ -5,159 +5,13 @@ import time
 import pickle
 import src.utils.moo_benchmarks as mb
 import src.bb.blackboard as blackboard
-import src.bb.blackboard_optimization as bb_opt
+import src.bb.blackboard_optimization as bb_opt            
 
 class Controller(object):
     """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
     
-    The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
-    
-    def __init__(self, blackboard={},
-                       ka={}, 
-                       problem=None,
-                       agent_wait_time=30, 
-                       min_agent_wait_time=0,
-                       plot_progress=False,
-                       random_seed=None):
-        
-        self.agent_time = 0
-        self.time = [time.time()]        
-        
-        self.bb_name = blackboard['name']
-        self.bb_type = blackboard['type']
-        
-        self._ns = run_nameserver()
-        self._proxy_server = proxy.NSProxy()
-        self.bb = run_agent(name=self.bb_name, base=self.bb_type)
-           
-        if 'attr' in blackboard.keys():
-            for k,v in blackboard['attr'].items():
-                self.bb.set_attr(**{k:v})
-                
-        self.bb.set_attr(problem=problem)
-        self.bb.initialize_abstract_level_3(objectives=problem.objs, design_variables=problem.dvs, constraints=problem.cons)
-        self.bb.set_attr(random_seed=random_seed)
-        
-        self.agent_wait_time = agent_wait_time
-        self.plot_progress = plot_progress          
-        self.progress_rate = self.bb.get_attr('convergence_interval')
-        
-        for ka_name, ka_data in ka.items():
-            attr = ka_data['attr'] if 'attr' in ka_data.keys() else {}
-            self.bb.connect_agent(ka_data['type'], ka_name, attr=attr)
-            
-    def run_single_agent_bb(self):
-        """Run a BB optimization problem single-agent mode."""
-        num_agents = len(self.bb.get_attr('agent_addrs'))
-        while not self.bb.get_complete_status():
-            self.bb.publish_trigger()
-            trig_num = self.bb.get_current_trigger_value()
-            responses = False
-            # Wait until all responses have been recieved
-            while not responses:
-                try:
-                    if len(self.bb.get_kaar()[trig_num]) == num_agents:
-                        responses = True
-                except RuntimeError:
-                    pass
-            self.bb.controller()
-            self.bb.set_attr(_new_entry=False)
-            self.bb.send_executor()
-            agent_time = time.time()
-            while self.bb.get_attr('_new_entry') == False:
-                if time.time() - agent_time > self.agent_wait_time:
-                    break
-            agent_time = time.time() - agent_time
-            if len(self.bb.get_kaar()) % self.progress_rate == 0 or self.bb.get_complete_status() == True:
-                self.bb.convergence_indicator()
-                self.bb.write_to_h5()
-                if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
-                    self.bb.determine_complete()
-                    if self.bb.get_complete_status():
-                        while len(self.bb.get_attr('agent_addrs')) > 0:           
-                            if True in [agent['performing action'] for agent in self.bb.get_attr('agent_addrs').values()]:
-                                time.sleep(1)
-                            else:
-                                self.bb.send_shutdown()
-                if self.plot_progress:
-                    self.bb.plot_progress()
-            else:
-                self.bb.convergence_update()
-
-        self.time.append(time.time())
-        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
-        self.bb.write_to_h5()
-        
-        
-    def run_multi_agent_bb(self):
-        """Run a BB optimization problem single-agent mode."""
-        num_agents = len(self.bb.get_attr('agent_addrs'))
-        while not self.bb.get_complete_status():
-            self.bb.publish_trigger()
-            trig_num = self.bb.get_current_trigger_value()
-            responses = False
-            # Wait until a response has been recieved
-            time_wait = time.time()
-            bb_archived = True
-            while time.time() - time_wait  < self.agent_wait_time:
-                try:
-                    kaar = self.bb.get_kaar()[trig_num]
-                    kaar_val = [x for x in kaar.values()]
-                    if kaar_val != []:
-                        if max(kaar_val) > 0.0:
-                            break
-                    elif bb_archived:
-                        self.bb.write_to_h5()
-                        bb_archived = False
-                except RuntimeError:
-                    pass
-                
-            self.bb.controller()
-            self.bb.send_executor()
-
-            if len(self.bb.get_kaar()) % self.progress_rate == 0 or self.bb.get_complete_status() == True:
-                self.bb.convergence_indicator()
-                self.bb.write_to_h5()
-                self.bb.diagnostics_replace_agent()
-                if len(self.bb.get_hv_list()) > 2 * self.progress_rate:
-                    self.bb.determine_complete()
-                    if self.bb.get_complete_status():
-                        while len(self.bb.get_attr('agent_addrs')) > 0:                                   
-                            if True in [agent['performing action'] for agent in self.bb.get_attr('agent_addrs').values()]:
-                                time.sleep(1)
-                            else:
-                                self.bb.send_shutdown()
-                            
-                if self.plot_progress:
-                    self.bb.plot_progress()
-            else:
-                self.bb.convergence_update()
-                agent_time = 0
-            time.sleep(0.05)
-        self.time.append(time.time())
-        self.bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': self.time[1]-self.time[0], 'hvi': self.bb.get_hv_list()[-1]})
-        self.bb.write_to_h5()        
-                
-    def update_bb_trigger_values(self, trig_num):
-        """
-        Update a knowledge agents trigger value.
-        
-        If BB has too many entries on a abstract level, the KA trigger value gets increased by 1.
-        If the BB has few entries on the abstract level, the KA trigger value is reduced by 1.
-        """
-        self.bb.controller_update_kaar(trig_num, round(self.agent_time,2))
-        self.agent_time = 0
-        
-    def shutdown(self):
-        self._ns.shutdown()
-            
-
-class Multi_Tiered_Controller(Controller):
-    """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
-    
     The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization.
     
-    TO DO: Update this to allow for multiple sub blackboard
     TO DO: Update this to allow for blackboards to be working in parallel
     """
     
@@ -197,6 +51,51 @@ class Multi_Tiered_Controller(Controller):
                                        'progress_rate': _bb.get_attr('convergence_interval'),
                                        'plot_progress':plot_progress}})             
                 
+
+    def run_single_agent_bb(self, bb):
+        """Run a BB optimization problem single-agent mode."""
+        bb_attr = self.bb_attr[bb]
+        bb = getattr(self, bb) 
+        bb_time = time.time()        
+        
+        num_agents = len(bb.get_attr('agent_addrs'))
+        while not bb.get_complete_status():
+            bb.publish_trigger()
+            trig_num = bb.get_current_trigger_value()
+            responses = False
+            # Wait until all responses have been recieved
+            while not responses:
+                try:
+                    if len(bb.get_kaar()[trig_num]) == num_agents:
+                        responses = True
+                except RuntimeError:
+                    pass
+            bb.controller()
+            bb.set_attr(_new_entry=False)
+            bb.send_executor()
+            agent_time = time.time()
+            while bb.get_attr('_new_entry') == False:
+                if time.time() - agent_time > bb_attr['agent_wait_time']:
+                    break
+            agent_time = time.time() - agent_time
+            if len(bb.get_kaar()) %  bb_attr['progress_rate'] == 0 or bb.get_complete_status() == True:
+                bb.convergence_indicator()
+                bb.write_to_h5()
+                if len(bb.get_hv_list()) > 2 *  bb_attr['progress_rate']:
+                    bb.determine_complete()
+                    if bb.get_complete_status():
+                        while len(bb.get_attr('agent_addrs')) > 0:           
+                            if True in [agent['performing action'] for agent in bb.get_attr('agent_addrs').values()]:
+                                time.sleep(1)
+                            else:
+                                bb.send_shutdown()
+                if bb_attr['plot_progress']:
+                    bb.plot_progress()
+            else:
+                bb.convergence_update()
+
+        bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time.time()-bb_time, 'hvi': bb.get_hv_list()[-1]})
+        bb.write_to_h5()            
             
     def run_multi_agent_bb(self, bb):
         """Run a BB optimization problem single-agent mode."""
@@ -246,9 +145,19 @@ class Multi_Tiered_Controller(Controller):
             else:
                 bb.convergence_update()
                 agent_time = 0
-            time.sleep(0.01)
+            time.sleep(0.05)
         bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time.time()-bb_time, 'hvi': bb.get_hv_list()[-1]})
         bb.write_to_h5() 
+        
+    def update_bb_trigger_values(self, trig_num):
+        """
+        Update a knowledge agents trigger value.
+        
+        If BB has too many entries on a abstract level, the KA trigger value gets increased by 1.
+        If the BB has few entries on the abstract level, the KA trigger value is reduced by 1.
+        """
+        self.bb.controller_update_kaar(trig_num, round(self.agent_time,2))
+        self.agent_time = 0
         
     def shutdown(self):
         self._ns.shutdown()
