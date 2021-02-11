@@ -210,7 +210,7 @@ class BbOpt(blackboard.Blackboard):
         agent_addrs = copy.copy(self.agent_addrs)      
         for agent_name, connections in self.agent_addrs.items():
         # If statement is for inter_BB agent who only have a write function assocaiated with the BB
-            if 'shutdown' not in list(connections.keys()):
+            if not connections['shutdown']:
                 agent_addrs.pop(agent_name)
             elif agent_name in agent_addrs.keys():  
                 if connections['performing action']:

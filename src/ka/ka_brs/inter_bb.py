@@ -1,5 +1,6 @@
 from src.ka.ka_brs.base import KaBr
 import time
+from osbrain import proxy
 
 class InterBB(KaBr):
     """Reads BB Level and write results to secondary BB."""
@@ -22,7 +23,12 @@ class InterBB(KaBr):
         
     def connect_bb_to_write(self, bb):
         """Connect the BB and writer message to the BB we want to write to"""
-        bb_agent_addr = bb.get_attr('agent_addrs')
+        try:
+            bb_agent_addr = bb.get_attr('agent_addrs')
+        except AttributeError:
+            bb = proxy.NSProxy().proxy(bb)
+            bb_agent_addr = bb.get_attr('agent_addrs')            
+            
         bb_agent_addr[self.name] = {'trigger response': None, 'executor': None, 'shutdown':None, 'performing action': False, 'class': InterBB}
         bb.set_attr(agent_addrs=bb_agent_addr)
         self._new_entry_format = {'design variables': bb.get_attr('design_variables'),

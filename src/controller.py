@@ -54,15 +54,10 @@ class Controller(object):
             trig_num = self.bb.get_current_trigger_value()
             responses = False
             # Wait until all responses have been recieved
-            i = 0
             while not responses:
                 try:
-                    time.sleep(1)
                     if len(self.bb.get_kaar()[trig_num]) == num_agents:
                         responses = True
-                    i+=1
-                    if i > 6:
-                        exit()
                 except RuntimeError:
                     pass
             self.bb.controller()
@@ -162,7 +157,6 @@ class Multi_Tiered_Controller(Controller):
     
     The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization.
     
-    TO DO: Update this to work with new nomenclature 
     TO DO: Update this to allow for multiple sub blackboard
     TO DO: Update this to allow for blackboards to be working in parallel
     """
@@ -175,110 +169,86 @@ class Multi_Tiered_Controller(Controller):
         self._proxy_server = proxy.NSProxy()       
 
             
-    def initialize_blackboard(self, bb,
-                                    bb_name='bb', 
-                                    bb_type=None, 
-                                    ka={}, 
-                                    objectives=None, 
-                                    design_variables=None,
-                                    constraints=None,
-                                    archive='bb_archive', 
-                                    agent_wait_time=30, 
-                                    min_agent_wait_time=0,
-                                    plot_progress=False,
-                                    total_tvs=1E6,
-                                    skipped_tvs=200,
-                                    convergence_type='hvi',
-                                    convergence_rate=1E-5,
-                                    convergence_interval=25,
-                                    pf_size=200,
-                                    dci_div={},
-                                    surrogate_model={'sm_type': 'gpr', 'pickle file': 'sm_gpr.pkl'},
-                                    random_seed=None):
+    def initialize_blackboard(self, 
+                              blackboard={},
+                              ka={}, 
+                              problem=None,
+                              agent_wait_time=30, 
+                              min_agent_wait_time=0,
+                              plot_progress=False,
+                              random_seed=None):    
         
-        self.bb_attr.update({bb_name: {'plot': plot_progress,
-                                       'name': bb_name,
-                                       'wait time': agent_wait_time}})
-        setattr(self, bb, run_agent(name=bb_name, base=bb_type))
-        bb = getattr(self, bb)
-        bb.set_random_seed(seed=random_seed)
-        bb.set_attr(archive_name='{}.h5'.format(archive))
+        setattr(self, blackboard['name'], run_agent(name=blackboard['name'], base=blackboard['type']))
+        _bb = getattr(self, blackboard['name'])
+        for k,v in blackboard['attr'].items():
+            _bb.set_attr(**{k:v})
 
-        bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables, constraints=constraints)
-        bb.set_attr(sm_type=surrogate_model['sm_type'])
-
-        bb.set_attr(total_tvs=total_tvs)
-        bb.set_attr(skipped_tvs=skipped_tvs)
-        bb.set_attr(pf_size=pf_size)
-        bb.set_attr(convergence_type=convergence_type)
-        bb.set_attr(convergence_rate=convergence_rate)
-        bb.set_attr(convergence_interval=convergence_interval)            
-        bb.set_attr(dci_div=dci_div)
-        
-        if surrogate_model['pickle file']:
-            with open(surrogate_model['pickle file'], 'rb') as pickle_file:
-                sm = pickle.load(pickle_file)
-            bb.set_attr(_sm=sm)            
-        else:
-            bb.generate_sm()
+        _bb.set_attr(problem=problem)
+        _bb.initialize_abstract_level_3(objectives=problem.objs, design_variables=problem.dvs, constraints=problem.cons)
+        _bb.set_random_seed(seed=random_seed)
  
         for ka_name, ka_data in ka.items():
             attr = ka_data['attr'] if 'attr' in ka_data.keys() else {}
-            bb.connect_agent(ka_data['type'], ka_name, attr=attr)
+            _bb.connect_agent(ka_data['type'], ka_name, attr=attr)
+            
+        self.bb_attr.update({blackboard['name']: {'plot': plot_progress,
+                                       'name': blackboard['name'],
+                                       'agent_wait_time': agent_wait_time,
+                                       'progress_rate': _bb.get_attr('convergence_interval'),
+                                       'plot_progress':plot_progress}})             
                 
             
-    def run_sub_bb(self, bb):
+    def run_multi_agent_bb(self, bb):
         """Run a BB optimization problem single-agent mode."""
-        time_1 = time.time()
-        bb_name = bb.get_attr('name')
+        bb_attr = self.bb_attr[bb]
+        bb = getattr(self, bb) 
+        bb_time = time.time()
+        
         num_agents = len(bb.get_attr('agent_addrs'))
-        convergence_interval=bb.get_attr('convergence_interval')
-        bb_attr = self.bb_attr[bb_name]
-        if bb_name == 'bb_master':
-            num_agents -= 1
-            
         while not bb.get_complete_status():
             bb.publish_trigger()
             trig_num = bb.get_current_trigger_value()
             responses = False
-            # Wait until all responses have been recieved
-            while not responses:
+            # Wait until a response has been recieved
+            time_wait = time.time()
+            bb_archived = True
+            while time.time() - time_wait  < bb_attr['agent_wait_time']:
                 try:
-                    if len(bb.get_kaar()[trig_num]) == num_agents:
-                        responses = True
+                    kaar = bb.get_kaar()[trig_num]
+                    kaar_val = [x for x in kaar.values()]
+                    if kaar_val != []:
+                        if max(kaar_val) > 0.0:
+                            break
+                    elif bb_archived:
+                        bb.write_to_h5()
+                        bb_archived = False
                 except RuntimeError:
                     pass
-
+                
             bb.controller()
-            bb.set_attr(_new_entry=False)
             bb.send_executor()
-            
-            agent_time = time.time()
 
-            while bb.get_attr('_new_entry') == False:
-                if time.time() - agent_time > bb_attr['wait time']:
-                    break
-            agent_time = time.time() - agent_time
-
-            if len(bb.get_kaar()) % convergence_interval == 0:
+            if len(bb.get_kaar()) % bb_attr['progress_rate'] == 0 or bb.get_complete_status() == True:
                 bb.convergence_indicator()
                 bb.write_to_h5()
-                if len(bb.get_hv_list()) > 2 * convergence_interval:
+                bb.diagnostics_replace_agent()
+                if len(bb.get_hv_list()) > 2 * bb_attr['progress_rate']:
                     bb.determine_complete()
                     if bb.get_complete_status():
-                        while len(bb.get_attr('agent_addrs')) > 0:
-                            bb.send_shutdown()
-                if bb_attr['plot']:
+                        while len(bb.get_attr('agent_addrs')) > 0:                                   
+                            if True in [agent['performing action'] for agent in bb.get_attr('agent_addrs').values()]:
+                                time.sleep(1)
+                            else:
+                                bb.send_shutdown()
+                            
+                if bb_attr['plot_progress']:
                     bb.plot_progress()
             else:
                 bb.convergence_update()
-
-        time_2 = time.time()
-
-        bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'hvi': bb.get_hv_list()[-1], 'time': time_2 - time_1})
-        bb.write_to_h5()
-
-        return
+                agent_time = 0
+            time.sleep(0.01)
+        bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time.time()-bb_time, 'hvi': bb.get_hv_list()[-1]})
+        bb.write_to_h5() 
         
     def shutdown(self):
         self._ns.shutdown()
