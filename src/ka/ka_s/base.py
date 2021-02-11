@@ -40,6 +40,7 @@ class KaS(KaBase):
         self.learning_factor = 0.5
         self.debug_wait = False
         self.debug_wait_time = 0.5
+        self.problem = None
         
     def set_random_seed(self, seed=None):
         """
@@ -65,12 +66,8 @@ class KaS(KaBase):
         self.log_debug('Determining core parameters based on SM')
         self._entry_name = self.get_design_name(self.current_design_variables)
 
-        if 'benchmark' in self.sm_type:
-            self.get_benchmark_objectives()
-        elif self.sm_type == 'interpolate':
-            self.get_interpolate_objectives()
-        else:
-            self.get_sm_objectives()
+        self.current_objectives, self.current_constraints = self.problem.evaluate(self.current_design_variables)
+        
         if self._entry_name:
             self._entry = {'design variables': self.current_design_variables, 
                            'objective functions': self.current_objectives,
@@ -105,21 +102,7 @@ class KaS(KaBase):
                     return False
                 
         return True
-        
-    def get_benchmark_objectives(self):
-        """
-        Calculate the objectives based on a benchmark problem.
-        """
-        design = [x for x in self.current_design_variables.values()]
-        obj_dict = self._sm.predict(self.sm_type.split()[0], design, num_vars=len(design), num_objs=len(self._objectives.keys()))
-        for num, obj in enumerate(self._objectives.keys()):
-            if self._objectives[obj]['variable type'] == float:
-                self.current_objectives[obj] = round(float(obj_dict['F'][num]), self._objective_accuracy)
-            elif self._objectives[obj]['variable type'] == str:
-                self.current_objectives[obj] = str(obj_dict[num])
-        for num, cnst in enumerate(self._constraints.keys()):
-            self.current_constraints[cnst] = round(float(obj_dict['G'][num]), self._constraint_accuracy)
-        
+       
     def get_design_name(self, design):
         """
         Generate the design name given the multiple dv options
@@ -137,27 +120,6 @@ class KaS(KaBase):
 
     def get_float_val(self, multiplier, ll, ul,  accuracy):
         return round(multiplier * (ul - ll) + ll, accuracy)
-    
-    def get_interpolate_objectives(self):
-        """
-        Get the objective functions based on an interpolator function
-        """
-        design = [x for x in self.current_design_variables.values()]
-        for obj_name, interpolator in self._sm.items():
-            if obj_name in self._objectives:
-                self.current_objectives[obj_name] = round(float(interpolator(tuple(design))), self._objective_accuracy)
-            elif obj_name in self._constraints:
-                self.current_constraints[obj_name] = round(float(interpolator(tuple(design))), self._constraint_accuracy)
-                
-    def get_sm_objectives(self):
-        """
-        Get the objective functions based on a surrogate model
-        """
-        obj_dict = self._sm.predict(self.sm_type, self.current_design_variables, output='dict')
-        for obj in self._objectives.keys():
-            self.current_objectives[obj] = round(float(obj_dict[obj]), self._objective_accuracy)
-        for cnst in self._constraints.keys():
-            self.current_constraints[cnst] = round(float(obj_dict[cnst]), self._constraint_accuracy)
                   
     def handler_executor(self, message):
         """
@@ -227,6 +189,15 @@ class KaLocal(KaS):
         self.analyzed_design = {}
         self.new_designs = []
         self._class = 'local search'
+        
+    def check_new_designs(self):
+        """
+        Check to ensure all designs in `new_designs` are still in `lvl_read`.
+        """
+        new_design_list = copy.copy(self.new_designs)
+        for core in new_design_list:
+            if core not in self.lvl_read.keys():
+                self.new_designs.remove(core)        
                 
     def determine_model_applicability(self, dv):
         """
@@ -322,16 +293,7 @@ class KaLocal(KaS):
         else:
             core = random.choice(self.new_designs)
         return core
-    
-    def check_new_designs(self):
-        """
-        Check to ensure all designs in `new_designs` are still in `lvl_read`.
-        """
-        new_design_list = copy.copy(self.new_designs)
-        for core in new_design_list:
-            if core not in self.lvl_read.keys():
-                self.new_designs.pop(core)
-        
+          
     def read_bb_lvl(self, lvl):
         """
         Determine if there are any 'new' entries on level 1.

@@ -26,21 +26,12 @@ class BbOpt(blackboard.Blackboard):
         self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
         self.add_abstract_lvl(2, {'valid': bool})
         self.add_panel(2, ['new', 'old'])
-
-        self.objectives = {'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float},
-                           'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
-                           'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},
-                           'pu mass':          {'ll':0,     'ul':1500, 'goal':'lt', 'variable type': float},}
-        self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
-                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
-                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
-
-        self.constraints = {'eol keff':    {'ll': 1.0, 'ul': 2.5, 'variable type': float}}
-        
+        self.objectives = {}
+        self.design_variables = {}
+        self.constraints = {}
         self.objectives_ll = []
         self.objectives_ul = []
         self.total_tvs = 1E6
-        
         
         self.hv_list = [0.0]
         self._sm = None
@@ -59,7 +50,8 @@ class BbOpt(blackboard.Blackboard):
         self.pf_size = 200
         self.function_evals = 1E6
         self.dci_div = {}
-        self.final_trigger = 3        
+        self.final_trigger = 3       
+        self.problem = None
         
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
@@ -129,6 +121,7 @@ class BbOpt(blackboard.Blackboard):
         
         ka.set_attr(_objectives=self.objectives)
         ka.set_attr(_constraints=self.constraints)
+        ka.set_attr(problem=self.problem)
         for k,v in attr.items():
             ka.set_attr(**{k:v})
         
@@ -221,7 +214,7 @@ class BbOpt(blackboard.Blackboard):
                 agent_addrs.pop(agent_name)
             elif agent_name in agent_addrs.keys():  
                 if connections['performing action']:
-                    self.log_info((agent_name, connections['performing action']))
+                    ...
                 elif not self.diagnostics_agent_present(agent_name):
                     agent_addrs.pop(agent_name)
                 else:
@@ -523,119 +516,4 @@ class SubBbOpt(BbOpt):
         # Initialize an abstract level which holds meta-data about the problem
         self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
 
-
-class BenchmarkBbOpt(BbOpt):
-    
-    def on_init(self):
-        super().on_init()
-        self._complete = False
-        self.problem = 'benchmark'
-        self.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
-        self.add_abstract_lvl(2, {'valid': bool})
-        self.add_panel(2, ['new', 'old'])
-
-        self.objectives = {}
-        self.design_variables =  {}
-        self.constraints = {}
-        # Initialize an abstract level which holds meta-data about the problem
-        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
-                
-    def plot_progress(self):
-        
-        try:
-            lvls = self.get_attr('abstract_lvls')
-            objectives = self.get_attr('objectives')
-            lvl_3 = {}
-            for panel in lvls['level 3'].values():
-                lvl_3.update(panel)    
-            lvl_1 = lvls['level 1']
-
-            obj_dict = {}
-            objs = [x for x in objectives.keys()]
-            for entry_name, entry in lvl_1.items():
-                val = lvl_3[entry_name]['objective functions']
-                for obj in objectives.keys():
-                    if obj in obj_dict.keys():
-                        obj_dict[obj].append(val[obj])
-                    else:
-                        obj_dict[obj] = [val[obj]]
-
-            fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':'f1', 'y':'f2'})
-            fig1.show()
-        except KeyError:
-            pass
-        fig2 = px.line(x=[x for x in range(len(self.hv_list))], y=self.hv_list, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
-        fig2.show()
-        
-    def encode_design(self, design):
-        """
-        Encode the design variables into a format which can be passed to train_surrogate_model
-        """
-        level_3 = {}
-        for panel in self.abstract_lvls['level 3'].values():
-            level_3.update(panel)
-        encoded_design = []
-        encoder_dict = utils.encode_dvs(self.design_variables)
-        for dv in self.design_variables.keys():
-            converted_dv = encoder_dict[dv].transform([[level_3[design]['design variables'][dv]]])
-            for num, option in enumerate(self.design_variables[dv]['options']):
-                encoded_design.append(converted_dv[0][num])
-        return encoded_design
-
-    def prepare_sm(self):
-        """
-        Convert the blackboard data to a format which can be interpreted by train_surrogate_model
-        """
-        self.dv_dict = {}
-        self.obj_dict = {}
-        for dv in self.design_variables:
-            if self.design_variables[dv]['variable type'] != float:
-                self.dv_dict.update({str(dv) + str(option) : [] for option in self.design_variables[dv]['options']})
-            else:
-                self.dv_dict.update({dv:[]})
-        for obj in self.objectives.keys():
-            if self.objectives[obj]['variable type'] == list:
-                self.obj_dict.update({str(obj) + str(num) : [] for num in range(0,self.objectives[obj]['length'])})
-            else:
-                self.obj_dict.update({obj:[]})
-        for constraint in self.constraints.keys():
-            if self.constraints[constraint]['variable type'] == list:
-                self.obj_dict.update({str(constraint) + str(num) : [] for num in range(0,self.constraints[constraint]['length'])})
-            else:
-                self.obj_dict.update({constraint:[]})      
-
-    def convert_data_for_sm(self):
-        """
-        Convert data in the blackboard to be sent to a surrogate model
-        """
-        encoder_dict = utils.encode_dvs(self.design_variables)
-
-        level_3 = {}
-        for panel in self.abstract_lvls['level 3'].values():
-            level_3.update(panel)
-
-        for core in level_3.keys():
-            for dv in self.design_variables:
-                if self.design_variables[dv]['variable type'] == str:
-                    encoded_dv = encoder_dict[dv].transform([[level_3[core]['design variables'][dv]]])
-                    for num, option in enumerate(self.design_variables[dv]['options']):
-                        name = str(dv) + str(option)
-                        self.dv_dict[name].append(encoded_dv[0][num])
-                else:
-                    dv_dict[dv].append(level_3[core]['design variables'][dv])
-            for obj in self.objectives.keys():
-                if self.objectives[obj]['variable type'] == list:
-                    for num, obj_val in enumerate(level_3[core]['objective functions'][obj]):
-                        name = str(obj) + str(num)
-                        self.obj_dict[name].append(obj_val)
-                else:
-                    self.obj_dict[obj].append(level_3[core]['objective functions'][obj])
-            for constraint in self.constraints.keys():
-                if self.constraints[constraint]['variable type'] == list:
-                    for num, con_val in enumerate(level_3[core]['constraints'][constraint]):
-                        name = str(constraint) + str(num)
-                        self.obj_dict[name].append(con_val)
-                else:
-                    self.obj_dict[constraint].append(level_3[core]['constraints'][constraint])
- 
 

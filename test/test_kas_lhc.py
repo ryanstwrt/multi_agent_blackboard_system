@@ -2,11 +2,16 @@ from osbrain import run_nameserver
 from osbrain import run_agent
 import src.ka.ka_s.latin_hypercube as lhc
 import src.bb.blackboard_optimization as bb_opt
+from src.utils.problem import BenchmarkProblem
 import time
-import pickle
-
-with open('./sm_gpr.pkl', 'rb') as pickle_file:
-    sm_ga = pickle.load(pickle_file)
+    
+dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
+objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}
+        
+problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'dtlz1')      
     
 def test_kalhc_init():
     try:
@@ -31,7 +36,8 @@ def test_generate_lhc():
         time.sleep(0.5)
         ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=lhc.LatinHypercube)
-    rp.set_random_seed(seed=10997)
+    rp.set_random_seed(seed=10997)    
+    
     rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
@@ -102,13 +108,11 @@ def test_handler_executor():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
-
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga) 
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
     bb.connect_agent(lhc.LatinHypercube, 'ka_rp_lhc')
     
     rp = ns.proxy('ka_rp_lhc')
+    rp.set_attr(problem=problem)    
     rp.set_attr(_trigger_val=2)
     rp.set_random_seed(seed=10997)
     rp.set_attr(samples=2)
@@ -117,7 +121,7 @@ def test_handler_executor():
     bb.send_executor()
     time.sleep(0.5)
 
-    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core_[57.99991,50.89339,0.6786]': {'design variables': {'height': 57.99991, 'smear': 50.89339, 'pu_content': 0.6786}, 'objective functions': {'cycle length': 120.0, 'reactivity swing': 1074.32906, 'burnup': 101.35059, 'pu mass': 670.08062}, 'constraints': {'eol keff': 0.92403}}, 'core_[78.82683,60.40718,0.10726]': {'design variables': {'height': 78.82683, 'smear': 60.40718, 'pu_content': 0.10726}, 'objective functions': {'cycle length': 120.0, 'reactivity swing': 569.0823, 'burnup': 63.53671, 'pu mass': 168.10431}, 'constraints': {'eol keff': 0.98864}}}
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core_[0.26666,0.04467,0.6786]': {'design variables': {'x0': 0.26666, 'x1': 0.04467, 'x2': 0.6786}, 'objective functions': {'f0': 0.4869665852855559, 'f1': 10.414456859656372, 'f2': 29.979936507589112}, 'constraints': {}}, 'core_[0.96089,0.52036,0.10726]': {'design variables': {'x0': 0.96089, 'x1': 0.52036, 'x2': 0.10726}, 'objective functions': {'f0': 6.662459472035095, 'f1': 6.141098587837098, 'f2': 0.5211284910047987}, 'constraints': {}}}
     assert rp.get_attr('_trigger_val') == 0    
 
     ns.shutdown() 
@@ -130,7 +134,7 @@ def test_handler_trigger_publish():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
     bb.connect_agent(lhc.LatinHypercube, 'ka_rp_lhc')
     
     bb.publish_trigger()

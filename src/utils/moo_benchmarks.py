@@ -8,7 +8,6 @@ class optimization_test_functions(object):
         self.test_name = test
 
     def predict(self, test_name, x, num_vars=2, num_objs=None):
-#        time.sleep(2.0)
         if self.test_name == 'sf1':
             return self.schaffer_func_1(x)
         elif self.test_name == 'sf2':
@@ -61,7 +60,6 @@ class optimization_test_functions(object):
 
     def dtlz(self, x, num_vars, num_objs):
         problem = get_problem(self.test_name, n_var=num_vars, n_obj=num_objs)
- #       problem = mop.DTLZ2(n_var=num_vars, n_obj=num_objs)
         soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)
         return soln     
     

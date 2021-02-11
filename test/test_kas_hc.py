@@ -3,11 +3,15 @@ from osbrain import run_agent
 import src.ka.ka_s.hill_climb as hc
 import src.bb.blackboard_optimization as bb_opt
 import time
-import pickle
-import src.utils.moo_benchmarks as moo
+from src.utils.problem import BenchmarkProblem
 
-with open('./sm_gpr.pkl', 'rb') as pickle_file:
-    sm_ga = pickle.load(pickle_file)
+dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
+objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}    
+        
+problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'dtlz1')   
     
 def test_init():
     try:
@@ -25,8 +29,6 @@ def test_init():
     assert rp.get_attr('convergence_criteria') == 0.001
     assert rp.get_attr('hc_type') == 'simple'
     assert rp.get_attr('_class') == 'local search hc'
-
-
     ns.shutdown()
     time.sleep(0.1)
     
@@ -38,14 +40,15 @@ def test_determine_step_steepest_ascent():
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
+    dvs = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+          'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+          'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float},
             'eol keff':         {'ll':1.0, 'ul':2.0,   'goal':'et', 'target': 1.5, 'variable type': float},
             'power':        {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    cons = {'eol keff':         {'ll':1.0, 'ul':2.5, 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints=cons)
 
     bb.connect_agent(hc.HillClimb, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
@@ -210,12 +213,13 @@ def test_determine_step_simple():
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    dvs = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+          'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+          'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
+    cons = {'eol keff':         {'ll':1.0, 'ul':2.5, 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints=cons)
 
     bb.connect_agent(hc.HillClimb, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
@@ -267,15 +271,13 @@ def test_determine_step_simple_discrete_dv():
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     dv = {'x0' : {'options': ['0', '1', '2', '3'], 'default': '0', 'variable type': str},
           'x1' : {'options': ['0', '1', '2', '3'], 'default': '1', 'variable type': str},
           'x2' : {'options': ['0', '1', '2', '3'], 'default': '2', 'variable type': str},
           'x3' : {'options': ['0', '1', '2', '3'], 'default': '3', 'variable type': str}}
     obj = {'f1': {'ll': 80, 'ul':200, 'goal': 'lt', 'variable type': float}}
     bb.initialize_abstract_level_3(design_variables=dv,objectives=obj)
-    bb.set_attr(sm_type='tsp_benchmark')
-    bb.set_attr(_sm=moo.optimization_test_functions('tsp'))
     bb.connect_agent(hc.HillClimb, 'ka_rp')
     rp = ns.proxy('ka_rp')
     rp.set_random_seed(seed=1)
@@ -300,8 +302,7 @@ def test_determine_step_simple_discrete_dv():
     assert pert == '+ x1'
     assert round(diff, 5) == 0.15833
     ns.shutdown()
-    time.sleep(0.1)
-    
+    time.sleep(0.1)   
     
 def test_search_method_steepest_ascent():
     try:
@@ -310,42 +311,36 @@ def test_search_method_steepest_ascent():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
-    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
 
     bb.connect_agent(hc.HillClimb, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(problem=problem)        
     rp.set_attr(step_size=0.2)
     rp.set_attr(step_rate=0.5)
     rp.set_attr(step_limit=1)
     rp.set_attr(convergence_criteria=0.001)
     rp.set_attr(hc_type='steepest ascent')
     rp.set_random_seed(seed=1099)
-    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
-    bb.update_abstract_lvl(3, 'core_[78.65,65.0,0.42]', {'design variables': {'height': 78.65, 'smear': 65.0, 'pu_content': 0.42}, 
-                                                           'objective functions': {'reactivity swing' : 447.30449, 'burnup' : 490.0}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.set_attr(new_designs=['core_[65.0,65.0,0.42]'])
+    rp.set_attr(new_designs=['core_[0.650,0.650,0.4]'])
 
     rp.search_method()  
     time.sleep(0.075)
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[65.0,65.0,0.336]', 'core_[65.0,65.0,0.504]', 'core_[65.0,52.0,0.42]', 'core_[52.0,65.0,0.42]', 'core_[78.0,65.0,0.42]', 'core_[65.0,65.0,0.2688]', 'core_[65.0,65.0,0.4032]', 'core_[65.0,52.0,0.336]', 'core_[52.0,65.0,0.336]', 'core_[78.0,65.0,0.336]', ]
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.65,0.32]', 'core_[0.65,0.65,0.48]', 'core_[0.65,0.52,0.4]', 'core_[0.65,0.78,0.4]', 'core_[0.52,0.65,0.4]', 'core_[0.78,0.65,0.4]', 'core_[0.65,0.65,0.384]', 'core_[0.65,0.65,0.576]', 'core_[0.65,0.52,0.48]', 'core_[0.65,0.78,0.48]', 'core_[0.52,0.65,0.48]', 'core_[0.78,0.65,0.48]']
 
-    rp.set_attr(step_limit=5000)
+    rp.set_attr(step_limit=25)
     rp.set_random_seed(seed=1099)
     rp.search_method()
     time.sleep(0.075)
         
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[65.0,65.0,0.336]', 'core_[65.0,65.0,0.504]', 'core_[65.0,52.0,0.42]', 'core_[52.0,65.0,0.42]', 'core_[78.0,65.0,0.42]', 'core_[65.0,65.0,0.2688]', 'core_[65.0,65.0,0.4032]', 'core_[65.0,52.0,0.336]', 'core_[52.0,65.0,0.336]', 'core_[78.0,65.0,0.336]', 'core_[65.0,65.0,0.21504]', 'core_[65.0,65.0,0.32256]', 'core_[65.0,52.0,0.2688]', 'core_[52.0,65.0,0.2688]', 'core_[78.0,65.0,0.2688]', 'core_[65.0,65.0,0.17203]', 'core_[65.0,65.0,0.25805]', 'core_[65.0,52.0,0.21504]', 'core_[52.0,65.0,0.21504]', 'core_[78.0,65.0,0.21504]', 'core_[65.0,65.0,0.13762]', 'core_[65.0,65.0,0.20644]', 'core_[65.0,52.0,0.17203]', 'core_[52.0,65.0,0.17203]', 'core_[78.0,65.0,0.17203]', 'core_[65.0,65.0,0.1101]', 'core_[65.0,65.0,0.16514]', 'core_[65.0,52.0,0.13762]', 'core_[52.0,65.0,0.13762]', 'core_[78.0,65.0,0.13762]', 'core_[78.0,65.0,0.1101]', 'core_[78.0,65.0,0.16514]', 'core_[78.0,52.0,0.13762]', 'core_[62.4,65.0,0.13762]', 'core_[78.0,65.0,0.12386]', 'core_[78.0,65.0,0.15138]', 'core_[78.0,58.5,0.13762]', 'core_[70.2,65.0,0.13762]', 'core_[78.0,65.0,0.11147]', 'core_[78.0,65.0,0.13625]', 'core_[78.0,58.5,0.12386]', 'core_[70.2,65.0,0.12386]', 'core_[78.0,65.0,0.10032]', 'core_[78.0,65.0,0.12262]', 'core_[78.0,58.5,0.11147]', 'core_[70.2,65.0,0.11147]', 'core_[78.0,65.0,0.1059]', 'core_[78.0,65.0,0.11704]', 'core_[78.0,61.75,0.11147]', 'core_[78.0,68.25,0.11147]', 'core_[74.1,65.0,0.11147]', 'core_[78.0,68.25,0.1059]', 'core_[78.0,68.25,0.11704]', 'core_[78.0,64.8375,0.11147]', 'core_[74.1,68.25,0.11147]', 'core_[78.0,68.25,0.10868]', 'core_[78.0,68.25,0.11426]', 'core_[78.0,66.54375,0.11147]', 'core_[78.0,69.95625,0.11147]', 'core_[76.05,68.25,0.11147]', 'core_[79.95,68.25,0.11147]', 'core_[79.95,68.25,0.10868]', 'core_[79.95,68.25,0.11426]', 'core_[79.95,66.54375,0.11147]', 'core_[79.95,69.95625,0.11147]', 'core_[77.95125,68.25,0.11147]', 'core_[79.95,69.95625,0.10868]', 'core_[79.95,69.95625,0.11426]', 'core_[79.95,68.20734,0.11147]', 'core_[77.95125,69.95625,0.11147]', 'core_[79.95,69.95625,0.11008]', 'core_[79.95,69.95625,0.11286]', 'core_[79.95,69.0818,0.11147]', 'core_[78.95063,69.95625,0.11147]', 'core_[79.95,69.95625,0.11145]', 'core_[79.95,69.95625,0.11427]', 'core_[79.95,69.0818,0.11286]', 'core_[78.95063,69.95625,0.11286]', 'core_[79.95,69.95625,0.11215]', 'core_[79.95,69.95625,0.11357]', 'core_[79.95,69.51902,0.11286]', 'core_[79.45031,69.95625,0.11286]', 'core_[79.95,69.95625,0.11285]', 'core_[79.95,69.51902,0.11215]', 'core_[79.45031,69.95625,0.11215]', 'core_[79.95,69.95625,0.11214]', 'core_[79.95,69.95625,0.11356]', 'core_[79.95,69.51902,0.11285]', 'core_[79.45031,69.95625,0.11285]', 'core_[79.95,69.95625,0.1125]', 'core_[79.95,69.95625,0.1132]', 'core_[79.95,69.73764,0.11285]', 'core_[79.70016,69.95625,0.11285]', 'core_[79.95,69.73764,0.1125]', 'core_[79.70016,69.95625,0.1125]', 'core_[79.95,69.95625,0.11232]', 'core_[79.95,69.95625,0.11268]', 'core_[79.95,69.84694,0.1125]', 'core_[79.82508,69.95625,0.1125]']
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.65,0.32]', 'core_[0.65,0.65,0.48]', 'core_[0.65,0.52,0.4]', 'core_[0.65,0.78,0.4]', 'core_[0.52,0.65,0.4]', 'core_[0.78,0.65,0.4]', 'core_[0.65,0.65,0.384]', 'core_[0.65,0.65,0.576]', 'core_[0.65,0.52,0.48]', 'core_[0.65,0.78,0.48]', 'core_[0.52,0.65,0.48]', 'core_[0.78,0.65,0.48]', 'core_[0.65,0.65,0.3072]', 'core_[0.65,0.65,0.4608]', 'core_[0.65,0.52,0.384]', 'core_[0.65,0.78,0.384]', 'core_[0.52,0.65,0.384]', 'core_[0.78,0.65,0.384]', 'core_[0.65,0.65,0.24576]', 'core_[0.65,0.65,0.36864]', 'core_[0.65,0.52,0.3072]', 'core_[0.65,0.78,0.3072]', 'core_[0.52,0.65,0.3072]', 'core_[0.78,0.65,0.3072]', 'core_[0.65,0.65,0.27648]', 'core_[0.65,0.65,0.33792]', 'core_[0.65,0.585,0.3072]', 'core_[0.65,0.715,0.3072]', 'core_[0.585,0.65,0.3072]', 'core_[0.715,0.65,0.3072]', 'core_[0.65,0.65,0.29184]', 'core_[0.65,0.65,0.32256]', 'core_[0.65,0.6175,0.3072]', 'core_[0.65,0.6825,0.3072]', 'core_[0.6175,0.65,0.3072]', 'core_[0.6825,0.65,0.3072]', 'core_[0.65,0.65,0.29952]', 'core_[0.65,0.65,0.31488]', 'core_[0.65,0.63375,0.3072]', 'core_[0.65,0.66625,0.3072]', 'core_[0.63375,0.65,0.3072]', 'core_[0.66625,0.65,0.3072]', 'core_[0.65,0.65,0.29203]', 'core_[0.65,0.65,0.30701]', 'core_[0.65,0.63375,0.29952]', 'core_[0.65,0.66625,0.29952]', 'core_[0.63375,0.65,0.29952]', 'core_[0.66625,0.65,0.29952]', 'core_[0.65,0.65,0.29578]', 'core_[0.65,0.65,0.30326]', 'core_[0.65,0.64187,0.29952]', 'core_[0.65,0.65813,0.29952]', 'core_[0.64187,0.65,0.29952]', 'core_[0.65813,0.65,0.29952]', 'core_[0.65,0.65,0.29765]', 'core_[0.65,0.65,0.30139]', 'core_[0.65,0.64594,0.29952]', 'core_[0.65,0.65406,0.29952]', 'core_[0.64594,0.65,0.29952]', 'core_[0.65406,0.65,0.29952]', 'core_[0.65,0.65,0.29858]', 'core_[0.65,0.65,0.30046]', 'core_[0.65,0.64797,0.29952]', 'core_[0.65,0.65203,0.29952]', 'core_[0.64797,0.65,0.29952]', 'core_[0.65203,0.65,0.29952]', 'core_[0.65,0.65,0.3014]', 'core_[0.65,0.64797,0.30046]', 'core_[0.65,0.65203,0.30046]', 'core_[0.64797,0.65,0.30046]', 'core_[0.65203,0.65,0.30046]', 'core_[0.64797,0.65,0.3014]', 'core_[0.64797,0.64797,0.30046]', 'core_[0.64797,0.65203,0.30046]', 'core_[0.64595,0.65,0.30046]', 'core_[0.64999,0.65,0.30046]', 'core_[0.64595,0.65,0.29952]', 'core_[0.64595,0.65,0.3014]', 'core_[0.64595,0.64797,0.30046]', 'core_[0.64595,0.65203,0.30046]', 'core_[0.64393,0.65,0.30046]', 'core_[0.64393,0.65,0.29952]', 'core_[0.64393,0.65,0.3014]', 'core_[0.64393,0.64797,0.30046]', 'core_[0.64393,0.65203,0.30046]', 'core_[0.64192,0.65,0.30046]', 'core_[0.64594,0.65,0.30046]', 'core_[0.64192,0.65,0.29952]', 'core_[0.64192,0.65,0.3014]', 'core_[0.64192,0.64797,0.30046]', 'core_[0.64192,0.65203,0.30046]', 'core_[0.63991,0.65,0.30046]', 'core_[0.63991,0.65,0.29952]', 'core_[0.63991,0.65,0.3014]', 'core_[0.63991,0.64797,0.30046]', 'core_[0.63991,0.65203,0.30046]', 'core_[0.63791,0.65,0.30046]', 'core_[0.64191,0.65,0.30046]', 'core_[0.63791,0.65,0.29952]', 'core_[0.63791,0.65,0.3014]', 'core_[0.63791,0.64797,0.30046]', 'core_[0.63791,0.65203,0.30046]', 'core_[0.63592,0.65,0.30046]', 'core_[0.6399,0.65,0.30046]', 'core_[0.63592,0.65,0.29952]', 'core_[0.63592,0.65,0.3014]', 'core_[0.63592,0.64797,0.30046]', 'core_[0.63592,0.65203,0.30046]', 'core_[0.63393,0.65,0.30046]', 'core_[0.63393,0.65,0.29952]', 'core_[0.63393,0.65,0.3014]', 'core_[0.63393,0.64797,0.30046]', 'core_[0.63393,0.65203,0.30046]', 'core_[0.63195,0.65,0.30046]', 'core_[0.63591,0.65,0.30046]', 'core_[0.63195,0.65,0.29952]', 'core_[0.63195,0.65,0.3014]', 'core_[0.63195,0.64797,0.30046]', 'core_[0.63195,0.65203,0.30046]', 'core_[0.62998,0.65,0.30046]', 'core_[0.63392,0.65,0.30046]', 'core_[0.62998,0.65,0.29952]', 'core_[0.62998,0.65,0.3014]', 'core_[0.62998,0.64797,0.30046]', 'core_[0.62998,0.65203,0.30046]', 'core_[0.62801,0.65,0.30046]', 'core_[0.62801,0.65,0.29952]', 'core_[0.62801,0.65,0.3014]', 'core_[0.62801,0.64797,0.30046]', 'core_[0.62801,0.65203,0.30046]', 'core_[0.62605,0.65,0.30046]', 'core_[0.62997,0.65,0.30046]', 'core_[0.62605,0.65,0.29952]', 'core_[0.62605,0.65,0.3014]', 'core_[0.62605,0.64797,0.30046]', 'core_[0.62605,0.65203,0.30046]', 'core_[0.62409,0.65,0.30046]', 'core_[0.62409,0.65,0.29952]', 'core_[0.62409,0.65,0.3014]', 'core_[0.62409,0.64797,0.30046]', 'core_[0.62409,0.65203,0.30046]', 'core_[0.62214,0.65,0.30046]', 'core_[0.62604,0.65,0.30046]', 'core_[0.62214,0.65,0.29952]', 'core_[0.62214,0.65,0.3014]', 'core_[0.62214,0.64797,0.30046]', 'core_[0.62214,0.65203,0.30046]', 'core_[0.6202,0.65,0.30046]', 'core_[0.62408,0.65,0.30046]']
 
     ns.shutdown()
     time.sleep(0.1)
@@ -359,36 +354,34 @@ def test_search_method_simple():
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
 
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
-    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
 
     bb.connect_agent(hc.HillClimb, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
-    rp.set_attr(step_size=0.20)
+    rp.set_attr(problem=problem)        
+    rp.set_attr(step_size=0.2)
     rp.set_attr(step_rate=0.2)
     rp.set_attr(step_limit=1)
-    rp.set_attr(convergence_criteria=0.01)
-    rp.set_random_seed(seed=1073)
-    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
-                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
+    rp.set_attr(convergence_criteria=0.001)
+    rp.set_random_seed(seed=103)
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-    rp.set_attr(new_designs=['core_[65.0,65.0,0.42]'])
+    rp.set_attr(new_designs=['core_[0.650,0.650,0.4]'])
+    
     rp.search_method()
     time.sleep(0.075)
     rp.set_attr(step_limit=100)
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) ==     ['core_[65.0,65.0,0.336]', 'core_[52.0,65.0,0.336]', 'core_[65.0,65.0,0.2688]']
+    
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.52,0.4]', 'core_[0.65,0.52,0.48]', 'core_[0.65,0.52,0.32]', 'core_[0.65,0.416,0.4]', 'core_[0.78,0.52,0.4]', 'core_[0.52,0.52,0.4]', 'core_[0.65,0.624,0.4]']
     rp.search_method()
     time.sleep(0.075)   
 
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[65.0,65.0,0.336]', 'core_[52.0,65.0,0.336]', 'core_[65.0,65.0,0.2688]', 'core_[65.0,52.0,0.336]', 'core_[65.0,65.0,0.4032]', 'core_[65.0,65.0,0.32256]', 'core_[52.0,65.0,0.2688]', 'core_[78.0,65.0,0.2688]', 'core_[78.0,65.0,0.21504]', 'core_[78.0,65.0,0.17203]', 'core_[78.0,65.0,0.13762]', 'core_[78.0,65.0,0.1101]', 'core_[62.4,65.0,0.1101]', 'core_[78.0,65.0,0.13212]', 'core_[78.0,65.0,0.08808]', 'core_[78.0,52.0,0.1101]', 'core_[78.0,65.0,0.09248]', 'core_[78.0,65.0,0.12772]', 'core_[65.52,65.0,0.1101]', 'core_[78.0,54.6,0.1101]', 'core_[68.016,65.0,0.1101]', 'core_[78.0,56.68,0.1101]', 'core_[78.0,65.0,0.09601]', 'core_[78.0,65.0,0.12419]', 'core_[70.0128,65.0,0.1101]', 'core_[78.0,58.344,0.1101]', 'core_[78.0,65.0,0.09883]', 'core_[78.0,65.0,0.12137]', 'core_[78.0,65.0,0.10108]', 'core_[78.0,65.0,0.11912]', 'core_[71.61024,65.0,0.1101]', 'core_[78.0,59.6752,0.1101]', 'core_[72.88819,65.0,0.1101]', 'core_[78.0,65.0,0.11732]', 'core_[78.0,69.25984,0.1101]', 'core_[78.0,69.25984,0.10288]', 'core_[78.0,64.72083,0.1101]', 'core_[78.0,69.25984,0.11732]', 'core_[72.88819,69.25984,0.1101]', 'core_[78.0,69.25984,0.10433]', 'core_[73.91055,69.25984,0.1101]', 'core_[78.0,65.62863,0.1101]', 'core_[78.0,69.25984,0.11587]', 'core_[78.0,69.25984,0.10548]', 'core_[78.0,69.25984,0.11472]', 'core_[74.72844,69.25984,0.1101]', 'core_[78.0,66.35487,0.1101]', 'core_[78.0,66.93587,0.1101]', 'core_[75.38275,69.25984,0.1101]', 'core_[78.0,69.25984,0.10641]', 'core_[78.0,69.25984,0.11379]', 'core_[78.0,69.25984,0.11306]', 'core_[78.0,67.40066,0.1101]', 'core_[75.9062,69.25984,0.1101]', 'core_[78.0,69.25984,0.10714]', 'core_[78.0,67.7725,0.1101]', 'core_[78.0,69.25984,0.11246]', 'core_[79.67504,69.25984,0.1101]', 'core_[77.96403,69.25984,0.1101]', 'core_[79.67504,69.25984,0.10774]', 'core_[79.67504,67.7725,0.1101]', 'core_[79.67504,69.25984,0.11246]', 'core_[79.67504,67.7725,0.11246]', 'core_[79.67504,69.25984,0.11488]', 'core_[77.96403,69.25984,0.11246]', 'core_[79.67504,69.25984,0.11004]', 'core_[79.67504,69.25984,0.11053]', 'core_[79.67504,69.25984,0.11439]', 'core_[78.30623,69.25984,0.11246]', 'core_[79.67504,68.06997,0.11246]', 'core_[79.67504,69.25984,0.11401]', 'core_[79.67504,69.25984,0.11558]', 'core_[79.67504,68.30794,0.11401]', 'core_[78.57999,69.25984,0.11401]', 'core_[79.67504,69.25984,0.11244]', 'core_[79.67504,68.49832,0.11401]', 'core_[79.67504,69.25984,0.11276]', 'core_[79.67504,69.25984,0.11152]', 'core_[78.799,69.25984,0.11276]', 'core_[79.67504,69.25984,0.114]', 'core_[79.67504,68.49832,0.11276]']
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.52,0.4]', 'core_[0.65,0.52,0.48]', 'core_[0.65,0.52,0.32]', 'core_[0.65,0.416,0.4]', 'core_[0.78,0.52,0.4]', 'core_[0.52,0.52,0.4]', 'core_[0.65,0.624,0.4]', 'core_[0.65,0.78,0.4]', 'core_[0.65,0.78,0.32]', 'core_[0.52,0.78,0.4]', 'core_[0.78,0.78,0.4]', 'core_[0.65,0.936,0.4]', 'core_[0.65,0.78,0.48]', 'core_[0.65,0.78,0.336]', 'core_[0.754,0.78,0.4]', 'core_[0.546,0.78,0.4]', 'core_[0.65,0.9048,0.4]', 'core_[0.65,0.78,0.464]', 'core_[0.65,0.6552,0.4]', 'core_[0.65,0.87984,0.4]', 'core_[0.65,0.68016,0.4]', 'core_[0.5668,0.78,0.4]', 'core_[0.7332,0.78,0.4]', 'core_[0.65,0.78,0.4512]', 'core_[0.65,0.78,0.3488]', 'core_[0.65,0.78,0.35904]', 'core_[0.65,0.70013,0.4]', 'core_[0.65,0.85987,0.4]', 'core_[0.65,0.78,0.44096]', 'core_[0.58344,0.78,0.4]', 'core_[0.71656,0.78,0.4]', 'core_[0.59675,0.78,0.4]', 'core_[0.70325,0.78,0.4]', 'core_[0.65,0.7161,0.4]', 'core_[0.65,0.78,0.36723]', 'core_[0.65,0.8439,0.4]', 'core_[0.65,0.78,0.43277]', 'core_[0.6926,0.78,0.4]', 'core_[0.65,0.78,0.37379]', 'core_[0.65,0.83112,0.4]', 'core_[0.6074,0.78,0.4]', 'core_[0.65,0.72888,0.4]', 'core_[0.65,0.78,0.42621]', 'core_[0.65,0.78,0.42097]', 'core_[0.65,0.78,0.37903]', 'core_[0.68408,0.78,0.4]', 'core_[0.61592,0.78,0.4]', 'core_[0.65,0.73911,0.4]', 'core_[0.65,0.82089,0.4]', 'core_[0.65,0.78,0.38322]', 'core_[0.65,0.78,0.41678]', 'core_[0.67726,0.78,0.4]', 'core_[0.62274,0.78,0.4]', 'core_[0.65,0.81272,0.4]', 'core_[0.65,0.74728,0.4]', 'core_[0.65,0.78,0.38658]', 'core_[0.67181,0.78,0.4]', 'core_[0.65,0.80617,0.4]', 'core_[0.65,0.75383,0.4]', 'core_[0.65,0.78,0.41342]', 'core_[0.62819,0.78,0.4]', 'core_[0.65,0.78,0.38926]', 'core_[0.63255,0.78,0.4]', 'core_[0.65,0.80094,0.4]', 'core_[0.66745,0.78,0.4]', 'core_[0.65,0.75906,0.4]', 'core_[0.65,0.78,0.41074]', 'core_[0.65,0.79675,0.4]', 'core_[0.65,0.76325,0.4]', 'core_[0.66396,0.78,0.4]', 'core_[0.65,0.78,0.39141]', 'core_[0.65,0.78,0.40859]', 'core_[0.63604,0.78,0.4]', 'core_[0.65,0.7934,0.4]', 'core_[0.65,0.78,0.39313]', 'core_[0.66117,0.78,0.4]', 'core_[0.65,0.7666,0.4]', 'core_[0.65,0.78,0.40687]', 'core_[0.63883,0.78,0.4]', 'core_[0.64107,0.78,0.4]', 'core_[0.65,0.78,0.3945]', 'core_[0.65,0.79072,0.4]', 'core_[0.65893,0.78,0.4]', 'core_[0.65,0.78,0.4055]', 'core_[0.65,0.76928,0.4]', 'core_[0.65,0.78858,0.4]', 'core_[0.65715,0.78,0.4]', 'core_[0.65,0.77142,0.4]', 'core_[0.65,0.78,0.3956]', 'core_[0.64285,0.78,0.4]', 'core_[0.65,0.78,0.4044]', 'core_[0.65,0.78,0.39648]', 'core_[0.65,0.78,0.40352]', 'core_[0.65572,0.78,0.4]', 'core_[0.64428,0.78,0.4]', 'core_[0.65,0.77314,0.4]', 'core_[0.65,0.78686,0.4]', 'core_[0.64543,0.78,0.4]', 'core_[0.65457,0.78,0.4]', 'core_[0.65,0.77451,0.4]', 'core_[0.65,0.78,0.40281]', 'core_[0.65,0.78,0.39719]', 'core_[0.65,0.78549,0.4]', 'core_[0.64634,0.78,0.4]', 'core_[0.65366,0.78,0.4]', 'core_[0.65,0.77561,0.4]', 'core_[0.65,0.78439,0.4]', 'core_[0.65,0.78,0.40225]', 'core_[0.65,0.78,0.39775]', 'core_[0.65,0.78,0.3982]', 'core_[0.65,0.78351,0.4]', 'core_[0.65293,0.78,0.4]', 'core_[0.65,0.77649,0.4]', 'core_[0.64707,0.78,0.4]', 'core_[0.65,0.78,0.4018]', 'core_[0.65,0.78281,0.4]', 'core_[0.65,0.77719,0.4]', 'core_[0.65,0.78,0.39856]', 'core_[0.65234,0.78,0.4]', 'core_[0.64766,0.78,0.4]', 'core_[0.65,0.78,0.40144]', 'core_[0.65,0.77775,0.4]', 'core_[0.65,0.78225,0.4]', 'core_[0.65,0.78,0.39885]', 'core_[0.65,0.78,0.40115]', 'core_[0.65187,0.78,0.4]', 'core_[0.64813,0.78,0.4]', 'core_[0.65,0.78,0.40092]', 'core_[0.65,0.78,0.39908]', 'core_[0.65,0.7782,0.4]', 'core_[0.6515,0.78,0.4]', 'core_[0.6485,0.78,0.4]', 'core_[0.65,0.7818,0.4]', 'core_[0.6512,0.78,0.4]', 'core_[0.65,0.78,0.39926]', 'core_[0.65,0.78144,0.4]', 'core_[0.65,0.78,0.40074]', 'core_[0.65,0.77856,0.4]', 'core_[0.6488,0.78,0.4]', 'core_[0.64904,0.78,0.4]', 'core_[0.65,0.78,0.39941]', 'core_[0.65,0.78115,0.4]', 'core_[0.65,0.78,0.40059]', 'core_[0.65,0.77885,0.4]', 'core_[0.65096,0.78,0.4]', 'core_[0.65,0.78,0.39953]', 'core_[0.65,0.78,0.40047]', 'core_[0.65,0.78092,0.4]', 'core_[0.64923,0.78,0.4]', 'core_[0.65077,0.78,0.4]', 'core_[0.65,0.77908,0.4]']
     ns.shutdown()
     time.sleep(0.1)
     
@@ -398,20 +391,24 @@ def test_search_method_discrete_dv():
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     dv = {'x0' : {'options': ['0', '1', '2', '3'], 'default': '0', 'variable type': str},
           'x1' : {'options': ['0', '1', '2', '3'], 'default': '1', 'variable type': str},
           'x2' : {'options': ['0', '1', '2', '3'], 'default': '2', 'variable type': str},
           'x3' : {'options': ['0', '1', '2', '3'], 'default': '3', 'variable type': str}}
     obj = {'f1': {'ll': 10, 'ul':200, 'goal': 'lt', 'variable type': float}}
-    bb.initialize_abstract_level_3(design_variables=dv,objectives=obj)
-    bb.set_attr(sm_type='tsp_benchmark')
-    bb.set_attr(_sm=moo.optimization_test_functions('tsp'))
+    bb.initialize_abstract_level_3(design_variables=dv,objectives=obj,constraints={})
+    problem = BenchmarkProblem(design_variables=dv,
+                         objectives=obj,
+                         constraints={},
+                         benchmark_name = 'tsp')      
+    
     bb.connect_agent(hc.HillClimb, 'ka_rp')
     rp = ns.proxy('ka_rp')
     rp.set_attr(step_limit=10)
     rp.set_random_seed(seed=109875)
     rp.set_attr(hc_type='steepest ascent')
+    rp.set_attr(problem=problem)        
     
     bb.update_abstract_lvl(3, 'core_[3,1,2,0]', {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '3'},
                                                    'objective functions': {'f1': 95.0},

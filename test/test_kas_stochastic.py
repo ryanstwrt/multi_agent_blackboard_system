@@ -3,16 +3,9 @@ from osbrain import run_nameserver
 from osbrain import run_agent
 import src.ka.ka_s.stochastic as stochastic
 import src.bb.blackboard_optimization as bb_opt
+from src.utils.problem import BenchmarkProblem
 import numpy as np
-import pickle
 import time
-
-with open('./sm_gpr.pkl', 'rb') as pickle_file:
-    sm_ga = pickle.load(pickle_file)
-
-#----------------------------------------------------------
-# Tests fopr KA-RP-Explore
-#----------------------------------------------------------
 
 def test_init():
     try:
@@ -61,11 +54,11 @@ def test_search_method():
     rp = run_agent(name='ka_rp', base=stochastic.Stochastic)
     rp.set_random_seed(seed=1)
     rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
-                                  'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-                                  'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
-                                  'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
-                                  'experiments': {'length':         2, 
-                                                  'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
+                                   'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
+                                   'experiments': {'length':         2, 
+                                                   'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
                                                                 'random variable': {'ll': 0,  'ul': 2,  'variable type': float}},
                                                   'variable type': dict}})
     
@@ -109,24 +102,25 @@ def test_executor():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
 
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga) 
+    dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
+    objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}    
+        
+    problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'dtlz1')   
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
     bb.connect_agent(stochastic.Stochastic, 'ka_rp_explore')
     
     rp = ns.proxy('ka_rp_explore')
-    rp.set_attr(_trigger_val=1)
+    rp.set_random_seed(seed=10983)    
+    rp.set_attr(problem=problem)
     bb.set_attr(_ka_to_execute=('ka_rp_explore', 2))
     bb.send_executor()
-    time.sleep(0.2)
-    
-    entry = rp.get_attr('_entry')
-    core_name = rp.get_attr('_entry_name')
-    bb_entry = {core_name: entry}
-    
-    assert bb.get_attr('abstract_lvls')['level 3']['new'] == bb_entry
+    time.sleep(0.01)
     assert rp.get_attr('_trigger_val') == 0    
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] ==  {'core_[0.90351,0.72307,0.29587]': {'design variables': {'x0': 0.90351, 'x1': 0.72307, 'x2': 0.29587}, 'objective functions': {'f0': 2.7814131680720915, 'f1': 1.0652588942069292, 'f2': 0.4108038508586541}, 'constraints': {}}}
 
     ns.shutdown()
     time.sleep(0.1)    

@@ -8,14 +8,19 @@ import os
 from src.ka.ka_s.stochastic import Stochastic
 from src.ka.ka_s.latin_hypercube import LatinHypercube
 from src.ka.ka_s.neighborhood_search import NeighborhoodSearch
+from src.utils.problem import BenchmarkProblem
 from src.ka.ka_brs.level3 import KaBrLevel3
 from src.ka.ka_brs.level2 import KaBrLevel2
 from src.ka.ka_brs.level1 import KaBrLevel1
 import src.ka.base as ka
 
-#----------------------------------------------------------
-# Tests fopr BbOpt
-#----------------------------------------------------------
+dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
+objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}    
+        
+problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'dtlz1')    
 
 def test_BbOpt_init():
     try:
@@ -34,14 +39,9 @@ def test_BbOpt_init():
     assert bb.get_attr('_kaar') == {}
     assert bb.get_attr('_pub_trigger_alias') == 'trigger'
     
-    assert bb.get_attr('objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
-                                         'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
-                                         'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
-                                         'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
-    assert bb.get_attr('design_variables') == {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
-                                               'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-                                               'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
-    assert bb.get_attr('constraints') == {'eol keff': {'ll': 1.0, 'ul': 2.5, 'variable type': float}}
+    assert bb.get_attr('objectives') == {}
+    assert bb.get_attr('design_variables') == {}
+    assert bb.get_attr('constraints') == {}
     assert bb.get_attr('_complete') == False
     assert bb.get_attr('_nadir_point') == {}
     assert bb.get_attr('_ideal_point') == {}
@@ -74,24 +74,24 @@ def test_create_lvl_format():
     ns.shutdown()
     time.sleep(0.05)
     
-def test_BbOpt_initalize_abstract_level_3_basic():
+def test_initalize_abstract_level_3_basic():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
-
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.set_attr(problem=problem)
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
-                                                   'level 3': {'new': {'design variables': {'height': float, 'smear': float, 'pu_content': float},
-                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float},
-                                                                       'constraints': {'eol keff': float}},
-                                                               'old': {'design variables': {'height': float, 'smear': float, 'pu_content': float},
-                                                                       'objective functions': {'cycle length': float, 'reactivity swing': float, 'burnup': float, 'pu mass': float},
-                                                                       'constraints': {'eol keff': float}}},
+                                                   'level 3': {'new': {'design variables': {'x0': float, 'x1': float, 'x2': float},
+                                                                       'objective functions': {'f0': float, 'f1': float, 'f2': float},
+                                                                       'constraints': {}},
+                                                               'old': {'design variables': {'x0': float, 'x1': float, 'x2': float},
+                                                                       'objective functions': {'f0': float, 'f1': float, 'f2': float},
+                                                                       'constraints': {}}},
                                                    'level 100': {'agent': str, 'hvi': float, 'time': float}}
 
     
@@ -109,23 +109,24 @@ def test_BbOpt_initalize_abstract_level_3():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
+    o_ = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    dv =   {'height':           {'ll': 50, 'ul': 80, 'variable type': float},
+    d_ =   {'height':           {'ll': 50, 'ul': 80, 'variable type': float},
             'experiments': {'length':         2, 
                             'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp', 'variable type': str},
                                           '1': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d'], 'default': 'no_exp', 'variable type': str}},
                             'variable type': dict}}
-    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
+    c_ = {'constraint_1': {'ll': 0.0, 'ul':1.0, 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=o_, design_variables=d_, constraints=c_)
     assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
                                                    'level 2': {'new': {'valid': bool}, 
                                                                'old': {'valid': bool}},
                                                    'level 3': {'new': {'design variables': {'height': float, 'experiments': {'0': str, '1': str}},
                                                                        'objective functions':  {'reactivity swing': float, 'burnup': float},
-                                                                       'constraints': {'eol keff': float}},
+                                                                       'constraints': {'constraint_1': float}},
                                                                'old': {'design variables': {'height': float, 'experiments': {'0': str, '1': str}},
                                                                        'objective functions':  {'reactivity swing': float, 'burnup': float},
-                                                                       'constraints': {'eol keff': float}}},
+                                                                       'constraints': {'constraint_1': float}}},
                                                    'level 100': {'agent': str, 'hvi': float, 'time': float}}
 
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
@@ -173,6 +174,7 @@ def test_add_ka_specific():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)    
     bb.connect_agent(Stochastic, 'ka_rp_explore')
     bb.connect_agent(LatinHypercube, 'ka_rp_lhc')
     bb.connect_agent(NeighborhoodSearch, 'ka_rp_exploit')
@@ -180,27 +182,23 @@ def test_add_ka_specific():
     bb.connect_agent(KaBrLevel2, 'ka_br_lvl2')
     bb.connect_agent(KaBrLevel3, 'ka_br_lvl3')
 
-    
-
     for alias in ns.agents():
         agent = ns.proxy(alias)
         if 'rp' in alias:
-            assert agent.get_attr('_objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
-                                                    'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
-                                                    'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
-                                                    'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
-            assert agent.get_attr('_design_variables') == {'height':     {'ll': 50, 'ul': 80, 'variable type': float},
-                                                          'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-                                                          'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}
+            assert agent.get_attr('_objectives') == {'f0':      {'ll':0,   'ul':1000,  'goal':'lt', 'variable type': float},
+                                                     'f1':      {'ll':0,   'ul':1000,  'goal':'lt', 'variable type': float},
+                                                     'f2':      {'ll':0,   'ul':1000,  'goal':'lt', 'variable type': float},}
+            assert agent.get_attr('_design_variables') == {'x0': {'ll': 0.0, 'ul': 1.0, 'variable type': float},
+                                                           'x1': {'ll': 0.0, 'ul': 1.0, 'variable type': float},
+                                                           'x2': {'ll': 0.0, 'ul': 1.0,  'variable type': float}}
             assert agent.get_attr('sm_type') == 'interpolate'
             if 'lhc' in alias:
                 assert len(agent.get_attr('lhd')) == 50
                 assert len(agent.get_attr('lhd')[0]) == 3
         elif 'lvl' in alias:
-            assert agent.get_attr('_objectives') == {'cycle length':     {'ll':100, 'ul':550,  'goal':'gt', 'variable type': float},
-                                                    'reactivity swing': {'ll':0,   'ul':750,  'goal':'lt', 'variable type': float},
-                                                    'burnup':           {'ll':0,   'ul':200,  'goal':'gt', 'variable type': float},
-                                                    'pu mass':          {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}}
+            assert agent.get_attr('_objectives') == {'f0':      {'ll':0,   'ul':1000,  'goal':'lt', 'variable type': float},
+                                                     'f1':      {'ll':0,   'ul':1000,  'goal':'lt', 'variable type': float},
+                                                     'f2':      {'ll':0,   'ul':1000,  'goal':'lt', 'variable type': float},}
             
     ns.shutdown()
     time.sleep(0.05)  
@@ -678,26 +676,6 @@ def test_SubBbOpt_init():
     ns.shutdown()       
     time.sleep(0.05)     
     
-def test_BenchmarkBB_init():
-    try:
-        ns = run_nameserver()
-    except OSError:
-        time.sleep(0.5)
-        ns = run_nameserver()
-    bb = run_agent(name='blackboard', base=bb_opt.BenchmarkBbOpt)   
-    
-    assert bb.get_attr('problem') == 'benchmark'
-    assert bb.get_attr('objectives') == {}
-    assert bb.get_attr('design_variables') == {}
-    assert bb.get_attr('constraints') == {}
-
-    ns.shutdown()       
-    time.sleep(0.05) 
-
-import pickle
-with open('./sm_gpr.pkl', 'rb') as pickle_file:
-    sm_ga = pickle.load(pickle_file)
-    
 def test_agent_performing_action():
     try:
         ns = run_nameserver()
@@ -705,9 +683,8 @@ def test_agent_performing_action():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga) 
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.set_attr(problem=problem)
     bb.connect_agent(Stochastic, 'ka_rp')
     rp = ns.proxy('ka_rp')
     rp.set_attr(debug_wait=True)
@@ -729,9 +706,8 @@ def test_agent_shutdown():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga) 
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints={})
+    bb.set_attr(problem=problem)
     bb.connect_agent(Stochastic, 'ka_rp')
     bb.connect_agent(NeighborhoodSearch, 'ka_rp2')
     bb.connect_agent(Stochastic, 'ka_rp3')
@@ -739,9 +715,9 @@ def test_agent_shutdown():
     bb.connect_agent(KaBrLevel2, 'ka_br_lvl2')
     bb.connect_agent(KaBrLevel3, 'ka_br_lvl3')
 
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 100.0, 'cycle length': 120.0, 'pu mass': 10.0},
-                                                          'constraints' : {'eol keff': 1.01}}, panel='new')     
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                         'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0},
+                                                         'constraints': {}}, panel='new')    
     
     rp2 = ns.proxy('ka_rp2')
     # Force the agent to fail due to passing False
@@ -760,9 +736,9 @@ def test_agent_shutdown():
     time.sleep(0.05)
     assert ns.agents() == ['blackboard'] 
     assert bb.get_attr('final_trigger') == 0
-    assert list(bb.get_blackboard()['level 3']['old'].keys()) == ['core_[62.51066,64.40649,0.00011]', 'core_[65.0, 65.0, 0.42]']
-    assert list(bb.get_blackboard()['level 2']['old'].keys()) == ['core_[65.0, 65.0, 0.42]']
-    assert list(bb.get_blackboard()['level 1'].keys()) == ['core_[65.0, 65.0, 0.42]']
+    assert list(bb.get_blackboard()['level 3']['old'].keys()) == ['core_[0.650,0.650,0.4]', 'core_[0.41702,0.72032,0.00011]']
+    assert list(bb.get_blackboard()['level 2']['old'].keys()) == ['core_[0.650,0.650,0.4]', 'core_[0.41702,0.72032,0.00011]']
+    assert list(bb.get_blackboard()['level 1'].keys()) == ['core_[0.41702,0.72032,0.00011]']
 
     ns.shutdown()       
     time.sleep(0.05)  
@@ -775,9 +751,8 @@ def test_pass_agent_dict():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga) 
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.set_attr(problem=problem)
     bb.connect_agent(NeighborhoodSearch, 'ka_rp', attr={'perturbation_size' : 0.25})
 
     rp = ns.proxy('ka_rp')    

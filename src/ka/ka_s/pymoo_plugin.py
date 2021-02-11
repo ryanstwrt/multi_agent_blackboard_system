@@ -52,7 +52,7 @@ class PyMooAlgorithm(KaLocal):
             self.base.calc_objectives()
             obj.append([utils.convert_objective_to_minimize(self.base._objectives[obj], x) for obj, x in self.base.current_objectives.items()])
 
-            if list(self.base._constraints.values()) != []:      
+            if self.base._constraints:      
                 const.append([-utils.scale_value(self.base.current_constraints[con], con_dict) for con, con_dict in self.base._constraints.items()])   
                               
             self.base.write_to_bb(self.base.bb_lvl_data, self.base._entry_name, self.base._entry, panel='new')
@@ -106,14 +106,14 @@ class PyMooAlgorithm(KaLocal):
     def setup_problem(self):
         self.termination = get_termination(self.termination_type, self.termination_criteria)
         self.ref_dirs = get_reference_directions(self.ref_dir_type, len(self._design_variables), n_partitions=self.n_partitions)  
-        self.problem = self.PyMooProblem(self,
+        self._problem = self.PyMooProblem(self,
                                          n_var=len(self._design_variables),
                                          n_obj=len(self._objectives),
                                          n_constr=len(self._constraints),
                                          xl=np.array([x['ll'] for x in self._design_variables.values()]),
                                          xu=np.array([x['ul'] for x in self._design_variables.values()]),
                                          elementwise_evaluation=True)
-        self.problem.base = self
+        self._problem.base = self
         # Grab the design variables for the current PF
         self.initial_pop = self.get_pf()
         pop = Population.new('X', self.initial_pop)
@@ -142,7 +142,7 @@ class PyMooAlgorithm(KaLocal):
         Determine the core design variables using a monte carlo (stochastic) method.
         """        
         self.setup_problem()
-        self.problem_results = minimize(self.problem, 
+        self.problem_results = minimize(self._problem, 
                                         self.algorithm, 
                                         self.termination,
                                         seed=1,

@@ -235,7 +235,7 @@ class Blackboard(Agent):
     
     def connect_ka_specific(self, agent, attr={}):
         """Holder for implementing and connect a specific knowledge agent."""
-        pass
+        ...
 
     def connect_sub_blackboard(self, name, bb_type):
         """

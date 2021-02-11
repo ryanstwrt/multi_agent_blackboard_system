@@ -3,7 +3,10 @@ from osbrain import run_nameserver
 from osbrain import run_agent
 import src.ka.ka_s.base as base
 import time
-
+from src.utils.problem import BenchmarkProblem
+from src.utils.problem import SFRProblem
+import pickle
+    
 def test_init():
     try:
         ns = run_nameserver()
@@ -184,32 +187,74 @@ def test_check_new_designs():
                 'core_[75.0,65.0,0.9]':  {'pareto type' : 'pareto', 'fitness function' : 2.5}}
     
     rp.set_attr(lvl_read=lvl_read)
-    rp.set_attr(new_designs={'core_[75.0,75.0,0.75]':  {'pareto type' : 'pareto', 'fitness function' : 1.0},
-                             'core_[65.0,65.0,0.1]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}})
+    rp.set_attr(new_designs=['core_[75.0,75.0,0.75]', 'core_[65.0,65.0,0.1]'])
     rp.check_new_designs()
 
-    assert rp.get_attr('new_designs') == {'core_[65.0,65.0,0.1]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    assert rp.get_attr('new_designs') == ['core_[65.0,65.0,0.1]']
     ns.shutdown()
-    time.sleep(0.1)  
+    time.sleep(0.1) 
     
-def test_read_bb_lvl():
+def test_calc_objective():
+    
+    with open('./sm_gpr.pkl', 'rb') as pickle_file:
+        sm_ga = pickle.load(pickle_file)
+        
+    dvs={'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
+         'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
+         'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
+    objs={'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
+          'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
+    cons={'eol keff':    {'ll': 1.0, 'ul': 2.5, 'variable type': float}}    
+    problem = SFRProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints=cons,
+                         sm = sm_ga,
+                         sm_type='gpr')
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     rp = run_agent(name='ka_rp', base=base.KaLocal)
-    lvl_read = {'core_[65.0,65.0,0.1]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}, 
-                'core_[70.0,60.0,0.25]': {'pareto type' : 'pareto', 'fitness function' : 1.2}, 
-                'core_[90.0,80.0,0.5]':  {'pareto type' : 'pareto', 'fitness function' : 1.5},
-                'core_[75.0,65.0,0.9]':  {'pareto type' : 'pareto', 'fitness function' : 2.5}}
+    rp.set_attr(problem=problem)
+    rp.set_attr(current_design_variables={'height': 65.0, 'smear': 65.0, 'pu_content': 0.4})
+    rp.calc_objectives()
     
-    rp.set_attr(lvl_read=lvl_read)
-    rp.set_attr(new_designs={'core_[75.0,75.0,0.75]':  {'pareto type' : 'pareto', 'fitness function' : 1.0},
-                             'core_[65.0,65.0,0.1]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}})
-    rp.check_new_designs()
-    assert rp.get_attr('new_designs') == {'core_[65.0,65.0,0.1]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    assert rp.get_attr('current_objectives') == {'reactivity swing': 677.1446654822049, 'burnup': 71.10762739696487}
+    assert rp.get_attr('current_constraints') == {'eol keff': 1.0365716174664996}
+
     ns.shutdown()
-    time.sleep(0.1)      
+    time.sleep(0.1)     
     
+def test_calc_objective_benchmark():
+    
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()    
+        
+    dvs = {}
+    objs = {}
+    for x in range(3):
+        dvs['x{}'.format(x)] = {'ll':0.0, 'ul':1.0, 'variable type': float}
+
+    for x in range(3):
+        objs['f{}'.format(x)] = {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float}        
+        
+    problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'dtlz1')
+
+    rp = run_agent(name='ka_rp', base=base.KaLocal)
+    rp.set_attr(problem=problem)
+    rp.set_attr(current_design_variables={'x0': 0.25, 'x1':0.75, 'x2':0.13})
+    rp.calc_objectives()
+    
+    assert rp.get_attr('current_objectives') == {'f0': 13.649221822265138, 'f1': 4.549740607421713, 'f2': 54.596887289060554}
+    assert rp.get_attr('current_constraints') == {}
+
+    ns.shutdown()
+    time.sleep(0.1)         
     

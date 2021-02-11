@@ -1,3 +1,52 @@
+def convert_objective_to_minimize(obj_dict, obj_val, scale=False):
+    """
+    Converts maximization and equal to goals to a minimization problem
+    """
+    goal = obj_dict['goal']
+    if obj_dict['variable type'] == list:
+        obj_val = get_objective_value(obj_val, goal_type=obj_dict['goal type'])
+    
+    if goal == 'gt':
+        return (1 - obj_val) if scale else -obj_val
+    elif goal =='lt':
+        return obj_val
+    elif goal =='et':
+        if scale:
+            target = scale_float_value(obj_dict['target'], obj_dict['ll'], obj_dict['ul'])
+            return 2 * abs(target - obj_val)
+        else:
+            return abs(obj_dict['target'] - obj_val)
+
+    else:
+        print('Warning: goal for objective with objective dictionary {} given unregistered goal {}. \n Converted to lt (minimization) problem.')
+        return obj_val
+
+def get_float_val(self, multiplier, ll, ul,  accuracy):
+    return round(multiplier * (ul - ll) + ll, accuracy)
+
+def get_objective_value(val, goal_type=None):
+    """
+    Returns a single value to use as either a fitness function or Pareto indicator if our objective is a list
+    If we have a list of list, flatten to a single list.
+    """
+        
+    if type(val) == list:
+        try:
+            val = [item for sublist in val for item in sublist]
+        except TypeError:
+            pass
+            
+    if goal_type == 'max':
+        obj_val = max(val)
+    elif goal_type == 'min':
+        obj_val = min(val)
+    elif goal_type == 'avg':
+        obj_val = sum(val)/len(val)   
+    else:
+        obj_val = val
+        
+    return obj_val
+
 def scale_float_value(val, ll, ul):
     """Scale a value based on the lower/upper limits"""
     return (val - ll) / (ul - ll)
@@ -22,52 +71,6 @@ def scale_value(val, val_dict):
         return scale_list_value(val, val_dict['ll'], val_dict['ul'])
     else:
         return scale_float_value(val, val_dict['ll'], val_dict['ul'])
-    
-def get_objective_value(val, goal_type=None):
-    """
-    Returns a single value to use as either a fitness function or Pareto indicator if our objective is a list
-    If we have a list of list, flatten to a single list.
-    """
-        
-    if type(val) == list:
-        try:
-            val = [item for sublist in val for item in sublist]
-        except TypeError:
-            pass
-            
-    if goal_type == 'max':
-        obj_val = max(val)
-    elif goal_type == 'min':
-        obj_val = min(val)
-    elif goal_type == 'avg':
-        obj_val = sum(val)/len(val)   
-    else:
-        obj_val = val
-        
-    return obj_val
-    
-def convert_objective_to_minimize(obj_dict, obj_val, scale=False):
-    """
-    Converts maximization and equal to goals to a minimization problem
-    """
-    goal = obj_dict['goal']
-    if obj_dict['variable type'] == list:
-        obj_val = get_objective_value(obj_val, goal_type=obj_dict['goal type'])
-    
-    if goal == 'gt':
-        return (1 - obj_val) if scale else -obj_val
-    elif goal =='lt':
-        return obj_val
-    elif goal =='et':
-        if scale:
-            target = scale_float_value(obj_dict['target'], obj_dict['ll'], obj_dict['ul'])
-            return 2 * abs(target - obj_val)
-        else:
-            return abs(obj_dict['target'] - obj_val)
-
-    else:
-        print('Warning: goal for objective with objective dictionary {} given unregistered goal {}. \n Converted to lt (minimization) problem.')
-        return obj_val
     
 def scale_pareto_front(pf, objectives, lvl_data):
     """

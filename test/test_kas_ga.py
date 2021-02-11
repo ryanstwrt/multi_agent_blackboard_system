@@ -2,11 +2,18 @@ from osbrain import run_nameserver
 from osbrain import run_agent
 import src.ka.ka_s.genetic_algorithm as ga
 import src.bb.blackboard_optimization as bb_opt
+from src.utils.problem import BenchmarkProblem
+from src.utils.problem import SFRProblem
 import time
-import pickle
+from src.utils.problem import BenchmarkProblem
 
-with open('./sm_gpr.pkl', 'rb') as pickle_file:
-    sm_ga = pickle.load(pickle_file)
+dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
+objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}    
+        
+problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'dtlz1')  
 
 def test_init():
     try:
@@ -34,210 +41,168 @@ def test_init():
     ns.shutdown()
     time.sleep(0.1)
     
-def test_KaLocalGA():
+def test_search_method():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.set_attr(problem=problem)
 
     bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
     rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=0.0)
-    rp.set_attr(pf_trigger_number=2)
-    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.1]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.1}, 
-                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0,60.0,0.25]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.25}, 
-                                                          'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[70.0,60.0,0.25]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[0.650,0.750,0.24]', {'design variables': {'x0': 0.650, 'x1': 0.750, 'x2': 0.24},
+                                                          'objective functions': {'f0': 36.0, 'f1': 50.0, 'f2' : 60.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.750,0.24]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_blackboard()['level 1'])
     rp.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
 
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[65.0,65.0,0.25]','core_[70.0,60.0,0.1]']
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.65,0.24]', 'core_[0.65,0.75,0.4]']
     
-    bb.update_abstract_lvl(3, 'core_[90.0,80.0,0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
-                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[0.950,0.50,0.84]', {'design variables': {'x0': 0.950, 'x1': 0.50, 'x2': 0.84},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.950,0.50,0.84]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[0.250,0.70,0.2]', {'design variables': {'x0': 0.950, 'x1': 0.50, 'x2': 0.84},
+                                                          'objective functions': {'f0': 36.0, 'f1': 50.0, 'f2' : 60.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.250,0.70,0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
-    bb.update_abstract_lvl(1, 'core_[90.0,80.0,0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
-    bb.update_abstract_lvl(3, 'core_[75.0,65.0,0.9]', {'design variables': {'height': 75.0, 'smear': 65.0, 'pu_content': 0.90}, 
-                                                         'objective functions': {'reactivity swing' : 710.11,'burnup' : 61.12}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[75.0,65.0,0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    
-    rp.set_attr(offterstspring_per_generation=2)
     rp.set_attr(lvl_read=bb.get_blackboard()['level 1'])
     rp.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[65.0,65.0,0.25]','core_[70.0,60.0,0.1]', 'core_[65.0,60.0,0.25]', 'core_[70.0,65.0,0.1]']
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.65,0.24]', 'core_[0.65,0.75,0.4]', 'core_[0.95,0.5,0.84]', 'core_[0.65,0.75,0.24]', 'core_[0.65,0.65,0.4]']
     
     ns.shutdown()
     time.sleep(0.1)
     
-def test_KaGa_lvl_2():
+def test_search_method_lvl_2():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
 
     bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(problem=problem)        
     rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=0.0)
-    rp.set_attr(pf_trigger_number=2)
     rp.set_attr(bb_lvl_read=2)
-    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.1]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.1}, 
-                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
     
-    bb.update_abstract_lvl(2, 'core_[65.0,65.0,0.1]', {'valid' : True}, panel='new')
-    bb.update_abstract_lvl(3, 'core_[70.0,60.0,0.25]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.25}, 
-                                                          'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
-    
-    bb.update_abstract_lvl(2, 'core_[70.0,60.0,0.25]', {'valid' : True}, panel='new')
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(2, 'core_[0.650,0.650,0.4]', {'valid' : True}, panel='new')
+    bb.update_abstract_lvl(3, 'core_[0.650,0.750,0.24]', {'design variables': {'x0': 0.650, 'x1': 0.750, 'x2': 0.24},
+                                                          'objective functions': {'f0': 36.0, 'f1': 50.0, 'f2' : 60.0}}, panel='old')
+    bb.update_abstract_lvl(2, 'core_[0.650,0.750,0.24]', {'valid' : True}, panel='new')
     rp.set_attr(lvl_read=bb.get_blackboard()['level 2'])
     rp.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
     rp.search_method()
-    rp.get_attr('_class')
-
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[65.0,65.0,0.25]','core_[70.0,60.0,0.1]']
-    
-    bb.update_abstract_lvl(3, 'core_[80.0,70.0,0.5]', {'design variables': {'height': 80.0, 'smear': 70.0, 'pu_content': 0.50},
-                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
-    
-    bb.update_abstract_lvl(2, 'core_[80.0,70.0,0.5]', {'valid' : True}, panel='new')    
-    bb.update_abstract_lvl(3, 'core_[75.0,65.0,0.9]', {'design variables': {'height': 75.0, 'smear': 65.0, 'pu_content': 0.90}, 
-                                                         'objective functions': {'reactivity swing' : 710.11,'burnup' : 61.12}}, panel='old')
-    
-    bb.update_abstract_lvl(2, 'core_[75.0,65.0,0.9]', {'valid' : True}, panel='new')
-    
-    rp.set_attr(offspring_per_generation=2)
-    rp.set_attr(lvl_read=bb.get_blackboard()['level 2'])
-    rp.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
-    rp.search_method()
-    rp.get_attr('_class')
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[65.0,65.0,0.25]','core_[70.0,60.0,0.1]', 'core_[80.0,65.0,0.9]', 'core_[75.0,70.0,0.5]']
+    rp.get_attr('_class')        
+        
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.65,0.24]', 'core_[0.65,0.75,0.4]']
     
     ns.shutdown()
     time.sleep(0.1)
-def test_KaGa_handler_publish():
+    
+def test_handler_publish():
     pass
     
-def test_KaLocalGA_linear_crossover():
+def test_linear_crossover():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
-
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
 
     bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(problem=problem)        
+    rp.set_attr(crossover_type='linear crossover')
     rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=0.0)
-    rp.set_attr(pf_trigger_number=2)
-    rp.set_attr(crossover_type='linear crossover')
-    bb.update_abstract_lvl(3, 'core_[50.0,60.0,0.1]', {'design variables': {'height': 50.0, 'smear': 60.0, 'pu_content': 0.1}, 
-                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[50.0,60.0,0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0,70.0,0.2]', {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2}, 
-                                                          'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[70.0,70.0,0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[0.650,0.750,0.24]', {'design variables': {'x0': 0.650, 'x1': 0.750, 'x2': 0.24},
+                                                          'objective functions': {'f0': 36.0, 'f1': 50.0, 'f2' : 60.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.750,0.24]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    rp.set_attr(lvl_read=bb.get_blackboard()['level 1'])
+    rp.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    print
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0,65.0,0.15]','core_[50.0,55.0,0.05]','core_[80.0,70.0,0.25]']
-    solutions = ['core_[60.0,65.0,0.15]','core_[50.0,55.0,0.05]','core_[80.0,70.0,0.25]']
-    for solution in solutions:
-        assert solution in [x for x in bb.get_attr('abstract_lvls')['level 3']['new'].keys()]
+        
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new'].keys()) == ['core_[0.65,0.7,0.32]', 'core_[0.65,0.6,0.48]', 'core_[0.65,0.8,0.16]']
     
-    bb.update_abstract_lvl(3, 'core_[90.0,80.0,0.5]', {'design variables': {'height': 90.0, 'smear': 80.0, 'pu_content': 0.50},
-                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 65.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[0.950,0.50,0.84]', {'design variables': {'x0': 0.950, 'x1': 0.50, 'x2': 0.84},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.950,0.50,0.84]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[0.250,0.70,0.2]', {'design variables': {'x0': 0.950, 'x1': 0.50, 'x2': 0.84},
+                                                          'objective functions': {'f0': 36.0, 'f1': 50.0, 'f2' : 60.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.250,0.70,0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
-    bb.update_abstract_lvl(1, 'core_[90.0,80.0,0.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
-    bb.update_abstract_lvl(3, 'core_[75.0,65.0,0.9]', {'design variables': {'height': 55.0, 'smear': 65.0, 'pu_content': 0.90}, 
-                                                         'objective functions': {'reactivity swing' : 710.11,'burnup' : 61.12}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[75.0,65.0,0.9]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    
-    rp.set_attr(offspring_per_generation=4)
-    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(lvl_read=bb.get_blackboard()['level 1'])
+    rp.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[60.0,65.0,0.15]','core_[50.0,55.0,0.05]','core_[80.0,70.0,0.25]','core_[80.0,70.0,0.65]','core_[60.0,65.0,0.05]']
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.7,0.32]', 'core_[0.65,0.6,0.48]', 'core_[0.65,0.8,0.16]', 'core_[0.8,0.625,0.54]', 'core_[1.0,0.375,1.0]', 'core_[0.5,0.875,0.0]', 'core_[0.8,0.575,0.62]', 'core_[0.5,0.725,0.18]', 'core_[1.0,0.425,1.0]']
     
     ns.shutdown()
     time.sleep(0.1)
     
-def test_KaLocalGA_full():
+def test_publish_execute():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
+        
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
 
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
-    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
-
-    bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_ga')
+    bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
-    rp = ka.proxy('ka_rp_ga')
+    rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(problem=problem)        
+    rp.set_attr(crossover_type='linear crossover')
     rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=0.0)
     rp.set_attr(pf_size=2)
-    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.42]', {'design variables': {'height': 65.0, 'smear': 65.0,  'pu_content': 0.42}, 
-                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0,60.0,0.50]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
-                                                          'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.12}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[0.650,0.750,0.24]', {'design variables': {'x0': 0.650, 'x1': 0.750, 'x2': 0.24},
+                                                          'objective functions': {'f0': 36.0, 'f1': 50.0, 'f2' : 60.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.750,0.24]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    rp.set_attr(lvl_read=bb.get_blackboard()['level 1'])
+    rp.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
+    rp.get_attr('_class')
     
-    bb.update_abstract_lvl(1, 'core_[70.0,60.0,0.50]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
-
     assert rp.get_attr('analyzed_design') == {}
     bb.publish_trigger()
     time.sleep(0.075)
     bb.controller()
     bb.send_executor()
     time.sleep(0.075)
-    assert rp.get_attr('analyzed_design') == {'core_[65.0,65.0,0.42]': {'Analyzed': True}, 'core_[70.0,60.0,0.50]': {'Analyzed': True}}
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0,65.0,0.5]', 'core_[70.0,60.0,0.42]']
+    assert rp.get_attr('analyzed_design') == {'core_[0.650,0.750,0.24]': {'Analyzed': True}, 'core_[0.650,0.650,0.4]': {'Analyzed': True}}
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[0.65,0.7,0.32]', 'core_[0.65,0.6,0.48]', 'core_[0.65,0.8,0.16]']
 
     # Make sure we don't recombine already examined results
     bb.publish_trigger()
@@ -245,147 +210,129 @@ def test_KaLocalGA_full():
     bb.controller()
     bb.send_executor()  
     time.sleep(0.075)
-    assert rp.get_attr('analyzed_design') == {'core_[65.0,65.0,0.42]': {'Analyzed': True}, 'core_[70.0,60.0,0.50]': {'Analyzed': True}}
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0,65.0,0.5]','core_[70.0,60.0,0.42]']
+    assert rp.get_attr('analyzed_design') == {'core_[0.650,0.750,0.24]': {'Analyzed': True}, 'core_[0.650,0.650,0.4]': {'Analyzed': True}}
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[0.65,0.7,0.32]', 'core_[0.65,0.6,0.48]', 'core_[0.65,0.8,0.16]']
 
     # Reduce the PF size and ensure we don't execute the GA_KA
     rp.set_attr(pf_size=1)    
-    bb.remove_bb_entry(1, 'core_[65.0,65.0,0.42]')
+    bb.remove_bb_entry(1, 'core_[0.650,0.750,0.24]')
     bb.publish_trigger()
     time.sleep(0.075)
     bb.controller()
     bb.send_executor()  
-    time.sleep(0.075)
-    assert rp.get_attr('analyzed_design') == {'core_[65.0,65.0,0.42]': {'Analyzed': True}, 'core_[70.0,60.0,0.50]': {'Analyzed': True}}
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[65.0,65.0,0.5]','core_[70.0,60.0,0.42]']
+    time.sleep(0.075)  
+    assert rp.get_attr('analyzed_design') == {'core_[0.650,0.650,0.4]': {'Analyzed': True}, 'core_[0.650,0.750,0.24]': {'Analyzed': True}}
+    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[0.65,0.7,0.32]', 'core_[0.65,0.6,0.48]', 'core_[0.65,0.8,0.16]']
     
     ns.shutdown()
     time.sleep(0.1)
 
-def test_kaga_single_point_crossover():
+def test_single_point_crossover():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
 
     bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
-    rp.set_attr(_design_variables={'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
-                                  'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
-                                  'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float},
-                                  'exp': {'options': ['exp1', 'expb', 'exp4'], 'default': 'exp1', 'variable type': str}})
     rp.set_random_seed(seed=1073)
-    genotype1 = {'design variables': {'height':70.0,'smear':65.0,'pu_content':0.50, 'exp': 'exp1'},
-                 'objectives': {},
-                 'constraints': {}}
-    genotype2 = {'design variables': {'height':80.0,'smear':55.0,'pu_content':0.75, 'exp': 'expb'},}
+    genotype1 = {'design variables': {'x0':0.700,'x1':0.650,'x2':0.50}}
+    genotype2 = {'design variables': {'x0':0.800,'x1':0.550,'x2':0.75}}
     new_genotype = rp.single_point_crossover(genotype1, genotype2, 2)
-    assert new_genotype == [{'height': 70.0, 'smear': 65.0, 'pu_content': 0.75, 'exp': 'expb'},
-                            {'height': 80.0, 'smear': 55.0, 'pu_content': 0.5, 'exp': 'exp1'}]   
+    assert new_genotype == [{'x0': 0.700, 'x1': 0.650, 'x2': 0.75}, {'x0': 0.800, 'x1': 0.550, 'x2': 0.5}]   
  
-
     ns.shutdown()
     time.sleep(0.1)
     
-def test_kaga_random_mutation():
+def test_random_mutation():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
 
     bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
-    rp.set_attr(_design_variables={'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
-                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
-                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float},
-                                  'exp': {'options': ['exp1', 'expb', 'exp4'], 'default': 'exp1', 'variable type': str}})
     rp.set_random_seed(seed=1073)
-    genotype = {'height':70.0,'smear':65.0,'pu_content':0.5, 'exp': 'exp1'}
+    genotype =  {'x0':0.700,'x1':0.650,'x2':0.50}
     new_genotype = rp.random_mutation(genotype)
-    assert new_genotype == {'height': 70.0, 'smear': 65.0, 'pu_content': 0.50213, 'exp': 'exp1'}    
+    assert new_genotype == {'x0': 0.700, 'x1': 0.650, 'x2': 0.50213}    
     rp.set_random_seed(seed=10994)
     new_genotype = rp.random_mutation(genotype)
-    assert new_genotype == {'height': 70.0, 'smear': 65.0, 'pu_content': 0.5, 'exp': 'exp4'}    
+    assert new_genotype == {'x0': 0.700, 'x1': 0.650, 'x2': 0.47688}    
 
     ns.shutdown()
     time.sleep(0.1)
     
-def test_kaga_non_uniform_mutation():
+def test_non_uniform_mutation():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
 
     bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_ga')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_ga')
     rp.set_random_seed(seed=1073)
-    genotype = {'height':55.0,'smear':65.0,'pu_content':0.5}
+    genotype =  {'x0':0.700,'x1':0.650,'x2':0.50}
     new_genotype = rp.non_uniform_mutation(genotype)
-    assert new_genotype == {'height': 55.0, 'smear': 65.0, 'pu_content': 0.83409}
+    assert new_genotype == {'x0': 0.700, 'x1': 0.650, 'x2': 0.83409}
 
     ns.shutdown()
     time.sleep(0.1)
     
-def test_KaLocalGA_crossover_mutate():
+def test_crossover_mutate():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
-
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
-    objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
 
     bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(problem=problem)        
     rp.set_random_seed(seed=1073)
     rp.set_attr(mutation_rate=1.0)
     rp.set_attr(pf_trigger_number=2)
     rp.set_attr(crossover_type='nonsense')
-    rp.set_attr(mutation_type='random')
-    bb.update_abstract_lvl(3, 'core_[50.0,60.0,0.1]', {'design variables': {'height': 50.0, 'smear': 60.0, 'pu_content': 0.1}, 
-                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[50.0,60.0,0.1]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0,70.0,0.2]', {'design variables': {'height': 70.0, 'smear': 70.0, 'pu_content': 0.2}, 
-                                                          'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[70.0,70.0,0.2]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
-    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(mutation_type='random')    
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[0.650,0.750,0.24]', {'design variables': {'x0': 0.650, 'x1': 0.750, 'x2': 0.24},
+                                                          'objective functions': {'f0': 36.0, 'f1': 50.0, 'f2' : 60.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.750,0.24]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    rp.set_attr(lvl_read=bb.get_blackboard()['level 1'])
+    rp.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0,60.0,0.19013]','core_[70.0,70.0,0.1]']
+        
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new']) == ['core_[0.65,0.65,0.22815]', 'core_[0.65,0.75155,0.4]']
     rp.set_random_seed(seed=1073)
     rp.set_attr(crossover_type='nonsense')
     rp.set_attr(mutation_type='non-uniform')    
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0,60.0,0.19013]','core_[70.0,70.0,0.1]','core_[50.0,60.0,0.32809]','core_[70.0,50.0,0.1]']
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new'])  == ['core_[0.65,0.65,0.22815]', 'core_[0.65,0.75155,0.4]', 'core_[0.65,0.65,0.39371]', 'core_[0.65,0.0039,0.4]']
     rp.set_random_seed(seed=1073)
     rp.set_attr(crossover_type='nonsense')
     rp.set_attr(mutation_type='nonsense')    
     rp.search_method()
     rp.get_attr('_class')
-    assert [x for x in bb.get_attr('abstract_lvls')['level 3']['new']] == ['core_[50.0,60.0,0.19013]','core_[70.0,70.0,0.1]','core_[50.0,60.0,0.32809]','core_[70.0,50.0,0.1]']
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new'])  == ['core_[0.65,0.65,0.22815]', 'core_[0.65,0.75155,0.4]', 'core_[0.65,0.65,0.39371]', 'core_[0.65,0.0039,0.4]']
     
     ns.shutdown()
     time.sleep(0.1)

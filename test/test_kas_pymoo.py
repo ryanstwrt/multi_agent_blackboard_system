@@ -1,11 +1,11 @@
-import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import time
 import src.ka.ka_s.pymoo_plugin as pm
 import src.bb.blackboard_optimization as bb_opt
+from pymoo.factory import get_algorithm, get_termination
+from src.utils.problem import BenchmarkProblem
 import numpy as np
-import pickle
 
 def test_init():
     
@@ -56,7 +56,6 @@ def test_get_pf():
     time.sleep(0.1)        
     
 def test_setup_problem():
-    from pymoo.factory import get_algorithm, get_termination
     
     try:
         ns = run_nameserver()
@@ -85,7 +84,7 @@ def test_setup_problem():
     
     assert np.array([[90.0,80.0,0.5], [75.0,65.0,0.9]]).all() == ka_s.get_attr('initial_pop').all()
     assert type(get_termination('n_eval', 250)) ==  type(ka_s.get_attr('termination'))
-    problem = ka_s.get_attr('problem')
+    problem = ka_s.get_attr('_problem')
     assert problem.n_var == 3
     assert problem.n_obj == 2
     assert problem.n_constr == 1
@@ -104,26 +103,29 @@ def test_search_method():
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
-
-    with open('./sm_gpr.pkl', 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)        
+    dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
+    objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}
+        
+    problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'dtlz1')        
         
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
+    bb.set_attr(constraints={})
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints={})
+
     bb.connect_agent(pm.PyMooAlgorithm, 'ka_nsga2')
     ka = bb.get_attr('_proxy_server')
     ka_s = ka.proxy('ka_nsga2')
-    ka_s.set_random_seed(seed=10893)    
-    bb.update_abstract_lvl(3, 'core_[65.0,65.0,0.75]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.75}, 
-                                                         'objective functions': {'reactivity swing' : 704.11, 'burnup' : 61.}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[65.0,65.0,0.75]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[70.0,60.0,0.25]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.25}, 
-                                                         'objective functions': {'reactivity swing' :650.11,'burnup' : 61.12}}, panel='old')
-    
-    bb.update_abstract_lvl(1, 'core_[70.0,60.0,0.25]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    ka_s.set_attr(problem=problem)            
+    ka_s.set_random_seed(seed=10893) 
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[0.650,0.750,0.24]', {'design variables': {'x0': 0.650, 'x1': 0.750, 'x2': 0.24},
+                                                          'objective functions': {'f0': 36.0, 'f1': 50.0, 'f2' : 60.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.750,0.24]', {'pareto type' : 'pareto', 'fitness function' : 1.0})   
     ka_s.set_attr(lvl_read=bb.get_blackboard()['level 1'])
     ka_s.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
     ka_s.set_attr(pop_size=2)
@@ -132,6 +134,6 @@ def test_search_method():
 
     ka_s.search_method()
     ka_s.get_attr('_class')
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[65.0,65.0,0.75]', 'core_[70.0,60.0,0.25]', 'core_[65.0,65.11826218482396,0.75]', 'core_[63.23921054183972,65.0,0.75]', 'core_[60.627285073278316,65.11826218482396,0.75]', 'core_[65.0,63.98405154463569,0.7593013064317452]']
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.65,0.4]', 'core_[0.65,0.75,0.24]', 'core_[0.65,0.6559273381756285,0.4]', 'core_[0.5913069633410922,0.65,0.4]', 'core_[0.4455492956093361,0.65,0.4]', 'core_[0.5913069633410922,0.5932894680193752,0.4093256985734208]']
     ns.shutdown()
     time.sleep(0.1)       

@@ -6,80 +6,45 @@ import pickle
 import src.utils.moo_benchmarks as mb
 import src.bb.blackboard as blackboard
 import src.bb.blackboard_optimization as bb_opt
-# Can the controller keep track of the BB levels and update the trigger values of different agents as needed?
 
 class Controller(object):
     """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
     
     The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
     
-    def __init__(self, bb_name='bb', 
-                 bb_type=blackboard.Blackboard, 
-                 ka={}, 
-                 objectives=None, 
-                 design_variables=None,
-                 constraints=None,
-                 archive='bb_archive', 
-                 agent_wait_time=30, 
-                 min_agent_wait_time=0,
-                 benchmark=None, 
-                 plot_progress=False,
-                 total_tvs=1E6,
-                 skipped_tvs=200,
-                 convergence_type='hvi',
-                 convergence_rate=1E-5,
-                 convergence_interval=25,
-                 pf_size=200,
-                 dci_div={},
-                 function_evals=1E6,
-                 surrogate_model={'sm_type': 'lr', 'pickle file': None},
-                 random_seed=None):
+    def __init__(self, blackboard={},
+                       ka={}, 
+                       problem=None,
+                       agent_wait_time=30, 
+                       min_agent_wait_time=0,
+                       plot_progress=False,
+                       random_seed=None):
         
-        self.bb_name = bb_name
-        self.bb_type = bb_type
-        self.agent_wait_time = agent_wait_time
+        self.agent_time = 0
+        self.time = [time.time()]        
+        
+        self.bb_name = blackboard['name']
+        self.bb_type = blackboard['type']
+        
         self._ns = run_nameserver()
         self._proxy_server = proxy.NSProxy()
         self.bb = run_agent(name=self.bb_name, base=self.bb_type)
-        self.bb.set_attr(archive_name='{}.h5'.format(archive))
+           
+        if 'attr' in blackboard.keys():
+            for k,v in blackboard['attr'].items():
+                self.bb.set_attr(**{k:v})
+                
+        self.bb.set_attr(problem=problem)
+        self.bb.initialize_abstract_level_3(objectives=problem.objs, design_variables=problem.dvs, constraints=problem.cons)
+        self.bb.set_attr(random_seed=random_seed)
         
-        self.agent_time = 0
-        self.progress_rate = convergence_interval
-        self.plot_progress = plot_progress
-        self.time = [time.time()]
-        
-        if bb_type == bb_opt.BbOpt:
-            self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables, constraints=constraints)
-            self.bb.set_attr(sm_type=surrogate_model['sm_type'])
-            self.bb.set_attr(total_tvs=total_tvs)
-            self.bb.set_attr(skipped_tvs=skipped_tvs)
-            self.bb.set_attr(pf_size=pf_size)
-            self.bb.set_attr(convergence_type=convergence_type)
-            self.bb.set_attr(function_evals=function_evals)
-            self.bb.set_attr(convergence_rate=convergence_rate)
-            self.bb.set_attr(convergence_interval=convergence_interval)            
-            self.bb.set_attr(dci_div=dci_div)
-            if random_seed:
-                self.bb.set_attr(random_seed=random_seed)
-            if surrogate_model['pickle file']:
-                with open(surrogate_model['pickle file'], 'rb') as pickle_file:
-                    sm = pickle.load(pickle_file)
-                self.bb.set_attr(_sm=sm)            
-            else:
-                self.bb.generate_sm()
+        self.agent_wait_time = agent_wait_time
+        self.plot_progress = plot_progress          
+        self.progress_rate = self.bb.get_attr('convergence_interval')
         
         for ka_name, ka_data in ka.items():
             attr = ka_data['attr'] if 'attr' in ka_data.keys() else {}
             self.bb.connect_agent(ka_data['type'], ka_name, attr=attr)
-            
-    def initialize_blackboard(self):
-        self.bb.set_attr(total_tvs=total_tvs)
-        self.bb.set_attr(skipped_tvs=skipped_tvs)
-        self.bb.set_attr(pf_size=pf_size)
-        self.bb.set_attr(convergence_type=convergence_type)
-        self.bb.set_attr(convergence_rate=convergence_rate)
-        self.bb.set_attr(convergence_interval=convergence_interval)            
-        self.bb.set_attr(dci_div=dci_div)
             
     def run_single_agent_bb(self):
         """Run a BB optimization problem single-agent mode."""
@@ -89,10 +54,15 @@ class Controller(object):
             trig_num = self.bb.get_current_trigger_value()
             responses = False
             # Wait until all responses have been recieved
+            i = 0
             while not responses:
                 try:
+                    time.sleep(1)
                     if len(self.bb.get_kaar()[trig_num]) == num_agents:
                         responses = True
+                    i+=1
+                    if i > 6:
+                        exit()
                 except RuntimeError:
                     pass
             self.bb.controller()
@@ -185,70 +155,17 @@ class Controller(object):
         
     def shutdown(self):
         self._ns.shutdown()
-        
-class BenchmarkController(Controller):
-    """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
-    
-    The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
-    
-    def __init__(self, bb_name='bb', 
-                 benchmark=None,
-                 bb_type=bb_opt.BenchmarkBbOpt, 
-                 ka={}, 
-                 objectives=None, 
-                 design_variables=None,
-                 constraints=None,
-                 archive='bb_benchmark', 
-                 agent_wait_time=30, 
-                 min_agent_wait_time=0,
-                 plot_progress=False,
-                 total_tvs=1E6,
-                 skipped_tvs=200,
-                 convergence_type='hvi',
-                 convergence_rate=1E-5,
-                 convergence_interval=25,
-                 pf_size=200,
-                 dci_div={},
-                 function_evals=1E6,
-                 surrogate_model={'sm_type': 'lr', 'pickle file': None},
-                 random_seed=None):
-
-        self.bb_name = bb_name
-        self.bb_type = bb_type
-        self.agent_wait_time = agent_wait_time
-        self._ns = run_nameserver()
-        self._proxy_server = proxy.NSProxy()
-        self.bb = run_agent(name=self.bb_name, base=self.bb_type)
-        self.bb.set_random_seed(seed=random_seed)
-        self.bb.set_attr(archive_name='{}.h5'.format(archive))
-
-        self.bb.set_attr(total_tvs=total_tvs)
-        self.bb.set_attr(skipped_tvs=skipped_tvs)
-        self.bb.set_attr(pf_size=pf_size)
-        self.bb.set_attr(convergence_type=convergence_type)
-        self.bb.set_attr(convergence_rate=convergence_rate)
-        self.bb.set_attr(convergence_interval=convergence_interval)            
-        self.bb.set_attr(dci_div=dci_div)
-        self.bb.set_attr(function_evals=function_evals)
-        
-        self.agent_time = 0
-        self.progress_rate = convergence_interval
-        self.plot_progress = plot_progress
-        self.time = [time.time()]
- 
-        self.bb.initialize_abstract_level_3(objectives=objectives, design_variables=design_variables,constraints=constraints)
-        self.bb.set_attr(sm_type='{}_benchmark'.format(benchmark))
-        self.bb.set_attr(_sm=mb.optimization_test_functions(benchmark))
-        
-        for ka_name, ka_data in ka.items():
-            attr = ka_data['attr'] if 'attr' in ka_data.keys() else {}
-            self.bb.connect_agent(ka_data['type'], ka_name, attr=attr)
             
 
 class Multi_Tiered_Controller(Controller):
     """The controller object wraps around the blackboard system to control when and how agents interact with the blackboard. 
     
-    The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization."""
+    The controller sets up the problem by creating instances of the blackboard, which in turn creates an instance of the knowledge agents upon initialization.
+    
+    TO DO: Update this to work with new nomenclature 
+    TO DO: Update this to allow for multiple sub blackboard
+    TO DO: Update this to allow for blackboards to be working in parallel
+    """
     
     def __init__(self):
         self.master_bb = None
