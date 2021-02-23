@@ -51,7 +51,7 @@ class PyMooAlgorithm(KaLocal):
             self.base.current_design_variables = {k:float(X[num]) for num, k in enumerate(self.base._design_variables.keys())}
             self.base.calc_objectives()
             obj.append([utils.convert_objective_to_minimize(self.base._objectives[obj], x) for obj, x in self.base.current_objectives.items()])
-
+            print(self.base.current_design_variables)
             if self.base._constraints:      
                 const.append([-utils.scale_value(self.base.current_constraints[con], con_dict) for con, con_dict in self.base._constraints.items()])   
                               
@@ -105,7 +105,7 @@ class PyMooAlgorithm(KaLocal):
     
     def setup_problem(self):
         self.termination = get_termination(self.termination_type, self.termination_criteria)
-        self.ref_dirs = get_reference_directions(self.ref_dir_type, len(self._design_variables), n_partitions=self.n_partitions)  
+        self.ref_dirs = get_reference_directions(self.ref_dir_type, len(self._objectives), n_partitions=self.n_partitions)  
         self._problem = self.PyMooProblem(self,
                                          n_var=len(self._design_variables),
                                          n_obj=len(self._objectives),
@@ -126,9 +126,9 @@ class PyMooAlgorithm(KaLocal):
         elif self.pymoo_algorithm_name == 'moead':
             self.algorithm = get_algorithm(self.pymoo_algorithm_name,
                                            ref_dirs=self.ref_dirs,
-                                            n_neighbors=15,
-                                            decomposition="pbi",
-                                            prob_neighbor_mating=0.7)          
+                                           n_neighbors=15,
+                                           decomposition="pbi",
+                                           prob_neighbor_mating=0.7)          
         else:
             self.algorithm = get_algorithm(self.pymoo_algorithm_name,
                                            ref_dirs=self.ref_dirs,

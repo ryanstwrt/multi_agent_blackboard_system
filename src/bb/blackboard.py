@@ -144,8 +144,8 @@ class Blackboard(Agent):
         ka.connect_shutdown()
         ka.connect_complete()
         self.connect_ka_specific(agent_alias, attr=attr)
-        self.agent_addrs[agent_alias].update({'class': agent_type})
-        self.agent_addrs[agent_alias].update({'performing action':False})
+        self.agent_addrs[agent_alias].update({'class': agent_type, 'performing action':False})
+ #       self.agent_addrs[agent_alias].update({})
         self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
 
     def connect_complete(self, message):

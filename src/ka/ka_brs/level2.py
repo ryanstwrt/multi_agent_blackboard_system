@@ -45,7 +45,7 @@ class KaBrLevel2(KaBr):
             except TypeError:
                 fitness += 0
 
-        return round(fitness, 5)        
+        return fitness        
         
     def handler_executor(self, message):
         

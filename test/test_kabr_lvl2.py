@@ -241,7 +241,7 @@ def test_determine_fitness_function():
     fitness = ka_br2.determine_fitness_function('core_2', {'keff': 1.0, 'void_coeff': -100.0, 'pu_content': 0.6, 'power avg': [0.25, 0.5, 0.75], 'power max': [0.25, 0.5, 0.75], 'power min': [0.25, 0.5, 0.75]})
     assert fitness == 1.5
     fitness = ka_br2.determine_fitness_function('core_2', {'keff': 1.1, 'void_coeff': -150.0, 'pu_content': 0.3, 'power avg': [0.25, 0.5, 0.75], 'power max': [0.25, 0.5, 0.75], 'power min': [0.25, 0.5, 0.75]})
-    assert fitness == 3.0
+    assert round(fitness,5) == 3.0
     
     ns.shutdown()
     time.sleep(0.05)   
@@ -317,10 +317,10 @@ def test_handler_executor():
     bb.send_executor()
     time.sleep(0.05)    
 
-    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_1' : {'pareto type' : 'pareto', 'fitness function' : 1.35},
-                                                       'core_2' : {'pareto type' : 'pareto', 'fitness function' : 1.43},
-                                                       'core_3' : {'pareto type' : 'pareto', 'fitness function' : 0.36667},
-                                                       'core_4' : {'pareto type' : 'pareto', 'fitness function' : 0.86667}}
+    ff = [1.35, 1.43, 0.36667, 0.86667]
+    for num, attr in enumerate(bb.get_attr('abstract_lvls')['level 1'].values()):
+        assert round(attr['fitness function'],5) == ff[num]
+
     assert bb.get_attr('abstract_lvls')['level 2'] == {'new': {}, 
                                                        'old': {'core_1' : {'valid' : True}, 
                                                                'core_2' : {'valid' : True},

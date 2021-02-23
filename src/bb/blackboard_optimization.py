@@ -176,9 +176,7 @@ class BbOpt(blackboard.Blackboard):
         elif self.convergence_type == 'hvi':
             self.determine_complete_hv()
         elif self.convergence_type == 'function evals':
-            lvl3 = {}
-            for panel in self.abstract_lvls['level 3'].values():
-                lvl3.update(panel)
+            lvl3 = {**self.abstract_lvls['level 3']['new'], **self.abstract_lvls['level 3']['old']}
             self.log_info('Problem is at {} of {} total allowable function evals'.format(len(lvl3), self.function_evals))
                 
             if len(lvl3) > self.function_evals:
@@ -373,29 +371,19 @@ class BbOpt(blackboard.Blackboard):
                     ind_dict[dv] = [core_designs[dv]]                    
         objs = [x for x in self.objectives.keys()]
         dvs = [x for x in self.design_variables.keys()]
-        obj_labels = {'fitness': 'fitness',
-                      'burnup': 'Burnup (GWD/MTHM)',
-                      'cycle length': 'Cycle Length (days)',
-                      'pu mass': 'Pu Mass (kg/year)',
-                      'reactivity swing' : 'Rx Swing (pcm/month)',
-                      'eol keff': 'EOC k-eff',
-                      'pu ratio': 'Pu239/Pu Ratio',
-                      'pu disposed': 'Pu/cycle (kg)'}
-        dv_labels = {'height' : 'Height (cm)',
-                     'smear' : 'Smear',
-                     'pu_content' : 'Pu Fraction'}
+
         if len(obj_dict.keys()) == 2:
-            fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]]})
+            fig1 = px.scatter(x=obj_dict[objs[0]], y=obj_dict[objs[1]], labels={'x':objs[0], 'y': objs[1]})
         elif len(obj_dict.keys()) == 3:
-            fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=fitness, labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]], 'color': obj_labels['fitness']})
+            fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=fitness, labels={'x':objs[0], 'y': objs[1], 'z': objs[2], 'color': 'fitness'})
         elif len(obj_dict.keys()) > 3:
-            fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=obj_dict[objs[3]], labels={'x':obj_labels[objs[0]], 'y': obj_labels[objs[1]], 'z': obj_labels[objs[2]], 'color': obj_labels[objs[3]]})
+            fig1 = px.scatter_3d(x=obj_dict[objs[0]], y=obj_dict[objs[1]], z=obj_dict[objs[2]], color=obj_dict[objs[3]], labels={'x':objs[0], 'y': objs[1], 'z': objs[2], 'color': objs[3]})
         try:
             fig1.show()
         except UnboundLocalError:
             pass
         
-        fig2 = px.scatter_3d(x=ind_dict[dvs[0]], y=ind_dict[dvs[1]], z=ind_dict[dvs[2]], labels={'x':dv_labels[dvs[0]], 'y': dv_labels[dvs[1]], 'z': dv_labels[dvs[2]]})
+        fig2 = px.scatter_3d(x=ind_dict[dvs[0]], y=ind_dict[dvs[1]], z=ind_dict[dvs[2]], labels={'x':dvs[0], 'y': dvs[1], 'z': dvs[2]})
         try:
             fig2.show()
         except UnboundLocalError:
