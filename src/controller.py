@@ -21,10 +21,9 @@ class Controller(object):
         self.master_bb = None
         self.sub_bb = None
         self.bb_attr = {}
-        self.controller_agent_attr ={}
+        self.controller_agent_attr = {}
         self._ns = run_nameserver()
         self._proxy_server = proxy.NSProxy()       
-
             
     def initialize_blackboard(self, 
                               blackboard={},
@@ -33,8 +32,7 @@ class Controller(object):
                               agent_wait_time=30, 
                               min_agent_wait_time=0,
                               plot_progress=False,
-                              random_seed=None,
-                              agent=False):    
+                              random_seed=None):    
         
         setattr(self, blackboard['name'], run_agent(name=blackboard['name'], base=blackboard['type']))
         _bb = getattr(self, blackboard['name'])
@@ -56,14 +54,6 @@ class Controller(object):
                                        'plot_progress':plot_progress,
                                         'complete':False}})
 
-        if agent:
-            ca_name = 'ca_{}'.format( blackboard['name'])
-            ca = run_agent(name=ca_name, base=ControllerAgent)
-            setattr(ca, blackboard['name'], _bb)
-            self.controller_agent_attr[ca_name] = {'controller agent': ca,
-                                                   'blackboard': blackboard['name'],
-                                                   'bb_attr': self.bb_attr}            
-            
     def run_single_agent_bb(self, bb):
         """Run a BB optimization problem single-agent mode."""
         bb_attr = self.bb_attr[bb]
@@ -111,10 +101,11 @@ class Controller(object):
             
     def run_multi_agent_bb(self, bb):
         """Run a BB optimization problem single-agent mode."""
+        print(bb)
         bb_attr = self.bb_attr[bb]
         bb = getattr(self, bb) 
         bb_time = time.time()
-        
+        print('time')
         num_agents = len(bb.get_attr('agent_addrs'))
         while not bb.get_complete_status():
             bb.publish_trigger()
@@ -161,30 +152,20 @@ class Controller(object):
         bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time.time()-bb_time, 'hvi': bb.get_hv_list()[-1]})
         bb.write_to_h5() 
         
-    def run_serial_multi_tiered(self):
-        """
-        Run a multi-tiered problem in parallel bu running the ControllerAgents simultaneously
-        """
-        for ca_ in reversed(list(self.controller_agent_attr.values())):
-            ca_['controller agent'].set_attr(bb_attr=ca_['bb_attr'])
-            ca_['controller agent'].run_multi_agent_bb(ca_['blackboard'])
-            print('ran \n')        
-        
     def run_multi_tiered(self):
         """
         Run a multi-tiered problem in parallel bu running the ControllerAgents simultaneously
         """
-        for ca_ in self.controller_agent_attr.values():
-            ca_['controller agent'].set_attr(bb_attr=ca_['bb_attr'])
-            ca_['controller agent'].send_run_bb(ca_['blackboard'])
-            print('ran \n')
-        
+        for bb in reversed(list(self.bb_attr.values())):
+            self.run_multi_agent_bb(bb['name'])
+               
     def check_multi_tiered(self):
         """
         Check to see if all blackboards have ca compelte status
         """
         for bb, bb_dict in self.bb_attr.items():
-            bb_dict['complete'] = bb['blackboard'].get_complete_status()
+            bb = getattr(self, bb)
+            bb_dict['complete'] = bb.get_complete_status()
 
     def update_bb_trigger_values(self, trig_num):
         """
@@ -202,33 +183,92 @@ class Controller(object):
 class ControllerAgent(Agent, Controller):
     
     def on_init(self):
-        self.log_info('Connected CA')
+        self.log_info('Connected {}'.format(self.name))
         self._run_bb_alias = None
         self._run_bb_addr = None
+        self.master_ca = None
         self.bb_attr = {}
+        self.controller_agent_attr = {}        
         
-    def connect_run_bb(self, master):
+    def connect_run_bb(self):
         """Create a push-pull communication channel to execute KA."""
-        self._run_bb_alias, self._run_bb_addr = master.connect_run_bb(self.name)
+        self._run_bb_alias, self._run_bb_addr = self.master_ca.connect_run_bb(self.name)
         self.connect(self._run_bb_addr, alias=self._run_bb_alias, handler=self.handler_run_bb)
-        self.log_debug('Agent {} connected executor to BB'.format(self.name))       
+        self.log_info('Agent {} connected run BB to Master CA'.format(self.name))       
   
     def handler_run_bb(self, message):
         self.bb_attr = message
-        self.run_multi_agent_bb(self.bb_attr['name'])
+        self.run_multi_agent_bb(self.bb_attr[self.bb_name]['name'])
         
 class MasterControllerAgent(Agent, Controller):
     
     def on_init(self):
-        self.log_info('Connected CA')   
+      
+        self.log_info('Connected Master Controller Agent')   
         self.bb_addrs = {}
-        self.bb_attr = {}     
+        self.bb_attr = {}
+        self.controller_agent_attr = {}        
         
     def connect_run_bb(self, agent_name):
         alias_name = 'run_bb_{}'.format(agent_name)
         executor_addr = self.bind('PUSH', alias=alias_name)
         self.bb_addrs[agent_name] = {'run_bb': (alias_name, executor_addr)}
         return (alias_name, executor_addr)     
+    
+    def initialize_blackboard(self, 
+                              blackboard={},
+                              ka={}, 
+                              problem=None,
+                              agent_wait_time=30, 
+                              min_agent_wait_time=0,
+                              plot_progress=False,
+                              random_seed=None):    
+        
+        setattr(self, blackboard['name'], run_agent(name=blackboard['name'], base=blackboard['type']))
+        _bb = getattr(self, blackboard['name'])
+        for k,v in blackboard['attr'].items():
+            _bb.set_attr(**{k:v})
 
+        _bb.set_attr(problem=problem)
+        _bb.initialize_abstract_level_3(objectives=problem.objs, design_variables=problem.dvs, constraints=problem.cons)
+        _bb.set_random_seed(seed=random_seed)
+ 
+        for ka_name, ka_data in ka.items():
+            attr = ka_data['attr'] if 'attr' in ka_data.keys() else {}
+            _bb.connect_agent(ka_data['type'], ka_name, attr=attr)
+            
+        self.bb_attr.update({blackboard['name']: {'plot': plot_progress,
+                                       'name': blackboard['name'],
+                                       'agent_wait_time': agent_wait_time,
+                                       'progress_rate': _bb.get_attr('convergence_interval'),
+                                       'plot_progress':plot_progress,
+                                        'complete':False}})
+
+        ca_name = 'ca_{}'.format( blackboard['name'])
+        ca = run_agent(name=ca_name, base=ControllerAgent)
+        ca.set_attr(master_ca=self)
+        ca.set_attr(bb_name=blackboard['name'])
+        setattr(ca, blackboard['name'], _bb)
+        self.controller_agent_attr[ca_name] = {'controller agent': ca,
+                                               'blackboard': blackboard['name'],
+                                               'bb_attr': self.bb_attr}     
+        ca.connect_run_bb()
+
+    def run_multi_tiered(self):
+        """
+        Run a multi-tiered problem in parallel by sending a message to each CA the ControllerAgents simultaneously
+        """
+        for ca, ca_dict in self.controller_agent_attr.items():
+            self.log_info('Began run for {}'.format(ca))    
+            self.send_run_bb(ca, ca_dict['bb_attr'])
+            
     def send_run_bb(self, agent_name, bb_attr):
-        bb.send('run_bb_{}'.format(agent_name), bb_attr)
+        self.send('run_bb_{}'.format(agent_name), bb_attr)            
+        
+    def check_multi_tiered(self):
+        """
+        Check to see if all blackboards have ca compelte status
+        """
+        for ca_dict in self.controller_agent_attr.values():
+            ca_bb = getattr(ca_dict['controller agent'], ca_dict['blackboard'])
+            self.bb_attr[ca_dict['blackboard']]['complete'] = ca_bb.get_complete_status()        

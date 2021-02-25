@@ -131,6 +131,7 @@ def test_run_multi_agent_bb():
                                   problem=problem) 
 
     except OSError:
+        time.sleep(0.5)        
         bb_controller = controller.Controller()
         bb_controller.initialize_blackboard(blackboard=bb_tier1,
                                   ka=kas, 
@@ -321,22 +322,15 @@ def test_serial_multi_tiered_run():
                                   agent_wait_time=10,
                                   plot_progress=False,
                                   random_seed=1097,
-                                  problem=problem,
-                                  agent=True)             
+                                  problem=problem,)             
     mtc.initialize_blackboard(blackboard=bb_tier2,
                                   ka=kas_tier_2, 
                                   agent_wait_time=10,
                                   plot_progress=False,
                                   random_seed=2097337,
-                                  problem=problem,
-                                  agent=True)   
+                                  problem=problem)   
 
-    mtc.run_serial_multi_tiered()
-    complete = False
-    while complete:
-        mtc.check_multi_tiered()
-        complete = False if False in [mtc.bb_attr[x]['complete'] for x in mtc.bb_attr.keys()] else True
-        
+    mtc.run_multi_tiered()
     bb2 = mtc.bb_opt_2
     bb1 = mtc.bb_opt_1
     
@@ -361,8 +355,10 @@ def test_controlleragent_init_master():
     assert ca.get_attr('_run_bb_alias') == None
     assert ca.get_attr('_run_bb_addr') == None
     assert mca.get_attr('bb_addrs') == {}
+    assert ca.get_attr('controller_agent_attr') == {}
     
-    ca.connect_run_bb(mca)
+    ca.set_attr(master_ca=mca)
+    ca.connect_run_bb()
     assert ca.get_attr('_run_bb_alias') == 'run_bb_ca'
     assert list(mca.get_attr('bb_addrs').keys()) == ['ca']
     
@@ -378,7 +374,8 @@ def test_controlleragent_handler_rub_bb():
         ns = run_nameserver()
     ca = run_agent(name='ca', base=controller.ControllerAgent)  
     mca = run_agent(name='mca', base=controller.MasterControllerAgent)   
-    ca.connect_run_bb(mca)
+    ca.set_attr(master_ca=mca)
+    ca.connect_run_bb()
     kas_tier_1 = {'ka_rp_t1': {'type': Stochastic},
            'ka_rp_ns_t1': {'type': NeighborhoodSearch},
            'ka_br_lvl3t1': {'type': KaBrLevel3},
@@ -388,16 +385,74 @@ def test_controlleragent_handler_rub_bb():
     bb_tier1 = {'name': 'bb_opt_1', 'type': bb_opt.BbOpt, 'tier': 1, 'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 8, 'convergence_interval': 2,
                                                            'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
                                                            'pf_size':1}}    
-#    ca.initialize_blackboard(blackboard=bb_tier1,
-#                             ka=kas_tier_1, 
-#                             agent_wait_time=10,
-#                             plot_progress=False,
-#                             random_seed=1097,
-#                             problem=problem,
-#                             agent=True)      
-#    bb_attr = ca.get_attr('bb_attr')
-#    print(bb_attr)
-#    ca.handler_run_bb(bb_attr['name'])
+    ca.initialize_blackboard(blackboard=bb_tier1,
+                             ka=kas_tier_1, 
+                             agent_wait_time=10,
+                             plot_progress=False,
+                             random_seed=1097,
+                             problem=problem)      
+    ca.set_attr(bb_name='bb_opt_1')
+    bb_attr = ca.get_attr('bb_attr')
+    ca.handler_run_bb(bb_attr)
     
     ns.shutdown()
     time.sleep(0.05)          
+    
+def test_multi_tiered_run():
+    kas_tier_1 = {'mc_t1': {'type': Stochastic},
+           'ns_t1': {'type': NeighborhoodSearch},
+           'lvl3_t1': {'type': KaBrLevel3},
+           'lvl2_t1': {'type': KaBrLevel2},
+           'lvl1_t1': {'type': KaBrLevel1}}
+
+    bb_tier1 = {'name': 'bb_opt_1', 'type': bb_opt.BbOpt, 'tier': 1, 'attr': {'archive_name': 'bb_opt_1.h5', 'total_tvs': 8, 'convergence_interval': 2,
+                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
+                                                           'pf_size':1}}
+    
+    kas_tier_2 = {'mc_t2': {'type': Stochastic},
+           'ns_t2': {'type': NeighborhoodSearch},
+           'inter':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
+           'lvl3_t2': {'type': KaBrLevel3},
+           'lvl2_t2': {'type': KaBrLevel2},
+           'lvl1_t2': {'type': KaBrLevel1}}            
+    bb_tier2 = {'name': 'bb_opt_2', 'type': bb_opt.BbOpt, 'tier': 2,  'attr': {'archive_name': 'bb_opt_2.h5', 'total_tvs': 8, 'convergence_interval': 2,
+                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
+                                                           'pf_size':1}} 
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    mtc = run_agent(name='mca', base=controller.MasterControllerAgent)       
+        
+    mtc.initialize_blackboard(blackboard=bb_tier1,
+                                  ka=kas_tier_1, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=1097,
+                                  problem=problem)             
+    mtc.initialize_blackboard(blackboard=bb_tier2,
+                                  ka=kas_tier_2, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=2097337,
+                                  problem=problem)   
+
+    mtc.run_multi_tiered()
+    complete = False
+    while not complete:
+        mtc.check_multi_tiered()
+        complete = False if False in [x['complete'] for x in mtc.get_attr('bb_attr').values()] else True
+        
+    ca_attr = mtc.get_attr('controller_agent_attr')
+    bb2 = getattr(ca_attr['ca_bb_opt_2']['controller agent'], ca_attr['ca_bb_opt_2']['blackboard'])
+    bb1 = getattr(ca_attr['ca_bb_opt_1']['controller agent'], ca_attr['ca_bb_opt_1']['blackboard'])
+
+    assert list(bb2.get_blackboard()['level 1']) == ['core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]']
+    assert list(bb1.get_blackboard()['level 1']) == ['core_[0.75342,0.31156,0.6875]', 'core_[0.98618,0.88344,0.21683]', 'core_[0.93922,0.88344,0.20599]']
+    
+    mtc.shutdown()    
+    os.remove('bb_opt_1.h5')    
+    os.remove('bb_opt_2.h5')    
+    ns.shutdown()    
+    time.sleep(0.05)

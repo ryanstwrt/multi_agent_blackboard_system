@@ -54,7 +54,7 @@ class BbOpt(blackboard.Blackboard):
         self.problem = None
         
         # Initialize an abstract level which holds meta-data about the problem
-        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})     
         
     def set_random_seed(self, seed=None):
         """
