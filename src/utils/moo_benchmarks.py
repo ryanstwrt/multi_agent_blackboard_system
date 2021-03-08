@@ -1,5 +1,5 @@
-import pymop.problems as mop
-from pymop.factory import get_problem
+import pymoo.problems as mop
+from pymoo.factory import get_problem
 import numpy as np
 import time
 import math
@@ -21,6 +21,8 @@ class optimization_test_functions(object):
             return self.tsp(x)
         elif self.test_name == 'welded_beam':
             return self.welded_beam(x)
+        elif self.test_name == 'truss2d':
+            return self.truss2d(x)
         elif 'dtlz' in self.test_name:
             return self.dtlz(x, num_vars, num_objs)
         elif 're' in self.test_name:
@@ -89,6 +91,11 @@ class optimization_test_functions(object):
         problem = get_problem('welded_beam')
         soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)
         return soln
+    
+    def truss2d(self, x):
+        problem = get_problem('truss2d')
+        soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)
+        return soln    
         
     def rep(self, x):
         problem = reprob.get_problem(self.test_name)    

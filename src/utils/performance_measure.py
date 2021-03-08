@@ -1,4 +1,3 @@
-#import platypus as plat
 from pymoo.factory import get_performance_indicator
 import math
 import numpy as np
@@ -14,14 +13,6 @@ def hypervolume_indicator(pf, upper_ref):
     """
     hv = get_performance_indicator("hv", ref_point=np.array(upper_ref))
     
-#    hyp = plat.indicators.Hypervolume(minimum=lower_ref, maximum=upper_ref)
-#    problem = plat.Problem(len(lower_ref),len(upper_ref))
-#    solutions = []
-#    for objs in pf:
-#        solution = plat.Solution(problem)
-#        solution.objectives = objs
-#        solutions.append(solution)
-#    return hyp.calculate(solutions)
     return hv.calc(np.array(pf))
 
 class diversity_comparison_indicator(object):
