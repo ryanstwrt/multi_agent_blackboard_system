@@ -1,4 +1,3 @@
-import platypus as plat
 import src.utils.performance_measure as pm
 import osbrain
 from osbrain import run_nameserver
