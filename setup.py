@@ -10,7 +10,7 @@ setup(
     author='Ryan Stewart',
     python_requires='>=3.6',
     zip_file=False,
-    install_requirement=['osbrain', 'numpy', 'pandas', 'h5py', 'scipy', 'osbrain', 'plotly', 'platypus-opt', 'pymop', 'scikit-learn', 'scikit-optimize', 'matplotlib', 'pymoo'],
+    install_requirement=['osbrain', 'numpy', 'pandas', 'h5py', 'scipy', 'osbrain', 'plotly', 'scikit-learn', 'scikit-optimize', 'matplotlib', 'pymoo'],
     packages=['mabs'],
     package_dir={'mabs': 'src'},
     include_package_data=True)
