@@ -32,3 +32,13 @@ def test_tsp():
     assert tsp.predict('tsp', [3,1,2,0]) == {'F': [95]}
     assert tsp.predict('tsp', [0,1,2,1]) == {'F': [90]}
     
+def test_welded_beam():
+    tsp = moo.optimization_test_functions('welded_beam')
+    val = tsp.predict('welded_beam', [1.15081317, 1.15874195, 9.99999932, 4.99999488])
+    val = [round(x, 6) for x in val['F']]
+    assert  val == [3.8159607e+01, 4.39e-04]
+
+def test_re21():
+    tsp = moo.optimization_test_functions('re21')
+    val = tsp.predict('re21', [0.5, 1.0, 1.0, 0.5])
+    assert val == {'F': [782.842712474619, 0.08]}

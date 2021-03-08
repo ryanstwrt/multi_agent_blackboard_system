@@ -1,6 +1,9 @@
 import pymop.problems as mop
 from pymop.factory import get_problem
+import numpy as np
 import time
+import math
+import src.utils.reproblems as reprob
 
 class optimization_test_functions(object):
     
@@ -16,10 +19,12 @@ class optimization_test_functions(object):
             return self.zdt(x, num_vars)
         elif self.test_name == 'tsp':
             return self.tsp(x)
-        elif self.test_name == 'wb':
+        elif self.test_name == 'welded_beam':
             return self.welded_beam(x)
         elif 'dtlz' in self.test_name:
             return self.dtlz(x, num_vars, num_objs)
+        elif 're' in self.test_name:
+            return self.rep(x)
     
     def schaffer_func_1(self, x):
         """
@@ -85,4 +90,12 @@ class optimization_test_functions(object):
         soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)
         return soln
         
-       
+    def rep(self, x):
+        problem = reprob.get_problem(self.test_name)    
+        objs = problem.evaluate(x)
+        return {'F': objs.tolist()}
+    
+    def crep(self, x):
+        problem = reprob.get_problem(self.test_name)    
+        objs, consts = problem.evaluate(x)
+        return {'F': objs.to_list(), 'G': consts.to_list()}

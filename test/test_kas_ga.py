@@ -175,7 +175,7 @@ def test_publish_execute():
         
     bb = run_agent(name='bb', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
-
+    bb.initialize_metadata_level()
     bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_exploit')
     ka = bb.get_attr('_proxy_server')
     rp = ka.proxy('ka_rp_exploit')

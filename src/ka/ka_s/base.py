@@ -42,6 +42,8 @@ class KaS(KaBase):
         self.debug_wait_time = 0.5
         self.problem = None
         
+        self.execute_once = False
+        
     def set_random_seed(self, seed=None):
         """
         Sets the random seed number to provide a reproducabel result
@@ -53,7 +55,10 @@ class KaS(KaBase):
         Send a message to the BB indicating it's completed its action
         """
         self.send(self._complete_alias, (self.name, self.agent_time, self._trigger_event))
-    
+        if self.execute_once:
+            self.log_info('Agent {} shutting down'.format(self.name))
+            self.shutdown()    
+            
     def calc_objectives(self):
         """
         Calculate the objective functions based on the core design variables.
@@ -189,6 +194,7 @@ class KaLocal(KaS):
         self.analyzed_design = {}
         self.new_designs = []
         self._class = 'local search'
+        self.reanalyze_designs = False
         
     def check_new_designs(self):
         """
@@ -305,7 +311,7 @@ class KaLocal(KaS):
         """
         lvl = lvl['level {}'.format(self.bb_lvl_read)]
         if self.bb_lvl_read == 1:
-            self.new_designs = [key for key in lvl if key not in self.analyzed_design.keys()]
+            self.new_designs =  list(lvl.keys()) if self.reanalyze_designs else [key for key in lvl if key not in self.analyzed_design.keys()]
         else:
             designs_on_lvl = {}
             for values in lvl.values():

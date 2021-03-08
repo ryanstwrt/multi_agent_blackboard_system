@@ -283,6 +283,8 @@ def test_handler_executor():
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.connect_agent(KaBrLevel2, 'ka_br')
+    bb.initialize_metadata_level()
+    
     ka_br2 = ns.proxy('ka_br')
 
     ka_br2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 

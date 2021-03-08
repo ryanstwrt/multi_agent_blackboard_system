@@ -48,8 +48,7 @@ def test_BbOpt_init():
     assert bb.get_attr('objectives_ll') == []
     assert bb.get_attr('objectives_ul') == []
     assert bb.get_attr('abstract_lvls') == {'level 1': {},
-                                            'level 2': {'new': {}, 'old': {}},
-                                            'level 100': {}}
+                                            'level 2': {'new': {}, 'old': {}}}
     
     ns.shutdown()
     time.sleep(0.05)
@@ -91,18 +90,16 @@ def test_initalize_abstract_level_3_basic():
                                                                        'constraints': {}},
                                                                'old': {'design variables': {'x0': float, 'x1': float, 'x2': float},
                                                                        'objective functions': {'f0': float, 'f1': float, 'f2': float},
-                                                                       'constraints': {}}},
-                                                   'level 100': {'agent': str, 'hvi': float, 'time': float}}
+                                                                       'constraints': {}}}}
 
     
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
                                             'level 2': {'new':{}, 'old':{}}, 
-                                            'level 3': {'new': {}, 'old': {}},
-                                            'level 100': {}}
+                                            'level 3': {'new': {}, 'old': {}}}
     ns.shutdown()
     time.sleep(0.05)
 
-def test_BbOpt_initalize_abstract_level_3():
+def test_initalize_abstract_level_3():
     try:
         ns = run_nameserver()
     except OSError:
@@ -126,13 +123,11 @@ def test_BbOpt_initalize_abstract_level_3():
                                                                        'constraints': {'constraint_1': float}},
                                                                'old': {'design variables': {'height': float, 'experiments': {'0': str, '1': str}},
                                                                        'objective functions':  {'reactivity swing': float, 'burnup': float},
-                                                                       'constraints': {'constraint_1': float}}},
-                                                   'level 100': {'agent': str, 'hvi': float, 'time': float}}
+                                                                       'constraints': {'constraint_1': float}}}}
 
     assert bb.get_attr('abstract_lvls') == {'level 1': {}, 
                                             'level 2': {'new':{}, 'old':{}}, 
-                                            'level 3': {'new': {}, 'old': {}},
-                                            'level 100': {}}
+                                            'level 3': {'new': {}, 'old': {}}}
     ns.shutdown()
     time.sleep(0.05)
     
@@ -191,7 +186,6 @@ def test_add_ka_specific():
             assert agent.get_attr('_design_variables') == {'x0': {'ll': 0.0, 'ul': 1.0, 'variable type': float},
                                                            'x1': {'ll': 0.0, 'ul': 1.0, 'variable type': float},
                                                            'x2': {'ll': 0.0, 'ul': 1.0,  'variable type': float}}
-            assert agent.get_attr('sm_type') == 'interpolate'
             if 'lhc' in alias:
                 assert len(agent.get_attr('lhd')) == 50
                 assert len(agent.get_attr('lhd')[0]) == 3
@@ -248,12 +242,11 @@ def test_hv_indicator():
     
     bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
-    bb.hv_indicator()
-    assert bb.get_attr('hv_list') == [0, 0.5]
+    
+    assert bb.hv_indicator() == 0.5
     
     ns.shutdown()
     time.sleep(0.05)  
-    
 
 def test_handler_writer():
     try:
@@ -359,11 +352,11 @@ def test_meta_data_entry():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.set_attr(hv_list=[0.1,0.2,0.3,0.4,0.5])
+    bb.initialize_metadata_level()
+    bb.set_attr(meta_data={'hvi': [0.1,0.2,0.3,0.4,0.5]})
     bb.meta_data_entry('agent_x', 1.5, 4)
     assert bb.get_attr('abstract_lvls')['level 100'] == {'4': {'agent': 'agent_x', 'time': 1.5, 'hvi': 0.4}}
     
-
     ns.shutdown()
     time.sleep(0.05)    
 
@@ -374,6 +367,8 @@ def test_convergence_update():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_metadata_level()
+
     bb.set_attr(_trigger_event=3)
     bb.set_attr(_ka_to_execute=('agent_x', 2.4))
     bb.set_attr(hv_list=[0.1,0.2,0.3,0.4,0.5])
@@ -394,7 +389,8 @@ def test_dc_indicator():
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float},
             'power':             {'ll':0,   'ul':10,   'goal':'lt', 'goal type': 'max', 'variable type': list}}
     bb.initialize_abstract_level_3(objectives=objs)
-    
+    bb.initialize_metadata_level()
+
     bb.set_attr(convergence_type='dci hvi')
     bb.set_attr(dci_div={'reactivity swing': 100, 'burnup': 100, 'power': 10})
     
@@ -450,6 +446,10 @@ def test_determine_complete_dci_hvi():
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float},
             'power':             {'ll':0,   'ul':10,   'goal':'lt', 'goal type': 'avg', 'variable type': list}}
     bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_metadata_level()
+    bb.set_attr(convergence_interval=1)
+    bb.set_attr(skipped_tvs=0)
+    bb.set_attr(pf_size=1)
     
     bb.set_attr(convergence_type='dci hvi')
     bb.set_attr(dci_div={'reactivity swing': 100, 'burnup': 100, 'power': 10})    
@@ -488,9 +488,92 @@ def test_determine_complete_dci_hvi():
     bb.determine_complete_dci_hvi()
     assert bb.get_attr('dci_convergence_list') == [0.0,  0.5,  0.0, 0.33333333333333337, 0.0]
     assert bb.get_attr('hv_list') == [0.0, 0.0, 0.0, 0.125, 0.125, 0.25]
+    assert bb.get_complete_status() == False
     
+    bb.update_abstract_lvl(1, 'core_[72.0, 65.0, 0.43]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[72.0, 65.0, 0.43]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.43}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 100.0, 'power': [2.5,5.0,7.5]}}, panel='old')
+    bb.publish_trigger()                
+    bb.convergence_indicator()
+    bb.determine_complete_dci_hvi()
+    assert bb.get_attr('dci_convergence_list') == [0.0,  0.5,  0.0, 0.33333333333333337, 0.0, 0.0]
+    assert bb.get_attr('hv_list') == [0.0, 0.0, 0.0, 0.125, 0.125, 0.25, 0.25]
+    assert bb.get_complete_status() == True
+
     ns.shutdown()
-    time.sleep(0.05) 
+    time.sleep(0.05)
+
+def test_add_meta_data_level():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(meta_data_to_log=['hvi'])
+    bb.initialize_metadata_level()
+
+    assert bb.get_attr('abstract_lvls_format') == {'level 1': {'pareto type': str, 'fitness function': float},
+                                                   'level 2': {'new': {'valid': bool}, 
+                                                               'old': {'valid': bool}},
+                                                   'level 100': {'agent': str, 'hvi': float, 'time': float}}
+    ns.shutdown()
+    time.sleep(0.05)      
+    
+def test_log_metadata():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(meta_data_to_log=['hvi'])
+    bb.initialize_metadata_level()
+
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs)
+
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 100.0}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
+    bb.log_metadata()
+    bb.update_abstract_lvl(3, 'core_[64.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 250.0, 'burnup' : 75.0}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[64.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})    
+    bb.log_metadata()    
+    
+    assert bb.get_attr('meta_data') == {'hvi': [0.0, 0.5, 0.625]}
+    ns.shutdown()
+    time.sleep(0.05)
+    
+def test_log_metadata2():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(meta_data_to_log=['hvi', 'gd', 'igd'])
+    bb.set_attr(problem=problem)    
+    bb.initialize_metadata_level()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+
+    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.42}, 
+                                                          'objective functions': {'f0' : 0.0, 'f1' : 0.0001, 'f2':0.5}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0}) 
+    bb.update_abstract_lvl(3, 'core_[65.1, 65.0, 0.42]', {'design variables': {'x0': 0.651, 'x1': 0.651, 'x2': 0.43}, 
+                                                          'objective functions': {'f0' : 0.5, 'f1' : 0.0, 'f2':0.0001}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[65.1, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})     
+    bb.log_metadata()
+    
+    assert bb.get_attr('meta_data') == {'hvi': [0.0, 0.999999650000025], 'gd': [0.0, 0.0001], 'igd': [0.0, 0.31842014860754597]}
+    ns.shutdown()
+    time.sleep(0.05)       
     
 def test_convergence_indicator_dci_hvi():
     try:
@@ -502,6 +585,7 @@ def test_convergence_indicator_dci_hvi():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_metadata_level()
 
     bb.set_attr(convergence_type='dci hvi')
     bb.set_attr(dci_div={'reactivity swing': 100, 'burnup': 100})    
@@ -531,6 +615,7 @@ def test_convergence_indicator_hvi():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_metadata_level()
 
     bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
@@ -585,9 +670,13 @@ def test_read_from_h5():
             'burnup':           {'ll':0.0,  'ul':100.0,  'goal':'gt', 'variable type': float},
             'powers':           {'ll': -10,  'ul':10.0,  'goal':'et', 'goal_type': 'max', 'variable type': list},
             'list_powers':      {'ll': -10,  'ul':10.0,  'goal':'et', 'goal_type': 'max', 'variable type': list},}
+    cons = {'eol': {'ll': 1.0, 'ul': 2.0, 'variable type': float}}
 
-    bb_h5.initialize_abstract_level_3(objectives=objs, design_variables=dv)    
-    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)
+    bb_h5.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons)    
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons)
+    bb.initialize_metadata_level()
+    bb_h5.initialize_metadata_level()
+
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 54.0, 'smear': 66.9, 'pu_content': 0.76, 'experiments': {'0': 'exp_a', '1':'no_exp'}},
                                          'objective functions': {'reactivity swing': 50.0, 'burnup': 10.0, 'powers': [0.1,0.2,0.3], 'list_powers': [[0.5,0.8,0.7],[0.2,0.9,0.4]]},
                                          'constraints': {'eol keff': 1.02}}, panel='old')    
@@ -717,7 +806,9 @@ def test_agent_shutdown():
 
     bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0},
-                                                         'constraints': {}}, panel='new')    
+                                                         'constraints': {}}, panel='new')  
+
+    bb.initialize_metadata_level()
     
     rp2 = ns.proxy('ka_rp2')
     # Force the agent to fail due to passing False
@@ -744,7 +835,7 @@ def test_agent_shutdown():
     time.sleep(0.05)  
 
     
-def test_pass_agent_dict():
+def test_pass_agent_attr():
     try:
         ns = run_nameserver()
     except OSError:

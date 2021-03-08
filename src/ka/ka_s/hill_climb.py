@@ -35,6 +35,8 @@ class HillClimb(KaLocal):
         derivative = obj_diff / dv_diff if dv_diff != 0 else 0
         #TODO: Fix this at sometime
         return round(derivative, 10)        
+        #return derivative        
+
         
     def determine_step(self, base, base_design, design_dict):
         """

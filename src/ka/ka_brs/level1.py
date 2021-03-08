@@ -52,7 +52,7 @@ class KaBrLevel1(KaBr):
         """
         Calculate the hypervolume indicator for the given pareto front.
         """
-        hvi = pm.hypervolume_indicator(pf, self._lower_objective_reference_point, self._upper_objective_reference_point)
+        hvi = pm.hypervolume_indicator(pf, self._upper_objective_reference_point)
         return hvi    
     
     def calculate_dci(self):

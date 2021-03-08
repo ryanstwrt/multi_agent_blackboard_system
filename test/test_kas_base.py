@@ -41,6 +41,7 @@ def test_init():
     assert rp.get_attr('_class') == 'search'
     assert rp.get_attr('_lvl_data') == {}
     assert rp.get_attr('learning_factor') == 0.5
+    assert rp.get_attr('execute_once') == False
    
     ns.shutdown()
     time.sleep(0.1)
@@ -146,9 +147,34 @@ def test_karp_exploit_init():
     assert rp.get_attr('analyzed_design') == {}
     assert rp.get_attr('new_designs') == []
     assert rp.get_attr('_class') == 'local search'   
-
+    assert rp.get_attr('reanalyze_designs') == False
+    
     ns.shutdown()
     time.sleep(0.1)
+    
+def test_read_bb_lvl():    
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    rp = run_agent(name='local', base=base.KaLocal)        
+    lvl_read = {'level 1': {'core_[65.0,65.0,0.42]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
+        
+#    rp.set_attr(bb_lvl_read={'core_[65.0,65.0,0.42]': {'design variables': {'x0': 65.0, 'x1': 65.0},
+#                                                          'objective functions': {'f0' : 704.11, 'f1' : 61.12},
+#                                                          'constraints': {}}})
+    rp.set_attr(analyzed_design={'core_[65.0,65.0,0.42]': {'Analyzed': True}})
+    rp.read_bb_lvl(lvl_read)
+    assert rp.get_attr('new_designs') == []
+    rp.set_attr(reanalyze_designs=True)
+    rp.read_bb_lvl(lvl_read)
+    assert rp.get_attr('new_designs') == ['core_[65.0,65.0,0.42]']
+
+ 
+    ns.shutdown()
+    time.sleep(0.1)
+    
     
 def test_select_core():
     try:

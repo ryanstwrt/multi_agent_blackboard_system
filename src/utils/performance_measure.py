@@ -1,22 +1,28 @@
-import platypus as plat
+#import platypus as plat
+from pymoo.factory import get_performance_indicator
 import math
+import numpy as np
 
-def hypervolume_indicator(pf, lower_ref, upper_ref):
+def hypervolume_indicator(pf, upper_ref):
     """
-    Calculates the hypervolume for the Pareto Front.
+    Calculates the hypervolume for the Pareto Front. 
+    The PF needs to be scaled to calculate everything correctly.
     
     pf : list of lists
     lower_ref : list
     upper_ref : list
     """
-    hyp = plat.indicators.Hypervolume(minimum=lower_ref, maximum=upper_ref)
-    problem = plat.Problem(len(lower_ref),len(upper_ref))
-    solutions = []
-    for objs in pf:
-        solution = plat.Solution(problem)
-        solution.objectives = objs
-        solutions.append(solution)
-    return hyp.calculate(solutions)
+    hv = get_performance_indicator("hv", ref_point=np.array(upper_ref))
+    
+#    hyp = plat.indicators.Hypervolume(minimum=lower_ref, maximum=upper_ref)
+#    problem = plat.Problem(len(lower_ref),len(upper_ref))
+#    solutions = []
+#    for objs in pf:
+#        solution = plat.Solution(problem)
+#        solution.objectives = objs
+#        solutions.append(solution)
+#    return hyp.calculate(solutions)
+    return hv.calc(np.array(pf))
 
 class diversity_comparison_indicator(object):
     

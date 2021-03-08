@@ -53,7 +53,7 @@ def test_init():
                                   random_seed=10983,
                                   problem=problem) 
     
-    assert bb_controller.bb_attr == {'bb_opt': {'plot': False, 'name': 'bb_opt', 'agent_wait_time': 10, 'progress_rate': 15, 'plot_progress': False, 'complete': False}}
+    assert bb_controller.bb_attr == {'bb_opt': {'plot': False, 'name': 'bb_opt', 'agent_wait_time': 10, 'progress_rate': 15, 'complete': False}}
 
     bb = bb_controller.bb_opt
     agents =  bb.get_attr('agent_addrs')
@@ -99,7 +99,7 @@ def test_run_single_agent_bb():
                                   random_seed=10983,
                                   problem=problem) 
     
-    bb_controller.run_single_agent_bb('bb_opt')
+    bb_controller.run_single_agent_bb('bb_opt') 
     
     bb = bb_controller.bb_opt    
     assert list(bb.get_blackboard()['level 1'].keys()) == ['core_[0.90351,0.72307,0.29587]', 'core_[0.85833,0.72307,0.29587]', 'core_[0.94869,0.72307,0.29587]', 'core_[0.90351,0.68692,0.29587]', 'core_[0.90351,0.75922,0.29587]', 'core_[0.81541,0.72307,0.29587]', 'core_[0.90125,0.72307,0.29587]', 'core_[0.85833,0.68692,0.29587]', 'core_[0.85833,0.75922,0.29587]', 'core_[0.94869,0.68692,0.29587]', 'core_[0.90351,0.65257,0.29587]', 'core_[0.90351,0.72127,0.29587]', 'core_[0.94869,0.75922,0.29587]', 'core_[0.90351,0.72126,0.29587]', 'core_[0.90351,0.79718,0.29587]', 'core_[0.90126,0.72307,0.29587]', 'core_[0.99612,0.72307,0.29587]', 'core_[0.90126,0.68692,0.29587]', 'core_[0.99612,0.68692,0.29587]', 'core_[0.94869,0.65257,0.29587]', 'core_[0.94869,0.72127,0.29587]']
@@ -107,10 +107,11 @@ def test_run_single_agent_bb():
     assert bb.get_kaar() == {1: {'ka_rp_explore': 0.250001, 'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 2: {'ka_br_lvl2': 0, 'ka_br_lvl1': 0, 'ka_rp_explore': 0.250001, 'ka_rp_exploit': 0, 'ka_br_lvl3': 3.00000000001}, 3: {'ka_br_lvl1': 0, 'ka_rp_explore': 0.500002, 'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 4.00000000002}, 4: {'ka_rp_explore': 0.750003, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 5: {'ka_br_lvl1': 0, 'ka_rp_explore': 1.000004, 'ka_rp_exploit': 0, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0}, 6: {'ka_rp_explore': 1.2500049999999998, 'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 4.00000000002, 'ka_br_lvl1': 0}, 7: {'ka_br_lvl2': 0, 'ka_br_lvl1': 6.00000000003, 'ka_rp_explore': 1.5000059999999997, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0}, 8: {'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0, 'ka_rp_explore': 1.7500069999999996}, 9: {'ka_rp_explore': 2.000008, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 10: {'ka_rp_explore': 2.250009, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 11: {'ka_rp_explore': 2.50001, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 12: {'ka_rp_explore': 2.750011, 'ka_rp_exploit': 0, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 13: {'ka_rp_explore': 3.0000120000000003, 'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 8.00000000004, 'ka_br_lvl1': 0}, 14: {'ka_rp_explore': 3.2500130000000005, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 6.00000000003}, 15: {'ka_rp_explore': 3.5000140000000006, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}}
     
     assert bb.get_attr('_complete') == True
+   
     bb_controller.shutdown()
     os.remove('bb_opt.h5')
     time.sleep(0.05)
-
+    
 def test_run_multi_agent_bb():
     kas = {'ka_rp_explore': {'type': Stochastic},
            'ka_rp_exploit': {'type': NeighborhoodSearch},
@@ -133,7 +134,7 @@ def test_run_multi_agent_bb():
     except OSError:
         time.sleep(0.5)        
         bb_controller = controller.Controller()
-        bb_controller.initialize_blackboard(blackboard=bb_tier1,
+        bb_controller.initialize_blackboard(blackboard=bb,
                                   ka=kas, 
                                   agent_wait_time=10,
                                   plot_progress=False,
@@ -144,11 +145,11 @@ def test_run_multi_agent_bb():
     time.sleep(0.05)
 
     bb = bb_controller.bb_opt
-    
+  
     assert list(bb.get_blackboard()['level 1'].keys()) == ['core_[0.90351,0.72307,0.29587]', 'core_[0.85833,0.72307,0.29587]', 'core_[0.94869,0.72307,0.29587]', 'core_[0.90351,0.68692,0.29587]', 'core_[0.90351,0.75922,0.29587]', 'core_[0.81541,0.72307,0.29587]', 'core_[0.90125,0.72307,0.29587]', 'core_[0.85833,0.68692,0.29587]', 'core_[0.85833,0.75922,0.29587]', 'core_[0.94869,0.68692,0.29587]', 'core_[0.90351,0.65257,0.29587]', 'core_[0.90351,0.72127,0.29587]', 'core_[0.94869,0.75922,0.29587]', 'core_[0.90351,0.72126,0.29587]', 'core_[0.90351,0.79718,0.29587]', 'core_[0.90126,0.72307,0.29587]', 'core_[0.99612,0.72307,0.29587]', 'core_[0.90126,0.68692,0.29587]', 'core_[0.99612,0.68692,0.29587]', 'core_[0.94869,0.65257,0.29587]', 'core_[0.94869,0.72127,0.29587]']
     
     assert bb.get_kaar() == {1: {'ka_br_lvl1': 0, 'ka_rp_explore': 0.250001, 'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0}, 2: {'ka_rp_explore': 0.250001, 'ka_rp_exploit': 0, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 3: {'ka_br_lvl1': 0, 'ka_rp_explore': 0.500002, 'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 4.00000000002}, 4: {'ka_br_lvl1': 0, 'ka_rp_explore': 0.750003, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0}, 5: {'ka_br_lvl2': 0, 'ka_br_lvl1': 0, 'ka_rp_explore': 1.000004, 'ka_rp_exploit': 0, 'ka_br_lvl3': 3.00000000001}, 6: {'ka_rp_explore': 1.2500049999999998, 'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 4.00000000002, 'ka_br_lvl1': 0}, 7: {'ka_br_lvl1': 6.00000000003, 'ka_rp_explore': 1.5000059999999997, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0}, 8: {'ka_br_lvl1': 0, 'ka_rp_explore': 1.7500069999999996, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0}, 9: {'ka_rp_explore': 2.000008, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 10: {'ka_rp_explore': 2.250009, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 11: {'ka_rp_explore': 2.50001, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 12: {'ka_rp_explore': 2.750011, 'ka_rp_exploit': 0, 'ka_br_lvl3': 3.00000000001, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}, 13: {'ka_rp_exploit': 0, 'ka_br_lvl3': 0, 'ka_br_lvl2': 8.00000000004, 'ka_br_lvl1': 0, 'ka_rp_explore': 3.0000120000000003}, 14: {'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 6.00000000003, 'ka_rp_explore': 3.2500130000000005}, 15: {'ka_rp_explore': 3.5000140000000006, 'ka_rp_exploit': 5.00001, 'ka_br_lvl3': 0, 'ka_br_lvl2': 0, 'ka_br_lvl1': 0}}
-
+    
     bb_controller.shutdown()    
     os.remove('bb_opt.h5')
     time.sleep(0.05)        
@@ -440,17 +441,18 @@ def test_multi_tiered_run():
 
     mtc.run_multi_tiered()
     complete = False
+    time.sleep(5)
     while not complete:
         mtc.check_multi_tiered()
         complete = False if False in [x['complete'] for x in mtc.get_attr('bb_attr').values()] else True
-        
+
     ca_attr = mtc.get_attr('controller_agent_attr')
     bb2 = getattr(ca_attr['ca_bb_opt_2']['controller agent'], ca_attr['ca_bb_opt_2']['blackboard'])
-    bb1 = getattr(ca_attr['ca_bb_opt_1']['controller agent'], ca_attr['ca_bb_opt_1']['blackboard'])
-
-    assert list(bb2.get_blackboard()['level 1']) == ['core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]']
-    assert list(bb1.get_blackboard()['level 1']) == ['core_[0.75342,0.31156,0.6875]', 'core_[0.98618,0.88344,0.21683]', 'core_[0.93922,0.88344,0.20599]']
+    bb1 = getattr(ca_attr['ca_bb_opt_1']['controller agent'], ca_attr['ca_bb_opt_1']['blackboard']) 
     
+    assert sorted(list(bb2.get_blackboard()['level 1'])) == sorted(['core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]'])
+    assert sorted(list(bb1.get_blackboard()['level 1'])) == sorted(['core_[0.75342,0.31156,0.6875]', 'core_[0.98618,0.88344,0.20599]', 'core_[0.93922,0.88344,0.19569]', 'core_[0.93922,0.92761,0.20599]'])    
+                  
     mtc.shutdown()    
     os.remove('bb_opt_1.h5')    
     os.remove('bb_opt_2.h5')    

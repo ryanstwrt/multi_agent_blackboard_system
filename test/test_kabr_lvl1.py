@@ -119,7 +119,7 @@ def test_executor():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    bb.initialize_metadata_level()
     
     bb.connect_agent(KaBrLevel1, 'ka_br_lvl1')
     br = ns.proxy('ka_br_lvl1')

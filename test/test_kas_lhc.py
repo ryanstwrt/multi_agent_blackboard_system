@@ -25,7 +25,8 @@ def test_kalhc_init():
     assert rp.get_attr('samples') == 50
     assert rp.get_attr('_class') == 'global search lhc'
     assert rp.get_attr('lhd') == []
-
+    assert rp.get_attr('execute_once') == True
+    
     ns.shutdown()
     time.sleep(0.1)    
 
@@ -122,10 +123,42 @@ def test_handler_executor():
     time.sleep(0.5)
 
     assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core_[0.26666,0.04467,0.6786]': {'design variables': {'x0': 0.26666, 'x1': 0.04467, 'x2': 0.6786}, 'objective functions': {'f0': 0.4869665852855559, 'f1': 10.414456859656372, 'f2': 29.979936507589112}, 'constraints': {}}, 'core_[0.96089,0.52036,0.10726]': {'design variables': {'x0': 0.96089, 'x1': 0.52036, 'x2': 0.10726}, 'objective functions': {'f0': 6.662459472035095, 'f1': 6.141098587837098, 'f2': 0.5211284910047987}, 'constraints': {}}}
-    assert rp.get_attr('_trigger_val') == 0    
+    assert ns.agents() == ['blackboard']
 
     ns.shutdown() 
     time.sleep(0.1)
+    
+def test_handler_executor_multiple():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.initialize_metadata_level()
+    bb.connect_agent(lhc.LatinHypercube, 'ka_rp_lhc')
+    
+    rp = ns.proxy('ka_rp_lhc')
+    rp.set_attr(problem=problem)    
+    rp.set_attr(execute_once=False)
+    rp.set_attr(_trigger_val=2)
+    rp.set_random_seed(seed=10997)
+    rp.set_attr(samples=2)
+    rp.generate_lhc()
+    bb.set_attr(_ka_to_execute=('ka_rp_lhc', 2))
+    bb.send_executor()
+    time.sleep(0.5)
+
+    assert bb.get_attr('abstract_lvls')['level 3']['new'] == {'core_[0.26666,0.04467,0.6786]': {'design variables': {'x0': 0.26666, 'x1': 0.04467, 'x2': 0.6786}, 'objective functions': {'f0': 0.4869665852855559, 'f1': 10.414456859656372, 'f2': 29.979936507589112}, 'constraints': {}}, 'core_[0.96089,0.52036,0.10726]': {'design variables': {'x0': 0.96089, 'x1': 0.52036, 'x2': 0.10726}, 'objective functions': {'f0': 6.662459472035095, 'f1': 6.141098587837098, 'f2': 0.5211284910047987}, 'constraints': {}}}
+
+    bb.publish_trigger()
+    assert rp.get_attr('_trigger_val') ==  2.000006    
+    assert ns.agents() == ['blackboard', 'ka_rp_lhc']
+
+
+    ns.shutdown() 
+    time.sleep(0.1)    
 
 def test_handler_trigger_publish():
     try:

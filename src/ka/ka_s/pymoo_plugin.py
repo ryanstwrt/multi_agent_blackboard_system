@@ -51,7 +51,6 @@ class PyMooAlgorithm(KaLocal):
             self.base.current_design_variables = {k:float(X[num]) for num, k in enumerate(self.base._design_variables.keys())}
             self.base.calc_objectives()
             obj.append([utils.convert_objective_to_minimize(self.base._objectives[obj], x) for obj, x in self.base.current_objectives.items()])
-            print(self.base.current_design_variables)
             if self.base._constraints:      
                 const.append([-utils.scale_value(self.base.current_constraints[con], con_dict) for con, con_dict in self.base._constraints.items()])   
                               

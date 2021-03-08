@@ -41,17 +41,17 @@ def test_get_objective_value():
     
 def test_pareto_front():
     _lvl_data={'core_[65.0, 65.0, 0.42]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
-                                                           'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0, 'power avg':[2.5,5.0,7.5], 'power max':[2.5,5.0,7.5], 'power min':[2.5,5.0,7.5]}},
+                                                           'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0, 'power avg':[2.5,5.0,7.5], 'power max':[2.5,5.0,7.5], 'power min':[2.5,5.0,7.5], 'k': 1.5}},
                                'core_[70.0, 60.0, 0.50]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
-                                                           'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0, 'power avg':[2.5,5.0,7.5], 'power max':[2.5,5.0,7.5], 'power min':[2.5,5.0,7.5]}},
+                                                           'objective functions': {'reactivity swing' : 500.0, 'burnup' : 50.0, 'power avg':[2.5,5.0,7.5], 'power max':[2.5,5.0,7.5], 'power min':[2.5,5.0,7.5], 'k': 1.25}},
                                'core_[75.0, 55.0, 0.30]': {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50}, 
-                                                           'objective functions': {'reactivity swing' : 250.0, 'burnup' : 25.0, 'power avg':[2.5,5.0,7.5], 'power max':[2.5,5.0,7.5], 'power min':[2.5,5.0,7.5]}}}
+                                                           'objective functions': {'reactivity swing' : 250.0, 'burnup' : 25.0, 'power avg':[2.5,5.0,7.5], 'power max':[2.5,5.0,7.5], 'power min':[2.5,5.0,7.5], 'k': 1.75}}}
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float},
             'power avg':        {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'avg'},
             'power max':        {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'},
-            'power min':        {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'min'}}
+            'power min':        {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'min'},
+            'k':                {'ll':1.0, 'ul':2.0,  'target': 1.5, 'goal':'et', 'variable type': float},}
     pf = ['core_[65.0, 65.0, 0.42]', 'core_[70.0, 60.0, 0.50]', 'core_[75.0, 55.0, 0.30]']
     scaled_pf = utils.scale_pareto_front(pf, objs, _lvl_data)
-    assert scaled_pf == [[0.75,0.25,0.5,0.75,0.25], [0.5,0.5,0.5,0.75,0.25], [0.25,0.75,0.5,0.75,0.25]]
-    
+    assert scaled_pf == [[0.75,0.25,0.5,0.75,0.25,0.0], [0.5,0.5,0.5,0.75,0.25,0.5], [0.25,0.75,0.5,0.75,0.25,0.5]]

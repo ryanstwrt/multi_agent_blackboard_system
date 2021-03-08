@@ -1,5 +1,7 @@
 import src.bb.blackboard as blackboard
 import src.utils.utilities as utils
+import src.utils.benchmark_utils as bu
+
 import src.utils.database_generator as dg
 import src.utils.performance_measure as pm
 import src.utils.train_surrogate_models as tm
@@ -34,14 +36,13 @@ class BbOpt(blackboard.Blackboard):
         self.total_tvs = 1E6
         
         self.hv_list = [0.0]
-        self._sm = None
-        self.sm_type = 'interpolate'
         self._nadir_point = {}
         self._ideal_point = {}
         self._pareto_level = ['level 1']
         self.previous_pf = {}
         self.dci_convergence_list = [0.0]
         self.random_seed = None
+        self.plot = False
         
         self.skipped_tvs = 200
         self.convergence_type = 'hvi'
@@ -52,45 +53,24 @@ class BbOpt(blackboard.Blackboard):
         self.dci_div = {}
         self.final_trigger = 3       
         self.problem = None
-        
-        # Initialize an abstract level which holds meta-data about the problem
-        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})     
-        
-    def set_random_seed(self, seed=None):
-        """
-        Sets the random seed number to provide a reproducabel result
-        """
-        random.seed(seed=seed)
-        self.random_seed = seed
+        self.meta_data_to_log = ['hvi']
+        self.meta_data = {}
+                        
+    def controller(self):
+        """Determines which KA to select after a trigger event."""
+        self.log_debug('Determining which KA to execute')
+        self._ka_to_execute = (None, 0)
+        cur_tv = self._kaar[self._trigger_event]
+        if cur_tv:
+            # We sort the current trigger values into alphabetical order and recreate the dictionary
+            # This is done to allow for reproducability, due to the fact that the KAs respond at different times which can change the order of the current trigger values
+            cur_tv = {k: cur_tv[k] for k in sorted(cur_tv)}
+            max_ka = max(cur_tv, key=cur_tv.get)
+            if cur_tv[max_ka] > 0:
+                equal_vals = [k for k,v in cur_tv.items() if v == cur_tv[max_ka]]
+                ka_ = str(random.choice(equal_vals))
+                self._ka_to_execute = (ka_, cur_tv[ka_])        
 
-    def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
-        """
-        Initialze BB abstract level three with problem specific objectives and design variables
-        """
-        if objectives:
-            self.objectives = objectives
-        if design_variables:
-            self.design_variables = design_variables
-        if constraints:
-            self.constraints = constraints
-                
-        for obj, obj_dict in self.objectives.items():
-            if obj_dict['goal'] == 'lt':
-                self._nadir_point.update({obj: obj_dict['ll']})
-                self._ideal_point.update({obj: obj_dict['ul']})
-            else:
-                self._nadir_point.update({obj: -obj_dict['ul']})
-                self._ideal_point.update({obj: -obj_dict['ll']})
-
-        self.objectives_ll = [0.0 for x in self.objectives.keys()]
-        self.objectives_ul = [1.0 for x in self.objectives.keys()]
-
-        dv  = self.create_level_format(self.design_variables)
-        obj = self.create_level_format(self.objectives)
-        cnst  = self.create_level_format(self.constraints)
-        self.add_abstract_lvl(3, {'design variables': dv, 'objective functions': obj, 'constraints' : cnst})
-        self.add_panel(3, ['new','old'])
-        
     def create_level_format(self, level_entry):
         level_format = {}
         for dv, dv_dict in level_entry.items():
@@ -98,14 +78,8 @@ class BbOpt(blackboard.Blackboard):
                 level_format[dv] = self.create_level_format(dv_dict['dict'])
             else:
                 level_format[dv] = dv_dict['variable type']
-        return level_format
-        
-    def clear_data_levels(self):
-        """
-        Remove solutions that are in a data level to reduce the time required to sort through them.
-        """
-        pass
-        
+        return level_format             
+
     def connect_ka_specific(self, agent, attr={}):
         """
         Assigns specific variables for each KA type in the SFR optimization problem.
@@ -127,8 +101,6 @@ class BbOpt(blackboard.Blackboard):
         
         if 'search' in agent_class:
             ka.set_random_seed(seed=self.random_seed)
-            ka.set_attr(_sm=self._sm)
-            ka.set_attr(sm_type=self.sm_type)
             ka.set_attr(_design_variables=self.design_variables)
             if 'lhc' in agent_class:
                 ka.generate_lhc()
@@ -155,86 +127,19 @@ class BbOpt(blackboard.Blackboard):
         if self.convergence_type == 'dci hvi':
             self.dc_indicator()
         elif self.convergence_type == 'hvi':
-            self.hv_indicator()
+            self.hv_list.append(self.hv_indicator())
         else:
             self.log_debug('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
             self.hv_list.append(0.0)
-#            self.hv_indicator()
             
     def convergence_update(self):
         """
         Determine if any values need to be udpated after a trigger event
         """
-        self.hv_list.append(self.hv_list[-1])       
-        
-    def determine_complete(self):
-        """
-        Determine if the problem has converged
-        """
-        if self.convergence_type == 'dci hvi':
-            self.determine_complete_dci_hvi()
-        elif self.convergence_type == 'hvi':
-            self.determine_complete_hv()
-        elif self.convergence_type == 'function evals':
-            lvl3 = {**self.abstract_lvls['level 3']['new'], **self.abstract_lvls['level 3']['old']}
-            self.log_info('Problem is at {} of {} total allowable function evals'.format(len(lvl3), self.function_evals))
-                
-            if len(lvl3) > self.function_evals:
-                self.log_info('Problem is over total allowable function evals, shutting agents down')
-                self._complete = True 
-                return
-        else:
-            self.log_debug('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
-            pass     
-        # Determine if the problem is over our trigger value limit
-        if len(self._kaar) >= self.total_tvs and self._complete == False:
-            self.log_info('Problem is over total allowable TVs, shutting agents down')
-            self._complete = True        
-            
-    def send_shutdown(self):
-        """
-        Tell each agent to shutdown
-        """
-        if True in [ka['performing action'] for ka in self.agent_addrs.values()]:
-            return
-        
-        if self.final_trigger > 0:
-            ka_ = [ka for ka, ka_dict in self.agent_addrs.items() if str(self.final_trigger) in ka_dict['class'].__name__]
-            self._ka_to_execute=(ka_[0], 2)
-            self.send_executor()
-            self.final_trigger -= 1
-            return
+        for md, array in self.meta_data.items():
+            array.append(array[-1])
+        self.hv_list.append(self.hv_list[-1])
 
-        agent_addrs = copy.copy(self.agent_addrs)      
-        for agent_name, connections in self.agent_addrs.items():
-        # If statement is for inter_BB agent who only have a write function assocaiated with the BB
-            if not connections['shutdown']:
-                agent_addrs.pop(agent_name)
-            elif agent_name in agent_addrs.keys():  
-                if connections['performing action']:
-                    ...
-                elif not self.diagnostics_agent_present(agent_name):
-                    agent_addrs.pop(agent_name)
-                else:
-                    self.send(connections['shutdown'][0], "shutdown")
-                    agent_addrs.pop(agent_name)
-                
-        self.agent_addrs = agent_addrs
-        
-    def determine_complete_dci_hvi(self):
-        """
-        Determine if the problem is complete using the convergence of dci and the hvi
-        """        
-        if self.dci_convergence_list[-1] < self.convergence_rate:
-            self.hv_indicator()
-        else:
-            self.convergence_update()
-    
-    def get_objective_value(self, core, obj):
-        objective_value = self.abstract_lvls['level 3']['old'][core]['objective functions'][obj]
-        goal = self.objectives[obj]['goal type'] if 'goal type' in self.objectives[obj] else None
-        return utils.get_objective_value(objective_value, goal)
-        
     def dc_indicator(self):
         """
         Calculate the DCI 
@@ -261,9 +166,44 @@ class BbOpt(blackboard.Blackboard):
         previous_dci = dci.dci
         self.dci_convergence_list.append(current_dci - previous_dci)
         self.previous_pf = current_pf
-        self.convergence_update()
+        self.convergence_update()        
         
+    def determine_complete(self):
+        """
+        Determine if the problem has converged
+        """
+        if len(self.hv_list) < 2 * self.convergence_interval:
+            return
         
+        if self.convergence_type == 'dci hvi':
+            self.determine_complete_dci_hvi()
+        elif self.convergence_type == 'hvi':
+            self.determine_complete_hv()
+        elif self.convergence_type == 'function evals':
+            lvl3 = {**self.abstract_lvls['level 3']['new'], **self.abstract_lvls['level 3']['old']}
+            self.log_info('Problem is at {} of {} total allowable function evals'.format(len(lvl3), self.function_evals))
+            if len(lvl3) > self.function_evals:
+                self.log_info('Problem is over total allowable function evals, shutting agents down')
+                self._complete = True 
+                return
+        else:
+            self.log_debug('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
+
+        # Determine if the problem is over our trigger value limit
+        if len(self._kaar) >= self.total_tvs and self._complete == False:
+            self.log_info('Problem is over total allowable TVs, shutting agents down')
+            self._complete = True      
+
+    def determine_complete_dci_hvi(self):
+        """
+        Determine if the problem is complete using the convergence of dci and the hvi
+        """        
+        if self.dci_convergence_list[-1] < self.convergence_rate:
+            self.hv_list[self._trigger_event] = self.hv_indicator()
+            self.determine_complete_hv()
+        else:
+            self.convergence_update()    
+            
     def determine_complete_hv(self):
         """
         Determine if the problem is complete using the convergence of the hypervolume
@@ -273,15 +213,7 @@ class BbOpt(blackboard.Blackboard):
         prev_hv = self.hv_list[-2*num:-num]
         hv_average = abs(sum(recent_hv) / num - sum(prev_hv) / num)
         hv_indicator = hv_average
-        
-        # Long term convergence
-        #num = 5 * self.convergence_interval
-        #recent_hv = self.hv_list[-num:]
-        #prev_hv = self.hv_list[-2*num:-num]
-        #hv_average_long_term = abs(sum(recent_hv) / num - sum(prev_hv) / num)
-        #hv_indicator_long_term = hv_average        
-        #self.log_info('Convergence Rate: {}, Long-Term Convergence Rate: {}'.format(hv_indicator, hv_average_long_term))
-        
+              
         # Should we add the following to ensure there is something on the BB?
         if len(self._kaar.keys()) < self.skipped_tvs:
             self.log_info('Below minimum skipped trigger values, skipping convergence check')
@@ -292,70 +224,141 @@ class BbOpt(blackboard.Blackboard):
         # Wait for a number of cycles before we check for convergence        
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
             
-
         if hv_indicator < self.convergence_rate:
-            self.log_info('Problem complete, shutting agents down')
-            self._complete = True        
+            self.log_info('Problem complete via HV convergence, shutting agents down')
+            self._complete = True
 
-    def hv_indicator(self):
-        """
-        Calcualte the Hypervolume for the current pareto front
-        """
-        pf = []
-        cores = list(self.abstract_lvls['level 1'].keys())
-        lvl_3 = {}
-        for panel in self.abstract_lvls['level 3'].values():
-            lvl_3.update(panel)
-        
-        pf = utils.scale_pareto_front(cores, self.objectives, lvl_3)
-
-        if self.convergence_type == 'dci hvi':
-            self.hv_list[self._trigger_event] = round(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul),10)
-        else:
-            self.hv_list.append(round(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul),10))
-            
+    def get_objective_value(self, core, obj):
+        objective_value = self.abstract_lvls['level 3']['old'][core]['objective functions'][obj]
+        goal = self.objectives[obj]['goal type'] if 'goal type' in self.objectives[obj] else None
+        return utils.get_objective_value(objective_value, goal)             
+           
     def get_hv_list(self):
         return self.hv_list
     
     def get_complete_status(self):
-        return self._complete
-            
-    def generate_sm(self):
-        """
-        Generate a surrogate model for the search agents to use.
-        """
-        objectives = [x for x in self.objectives.keys()]
-        objectives = objectives if not self.constraints else objectives + [x for x in self.constraints.keys()]
-        design_var, objective_func, data_dict = dg.get_data([x for x in self.design_variables.keys()], objectives, database_name='SFR_DB_2', fixed_cycle_length=100)
-        if self.sm_type == 'interpolate':
-            self._sm = {}
-            design_var, objective_func = np.asarray(design_var), np.asarray(objective_func)
-            for num, objective in enumerate(objectives):
-                self._sm[objective] = scipy.interpolate.LinearNDInterpolator(design_var, objective_func[:,num])
+        return self._complete      
+    
+    def get_pf(self, scaled=True):
+        cores = list(self.abstract_lvls['level 1'].keys())
+        lvl_3 = {**self.abstract_lvls['level 3']['old'], **self.abstract_lvls['level 3']['new']}
+        if scaled:
+            return utils.scale_pareto_front(cores, self.objectives, lvl_3)
         else:
-            self._sm = tm.Surrogate_Models()
-            self._sm.random = self.random_seed
-            self._sm.update_database([x for x in self.design_variables.keys()], objectives, database=data_dict)
-            self._sm.optimize_model(self.sm_type)
+            return utils.convert_pf_to_list(cores, self.objectives, lvl_3)            
+
+    def handler_agent_complete(self, message):
+        """
+        Handler for KAs complete response, i.e. when a KA has finished their action
+        
+        Parameters
+        ----------
+        agent_name : str
+            Alias for the KA
+        """
+        self._new_entry = True
+        self.log_debug('Logging agent {} complete.'.format(message[0]))
+        self.agent_addrs[message[0]].update({'performing action':False})
+        self.meta_data_entry(message[0], message[1], message[2])    
+    
+    def hv_indicator(self):
+        """
+        Calculate the Hypervolume for the current pareto front
+        """
+        pf = self.get_pf()
+        
+        #return(round(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul),10))         
+        return pm.hypervolume_indicator(pf, self.objectives_ul)  
+    
+    def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
+        """
+        Initialze BB abstract level three with problem specific objectives and design variables
+        """
+        if objectives:
+            self.objectives = objectives
+        if design_variables:
+            self.design_variables = design_variables
+        if constraints:
+            self.constraints = constraints
+                
+        # TODO: Do we need to do something for equal to goal?
+        for obj, obj_dict in self.objectives.items():
+            if obj_dict['goal'] == 'lt':
+                self._nadir_point.update({obj: obj_dict['ll']})
+                self._ideal_point.update({obj: obj_dict['ul']})
+            else:
+                self._nadir_point.update({obj: -obj_dict['ul']})
+                self._ideal_point.update({obj: -obj_dict['ll']})
+
+        self.objectives_ll = [0.0 for x in self.objectives.keys()]
+        self.objectives_ul = [1.0 for x in self.objectives.keys()]
+
+        dv  = self.create_level_format(self.design_variables)
+        obj = self.create_level_format(self.objectives)
+        cnst  = self.create_level_format(self.constraints)
+        self.add_abstract_lvl(3, {'design variables': dv, 'objective functions': obj, 'constraints' : cnst})
+        self.add_panel(3, ['new','old'])    
             
+    def initialize_metadata_level(self):
+        """
+        Create the abstract level for the meta data
+        """
+        md_entry = {md_type: float for md_type in self.meta_data_to_log}
+        self.meta_data = {md_type: [0.0,] for md_type in self.meta_data_to_log}
+        md_entry.update({'agent': str, 'time': float})
+        self.add_abstract_lvl(100, md_entry)       
+            
+    def log_metadata(self):
+        """
+        Log the any metadata values that the user wants in the metadata abstract level.
+        """
+        for md, array in self.meta_data.items():
+            if md == 'hvi':
+                array.append(float(self.hv_indicator()))
+            elif md == 'dci-hvi':
+                if self.dci_convergence_list[-1] < self.convergence_rate:
+                    array[self._trigger_event] = self.hv_indicator()
+                else:
+                    self.convergence_update()
+            elif md == 'gd':
+                array.append(bu.get_indicator('gd', self.problem.benchmark_name, self.get_pf(scaled=False)))  
+            elif md == 'igd':
+                array.append(bu.get_indicator('igd', self.problem.benchmark_name, self.get_pf(scaled=False)))
+            elif md == 'function evals':
+                function_evals = float(len({**self.abstract_lvls['level 3']['old'], **self.abstract_lvls['level 3']['new']}))
+                array.append(function_evals)
+            elif md == 'PF size':
+                array.append(float(len(list(self.abstract_lvls['level 1'].keys()))))
+            
+    def meta_data_entry(self, name, time, trigger_event):
+        """
+        Add an entry to abstract level 100 for meta-data
+        
+        Trigger events start at 1, not 0, so we offset by 1 when looking at the vals
+        """
+        entry = {md: array[trigger_event-1] for md, array in self.meta_data.items()}
+        entry.update({'agent': name, 'time': float(time)})
+        self.update_abstract_lvl(100, str(trigger_event), entry)            
+                                
     def plot_progress(self):
         """
         Generate a plot of the hypervolume and Pareto front during the problem.
         """
+        if self.plot == False:
+            return
+            
         lvl_1 = self.abstract_lvls['level 1']
         if lvl_1 == {}:
             return
         
-        lvl_3 = {}
-        for panel in self.abstract_lvls['level 3'].values():
-            lvl_3.update(panel)
-        
+        lvl_3 = {**self.abstract_lvls['level 3']['new'], **self.abstract_lvls['level 3']['old']}
+
         fitness = []
 
         obj_dict = {}
         ind_dict = {}
         for core, values in lvl_1.items():
-            fitness.append(round(values['fitness function'],5))
+            fitness.append(values['fitness function'])
             core_params = lvl_3[core]['objective functions']
             core_designs = lvl_3[core]['design variables']
         
@@ -390,23 +393,20 @@ class BbOpt(blackboard.Blackboard):
             pass
         
         # Plot HV Convergece
-        fig2 = px.line(x=[x for x in range(len(self.hv_list))], y=self.hv_list, labels={'x':'Trigger Value', 'y':"Hyper Volume"})        
-        fig2.show()
+        for md, array in self.meta_data.items():
+            try:
+                fig2 = px.line(x=self.meta_data['function evals'], y=array, labels={'x':'Function Evals', 'y':"{}".format(md)})        
+            except:
+                fig2 = px.line(x=[x for x in range(len(array))], y=array, labels={'x':'Trigger Value', 'y':"{}".format(md)})                  
+            fig2.show()
 
-    def handler_agent_complete(self, message):
-        """
-        Handler for KAs complete response, i.e. when a KA has finished their action
-        
-        Parameters
-        ----------
-        agent_name : str
-            Alias for the KA
-        """
-        self._new_entry = True
-        self.log_debug('Logging agent {} complete.'.format(message[0]))
-        self.agent_addrs[message[0]].update({'performing action':False})
-        self.meta_data_entry(message[0], message[1], message[2])
-        
+    def publish_trigger(self):
+        """Send a trigger event message to all KAs."""
+        self._trigger_event += 1
+        self.log_debug('\n\nPublishing Trigger Event {}'.format(self._trigger_event))
+        self._kaar[self._trigger_event] = {}
+        self.send(self._pub_trigger_alias, self.abstract_lvls)
+                
     def send_executor(self):
         """Send an executor message to the triggered KA."""
         if self._ka_to_execute != (None, 0):
@@ -417,40 +417,42 @@ class BbOpt(blackboard.Blackboard):
         else:
             self.log_info('No KA to execute, waiting to sends trigger again.')
 
-    def controller(self):
-        """Determines which KA to select after a trigger event."""
-        self.log_debug('Determining which KA to execute')
-        self._ka_to_execute = (None, 0)
-        cur_tv = self._kaar[self._trigger_event]
-        if cur_tv:
-            # We sort the current trigger values into alphabetical order and recreate the dictionary
-            # This is done to allow for reproducability, due to the fact that the KAs respond at different times which can change the order of the current trigger values
-            cur_tv = {k: cur_tv[k] for k in sorted(cur_tv)}
-            max_ka = max(cur_tv, key=cur_tv.get)
-            if cur_tv[max_ka] > 0:
-                equal_vals = [k for k,v in cur_tv.items() if v == cur_tv[max_ka]]
-                ka_ = str(random.choice(equal_vals))
-                self._ka_to_execute = (ka_, cur_tv[ka_])
-
-        
-    def publish_trigger(self):
-        """Send a trigger event message to all KAs."""
-        self._trigger_event += 1
-        self.log_debug('\n\nPublishing Trigger Event {}'.format(self._trigger_event))
-        self._kaar[self._trigger_event] = {}
-        self.send(self._pub_trigger_alias, self.abstract_lvls)
-        
-    def meta_data_entry(self, name, time, trigger_event):
+    def send_shutdown(self):
         """
-        Add an entry to abstract level 100 for meta-data
-        
-        Trigger events start at 1, not 0, so we offset by 1 when looking at the hv list
+        Tell each agent to shutdown
         """
-        entry_name = str(trigger_event)
+        if True in [ka['performing action'] for ka in self.agent_addrs.values()]:
+            return
+        
+        if self.final_trigger > 0:
+            ka_ = [ka for ka, ka_dict in self.agent_addrs.items() if str(self.final_trigger) in ka_dict['class'].__name__]
+            self._ka_to_execute=(ka_[0], 2)
+            self.send_executor()
+            self.final_trigger -= 1
+            return
 
-        entry = {'agent': name, 'time': float(time), 'hvi': self.hv_list[trigger_event-1]}
-        self.update_abstract_lvl(100, entry_name, entry)
-
+        agent_addrs = copy.copy(self.agent_addrs)      
+        for agent_name, connections in self.agent_addrs.items():
+        # elif statement is for inter_BB agent who only have a write function assocaiated with the BB
+            if not connections['shutdown']:
+                agent_addrs.pop(agent_name)
+            elif agent_name in agent_addrs.keys():  
+                if connections['performing action']:
+                    ...
+                elif not self.diagnostics_agent_present(agent_name):
+                    agent_addrs.pop(agent_name)
+                else:
+                    self.send(connections['shutdown'][0], "shutdown")
+                    agent_addrs.pop(agent_name)
+                
+        self.agent_addrs = agent_addrs        
+        
+    def set_random_seed(self, seed=None):
+        """
+        Sets the random seed number to provide a reproducabel result
+        """
+        random.seed(seed=seed)
+        self.random_seed = seed        
 
 class MasterBbOpt(BbOpt):
     

@@ -41,6 +41,7 @@ class Controller(object):
 
         _bb.set_attr(problem=problem)
         _bb.initialize_abstract_level_3(objectives=problem.objs, design_variables=problem.dvs, constraints=problem.cons)
+        _bb.initialize_metadata_level()
         _bb.set_random_seed(seed=random_seed)
  
         for ka_name, ka_data in ka.items():
@@ -51,8 +52,8 @@ class Controller(object):
                                        'name': blackboard['name'],
                                        'agent_wait_time': agent_wait_time,
                                        'progress_rate': _bb.get_attr('convergence_interval'),
-                                       'plot_progress':plot_progress,
-                                        'complete':False}})
+                                       'plot': plot_progress,
+                                       'complete':False}})
 
     def run_single_agent_bb(self, bb):
         """Run a BB optimization problem single-agent mode."""
@@ -82,30 +83,26 @@ class Controller(object):
             agent_time = time.time() - agent_time
             if len(bb.get_kaar()) %  bb_attr['progress_rate'] == 0 or bb.get_complete_status() == True:
                 bb.convergence_indicator()
+                bb.log_metadata()
                 bb.write_to_h5()
-                if len(bb.get_hv_list()) > 2 *  bb_attr['progress_rate']:
-                    bb.determine_complete()
-                    if bb.get_complete_status():
-                        while len(bb.get_attr('agent_addrs')) > 0:           
-                            if True in [agent['performing action'] for agent in bb.get_attr('agent_addrs').values()]:
-                                time.sleep(1)
-                            else:
-                                bb.send_shutdown()
-                if bb_attr['plot_progress']:
-                    bb.plot_progress()
+                bb.diagnostics_replace_agent()
+                bb.determine_complete()
+                bb.plot_progress()
+                if bb.get_complete_status():
+                    self.shutdown_agents(bb) 
             else:
                 bb.convergence_update()
 
-        bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time.time()-bb_time, 'hvi': bb.get_hv_list()[-1]})
+        entry = {md: array[trig_num] for md, array in bb.get_attr('meta_data').items()}
+        entry.update({'agent': 'final', 'time': time.time()-bb_time})
+        bb.update_abstract_lvl(100, 'final', entry)
         bb.write_to_h5()            
             
     def run_multi_agent_bb(self, bb):
         """Run a BB optimization problem single-agent mode."""
-        print(bb)
         bb_attr = self.bb_attr[bb]
         bb = getattr(self, bb) 
         bb_time = time.time()
-        print('time')
         num_agents = len(bb.get_attr('agent_addrs'))
         while not bb.get_complete_status():
             bb.publish_trigger()
@@ -114,7 +111,7 @@ class Controller(object):
             # Wait until a response has been recieved
             time_wait = time.time()
             bb_archived = True
-            while time.time() - time_wait  < bb_attr['agent_wait_time']:
+            while time.time() - time_wait < bb_attr['agent_wait_time']:
                 try:
                     kaar = bb.get_kaar()[trig_num]
                     kaar_val = [x for x in kaar.values()]
@@ -124,7 +121,7 @@ class Controller(object):
                     elif bb_archived:
                         bb.write_to_h5()
                         bb_archived = False
-                except RuntimeError:
+                except RuntimeError: #RuntimeError allowed if a KA gets added to kaar while the BB is checking it's length; which causes the error
                     pass
                 
             bb.controller()
@@ -132,25 +129,29 @@ class Controller(object):
 
             if len(bb.get_kaar()) % bb_attr['progress_rate'] == 0 or bb.get_complete_status() == True:
                 bb.convergence_indicator()
+                bb.log_metadata()
                 bb.write_to_h5()
                 bb.diagnostics_replace_agent()
-                if len(bb.get_hv_list()) > 2 * bb_attr['progress_rate']:
-                    bb.determine_complete()
-                    if bb.get_complete_status():
-                        while len(bb.get_attr('agent_addrs')) > 0:                                   
-                            if True in [agent['performing action'] for agent in bb.get_attr('agent_addrs').values()]:
-                                time.sleep(1)
-                            else:
-                                bb.send_shutdown()
-                            
-                if bb_attr['plot_progress']:
-                    bb.plot_progress()
+                bb.determine_complete()
+                bb.plot_progress()
+                if bb.get_complete_status():
+                    self.shutdown_agents(bb)     
             else:
                 bb.convergence_update()
                 agent_time = 0
             time.sleep(0.05)
-        bb.update_abstract_lvl(100, 'final', {'agent': 'final', 'time': time.time()-bb_time, 'hvi': bb.get_hv_list()[-1]})
+            
+        entry = {md: array[trig_num] for md, array in bb.get_attr('meta_data').items()}
+        entry.update({'agent': 'final', 'time': time.time()-bb_time})
+        bb.update_abstract_lvl(100, 'final', entry)
         bb.write_to_h5() 
+
+    def shutdown_agents(self,bb):
+        while len(bb.get_attr('agent_addrs')) > 0:                                   
+            if True in [agent['performing action'] for agent in bb.get_attr('agent_addrs').values()]:
+                time.sleep(1)
+            else:
+                bb.send_shutdown()
         
     def run_multi_tiered(self):
         """
@@ -228,10 +229,12 @@ class MasterControllerAgent(Agent, Controller):
         _bb = getattr(self, blackboard['name'])
         for k,v in blackboard['attr'].items():
             _bb.set_attr(**{k:v})
-
+            
         _bb.set_attr(problem=problem)
         _bb.initialize_abstract_level_3(objectives=problem.objs, design_variables=problem.dvs, constraints=problem.cons)
         _bb.set_random_seed(seed=random_seed)
+        _bb.initialize_metadata_level()
+
  
         for ka_name, ka_data in ka.items():
             attr = ka_data['attr'] if 'attr' in ka_data.keys() else {}
@@ -241,8 +244,8 @@ class MasterControllerAgent(Agent, Controller):
                                        'name': blackboard['name'],
                                        'agent_wait_time': agent_wait_time,
                                        'progress_rate': _bb.get_attr('convergence_interval'),
-                                       'plot_progress':plot_progress,
-                                        'complete':False}})
+                                       'plot':plot_progress,
+                                       'complete':False}})
 
         ca_name = 'ca_{}'.format( blackboard['name'])
         ca = run_agent(name=ca_name, base=ControllerAgent)

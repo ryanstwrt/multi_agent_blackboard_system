@@ -72,6 +72,22 @@ def scale_value(val, val_dict):
     else:
         return scale_float_value(val, val_dict['ll'], val_dict['ul'])
     
+def convert_pf_to_list(pf, objectives, lvl_data):
+    """
+    Converte PF to list format.
+    """
+    # TODO If scale_objective returns a None, we need to figure out how to deal with it.
+    # Perhaps cancel the current iteration and tell the BB we are done
+    # Should we keep a log of what happened?
+    pf_list = []
+    for x in pf:
+        design_objectives = []
+        for obj, obj_dict in objectives.items():
+            design_objectives.append(lvl_data[x]['objective functions'][obj])
+        pf_list.append(design_objectives)
+    return pf_list   
+    
+    
 def scale_pareto_front(pf, objectives, lvl_data):
     """
     Scale the objective functions for the pareto front and return a scaled pareto front for the hypervolume.
@@ -82,7 +98,7 @@ def scale_pareto_front(pf, objectives, lvl_data):
     scaled_pf = []
     for x in pf:
         design_objectives = []
-        # This part of the loop is identical to the determine fitness function... perhaps create a function in KA_RP and merge
+
         for obj, obj_dict in objectives.items():
             scaled_obj_value = scale_value(lvl_data[x]['objective functions'][obj], obj_dict)
             design_objectives.append(round(convert_objective_to_minimize(obj_dict, scaled_obj_value, scale=True), 7))

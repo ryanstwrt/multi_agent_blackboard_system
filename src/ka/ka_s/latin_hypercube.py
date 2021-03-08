@@ -19,7 +19,8 @@ class LatinHypercube(KaS):
         self.lhc_criterion = 'corr'
         self.samples = 50
         self.lhd = []
-        self._class = 'global search lhc'        
+        self._class = 'global search lhc'
+        self.execute_once = True
 
     def generate_lhc(self):
         """
@@ -61,16 +62,15 @@ class LatinHypercube(KaS):
         t = time.time()
         self._lvl_data = {}
         self._trigger_event = message[0]
-#        self._lvl_data = {**message[1]['level {}'.format(self.bb_lvl_data)]['new'], **message[1]['level {}'.format(self.bb_lvl_data)]['old']}
-        for panel in message[1]['level {}'.format(self.bb_lvl_data)].values():
-            self._lvl_data.update(panel)
-            
+        self._lvl_data = {**message[1]['level {}'.format(self.bb_lvl_data)]['new'], **message[1]['level {}'.format(self.bb_lvl_data)]['old']}          
         self.log_debug('Executing agent {}'.format(self.name))
         self.search_method()
 
         self._trigger_val = 0
         self.agent_time = time.time() - t
         self.action_complete()
+        if not self.execute_once:
+            self.generate_lhc()    
         
     def handler_trigger_publish(self, message):
         """
