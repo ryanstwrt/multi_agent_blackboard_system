@@ -19,15 +19,14 @@ class HillClimb(KaLocal):
     def calculate_derivative(self, base_dv, base_obj, step_design, dv, obj):
         obj_dict = self._objectives[obj]
         dv_dict = self._design_variables[dv]
-        
         if obj_dict['variable type'] == float:
             if step_design['objective functions'][obj] <= obj_dict['ll'] or step_design['objective functions'][obj] >= obj_dict['ul']:
                 return -1000.0
     
         obj_scaled_new = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(step_design['objective functions'][obj], obj_dict), scale=True)
         obj_scaled_base = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(base_obj[obj], obj_dict), scale=True)    
-        dv_scaled_new = utils.scale_value(step_design['design variables'][dv], dv_dict) if dv_dict['variable type'] == float else 1.0
-        dv_scaled_base = utils.scale_value(base_dv[dv], dv_dict) if dv_dict['variable type'] == float else 0.0
+        dv_scaled_new = utils.scale_value(step_design['design variables'][dv], dv_dict) if 'options' not in dv_dict.keys() else 1.0
+        dv_scaled_base = utils.scale_value(base_dv[dv], dv_dict) if 'options' not in dv_dict.keys() else 0.0
         
         # We are following the steepest ascent, so positive is better
         obj_diff = (obj_scaled_base - obj_scaled_new)
@@ -105,19 +104,20 @@ class HillClimb(KaLocal):
             potential_steps = []
             # Calculate our gradient vector
             for dv, dv_dict in self._design_variables.items():
-                if dv_dict['variable type'] == float:
+                if 'options' in dv_dict:
+                    temp_design = copy.copy(step_design)
+                    options = copy.copy(dv_dict['options'])
+                    options.remove(step_design[dv])
+                    dv_type = type(step_design[dv])
+                    temp_design[dv] = dv_type(random.choice(options))
+                    potential_steps.append(('+', dv, temp_design))
+                elif dv_dict['variable type'] == float:
                     for direction in ['+', '-']:
                         temp_design = copy.copy(step_design)
                         temp_design[dv] += temp_design[dv] * step if direction == '+' else temp_design[dv] * -step
                         temp_design[dv] = round(temp_design[dv], self._design_accuracy)
                         if temp_design[dv] >= dv_dict['ll'] and temp_design[dv] <= dv_dict['ul']:
                             potential_steps.append((direction, dv, temp_design))
-                else:
-                    temp_design = copy.copy(step_design)
-                    options = copy.copy(dv_dict['options'])
-                    options.remove(step_design[dv])
-                    temp_design[dv] = str(random.choice(options))
-                    potential_steps.append(('+', dv, temp_design))
 
             if self.hc_type == 'simple':
                 random.shuffle(potential_steps)

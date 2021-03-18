@@ -115,7 +115,6 @@ class RE22():
         g = np.where(g < 0, -g, 0)          
         f[1] = g[0] + g[1]
         f = np.array([float(x) for x in f])
-        print(type(f[0]))
         return f
 
 class RE23():

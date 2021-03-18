@@ -179,8 +179,8 @@ class LatinHypercube(KaS):
                 self.current_design_variables[dv] = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]                  
             else:
                 self.current_design_variables[dv] = self.get_float_val(cur_design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
-            num += 1
-            
+            num += 1 if dv_dict['variable type'] != dict else 0
+        
         self._entry_name = self.get_design_name(self.current_design_variables)
         if self._entry_name not in self._lvl_data.keys():
             self.calc_objectives()

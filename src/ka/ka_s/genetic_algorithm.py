@@ -177,7 +177,7 @@ class GeneticAlgorithm(KaLocal):
             dictionary of mutated design with one of the dezign variables changed within the perturbation size
         """
         dv_mutate = random.choice(list(self._design_variables.keys()))
-        if self._design_variables[dv_mutate]['variable type'] == str:
+        if 'options' in self._design_variables[dv_mutate]:
             options = copy.copy(self._design_variables[dv_mutate]['options'])
             options.remove(genotype[dv_mutate])
             genotype[dv_mutate] = str(random.choice(options))

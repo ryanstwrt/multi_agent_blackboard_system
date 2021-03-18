@@ -87,24 +87,24 @@ class KaS(KaBase):
         Check if the design has been examined before.
         """
         core_name = self.get_design_name(self.current_design_variables)
-        
         if core_name in self._lvl_data.keys():
             self.log_debug('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl_data))
             return False
         
         for dv, dv_dict in self._design_variables.items():
-            dv_val = self.current_design_variables[dv]
-            
-            if dv_dict['variable type'] == float:
-                if dv_val < dv_dict['ll'] or dv_val > dv_dict['ul']:
-                    self.log_debug('Core {} not examined, design variable {} with value {} outside of limits.'.format(core_name, dv, dv_val))
-                    return False
-                
-            elif dv_dict['variable type'] == list:
-                if dv_val not in dv_dict['options']:
-                    self.log_debug('Core {} not examined, design variable {} with value {} not an option'.format(core_name, dv, dv_val))
-                    return False
-                
+            dv_val = self.current_design_variables[dv]       
+            violated = False
+            if 'options' in dv_dict.keys():
+                violated = True if dv_val not in dv_dict['options'] else False  
+            elif dv_dict['variable type'] == float:
+                violated = True if dv_val < dv_dict['ll'] or dv_val > dv_dict['ul'] else False
+            else:
+                # If we are going to keep the dict option we need to add something here to check it
+                ...
+
+            if violated:
+                self.log_debug('Core {} not examined, design variable {} with value {} outside of limits.'.format(core_name, dv, dv_val))
+                return False    
         return True
        
     def get_design_name(self, design):
@@ -239,8 +239,6 @@ class KaLocal(KaS):
         self.lvl_read = message[1]['level {}'.format(self.bb_lvl_read)]
         self._lvl_data = message[1]['level {}'.format(self.bb_lvl_data)]        
         self._lvl_data = {**self._lvl_data['new'],**self._lvl_data['old']}
-#        for panel in .values():
- #           self._lvl_data.update(panel)
             
         self.search_method()
         self.agent_time = time.time() - t

@@ -46,17 +46,17 @@ class NeighborhoodSearch(KaLocal):
         for dv in dv_keys:
             dv_value = design_[dv]
             design = copy.copy(design_)
-            if self._design_variables[dv]['variable type'] == str:
+            if 'options' in self._design_variables[dv]:
                 options = copy.copy(self._design_variables[dv]['options'])
+                dv_type = type(dv_value)
                 options.remove(design[dv])
-                design[dv] = str(random.choice(options))
-                pert_designs.append((dv,design))
+                design[dv] = dv_type(random.choice(options))
+                pert_designs.append((dv,design))                
             else:
                 for pert in perts:
                     design[dv] = round(dv_value * pert, self._design_accuracy)
                     pert_designs.append((dv,design))
                     design = copy.copy(design_)
-        
         for dv, design in pert_designs:
             self.current_design_variables = design
             self._entry_name = self.get_design_name(self.current_design_variables)
