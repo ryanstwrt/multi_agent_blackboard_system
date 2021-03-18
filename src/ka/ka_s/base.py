@@ -72,9 +72,8 @@ class KaS(KaBase):
         self._entry_name = self.get_design_name(self.current_design_variables)
 
         self.current_objectives, self.current_constraints = self.problem.evaluate(self.current_design_variables)
-        
-        if self._entry_name:
-            self._entry = {'design variables': self.current_design_variables, 
+              
+        self._entry = {'design variables': self.current_design_variables, 
                            'objective functions': self.current_objectives,
                            'constraints': self.current_constraints}
     
@@ -150,7 +149,8 @@ class KaS(KaBase):
         self.log_debug('Executing agent {}'.format(self.name))
         self.search_method()
         self.calc_objectives()
-        if self._entry_name:
+        # Check to ensure that all components calculated are present before we write to the BB
+        if self._entry_name and len(self.current_objectives) == len(self._objectives) and len(self.current_constraints) == len(self._constraints):
             self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
         self._trigger_val = 0
         self.agent_time = time.time() - t
@@ -219,11 +219,12 @@ class KaLocal(KaS):
             return False
         
         self.calc_objectives()
-        if self._entry_name:
+        if self._entry_name and len(self.current_objectives) == len(self._objectives) and len(self.current_constraints) == len(self._constraints):        
             self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
             self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
         else:
             self.log_warning('Failed to log current design due to a failure in objective calculations.')
+            return False
         return True
         
     def handler_executor(self, message):
@@ -233,12 +234,13 @@ class KaLocal(KaS):
         KA will perturb the core via the perturbations method and write all results the BB
         """
         t = time.time()
-        self._lvl_data = {}
         self._trigger_event = message[0]
         self.log_debug('Executing agent {}'.format(self.name))
         self.lvl_read = message[1]['level {}'.format(self.bb_lvl_read)]
-        for panel in message[1]['level {}'.format(self.bb_lvl_data)].values():
-            self._lvl_data.update(panel)
+        self._lvl_data = message[1]['level {}'.format(self.bb_lvl_data)]        
+        self._lvl_data = {**self._lvl_data['new'],**self._lvl_data['old']}
+#        for panel in .values():
+ #           self._lvl_data.update(panel)
             
         self.search_method()
         self.agent_time = time.time() - t
@@ -263,9 +265,7 @@ class KaLocal(KaS):
             _trigger_val : int
                 Trigger value for knowledge agent
         """
-        new_entry = self.read_bb_lvl(blackboard)
-        
-        self._trigger_val = self._base_trigger_val if new_entry else 0
+        self._trigger_val = self._base_trigger_val if self.read_bb_lvl(blackboard) else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
@@ -310,12 +310,8 @@ class KaLocal(KaS):
             False -  if level is empty
         """
         lvl = lvl['level {}'.format(self.bb_lvl_read)]
-        if self.bb_lvl_read == 1:
-            self.new_designs =  list(lvl.keys()) if self.reanalyze_designs else [key for key in lvl if key not in self.analyzed_design.keys()]
-        else:
-            designs_on_lvl = {}
-            for values in lvl.values():
-                designs_on_lvl.update(values)
-            self.new_designs = [key for key in designs_on_lvl.keys() if key not in self.analyzed_design.keys()]
+        if self.bb_lvl_read != 1:
+            lvl = {**lvl['new'], **lvl['old']}
+        self.new_designs = list(lvl.keys()) if self.reanalyze_designs else [key for key in lvl if key not in self.analyzed_design.keys()]
             
-        return True if self.new_designs else False   
+        return True if len(self.new_designs) > 0 else False   

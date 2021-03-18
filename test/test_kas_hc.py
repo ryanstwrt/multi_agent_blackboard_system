@@ -188,7 +188,7 @@ def test_determine_step_steepest_ascent():
     assert diff  == None
     assert pert == None
     
-    # Test a postive a change in both objectives (both have of ~0.078, but + pu_content is slightly greater})
+    # Test a constraint violation
     base = {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}
     base_design =  {'reactivity swing' : 704.11, 'burnup' : 61.12, 'eol keff': 1.6, 'power': [1.0,2.0,3.0]}
     design_dict = {'+ pu_content' : {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.45}, 
@@ -201,6 +201,7 @@ def test_determine_step_steepest_ascent():
     
     assert diff  == None
     assert pert == None
+    
     
     ns.shutdown()
     time.sleep(0.1)

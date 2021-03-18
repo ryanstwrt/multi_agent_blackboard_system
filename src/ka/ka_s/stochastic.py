@@ -44,7 +44,9 @@ class Stochastic(KaS):
                         design[pos] = self.get_float_val(random.random(), dv_dict['dict'][pos]['ll'], dv_dict['dict'][pos]['ul'], self._design_accuracy)
                 self.current_design_variables[dv] = design
             elif dv_dict['variable type'] == str:
-                self.current_design_variables[dv] = str(random.choice(dv_dict['options'])) if random.random() > self.learning_factor else dv_dict['default']              
+                self.current_design_variables[dv] = str(random.choice(dv_dict['options'])) if random.random() > self.learning_factor else dv_dict['default']  
+            elif dv_dict['variable type'] == list:
+                self.current_design_variables[dv] = random.choice(dv_dict['options'])          
             else:
                 self.current_design_variables[dv] = self.get_float_val(random.random(), dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
         

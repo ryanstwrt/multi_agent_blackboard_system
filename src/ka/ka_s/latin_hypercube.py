@@ -174,7 +174,9 @@ class LatinHypercube(KaS):
 
                 self.current_design_variables[dv] = design
             elif dv_dict['variable type'] == str:
-                self.current_design_variables[dv] = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]              
+                self.current_design_variables[dv] = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]  
+            elif dv_dict['variable type'] == list:
+                self.current_design_variables[dv] = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]                  
             else:
                 self.current_design_variables[dv] = self.get_float_val(cur_design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
             num += 1

@@ -65,24 +65,29 @@ def test_determine_validity():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3(objectives={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
                                                'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}},
-                                   constraints={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}})
+                                   constraints={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float},
+                                                'power':       {'ll': 0.0, 'ul':1.0, 'variable type': list, 'goal type': 'max', 'length': 3}})
     bb.connect_agent(KaBrLevel3, 'ka_br3')
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br3')
     
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
                                                           'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
-                                                          'constraints': {'eol keff': 1.1}}, panel='new')
+                                                          'constraints': {'eol keff': 1.1, 'power': [0.1,0.2,0.3]}}, panel='new')
     bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50},
                                                           'objective functions': {'reactivity swing' : 500.0, 'burnup' : 250.0},
-                                                          'constraints': {'eol keff': 1.1}}, panel='new')
+                                                          'constraints': {'eol keff': 1.1, 'power': [0.1,0.2,0.3]}}, panel='new')
     
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.55]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
+                                                          'constraints': {'eol keff': 1.1, 'power': [0.1,0.2,1.1]}}, panel='new')    
     bb.publish_trigger()
     bool_ = br.determine_validity('core_[65.0, 65.0, 0.42]')
     assert bool_ == (True, None)
     bool_ = br.determine_validity('core_[70.0, 60.0, 0.50]')
     assert bool_ == (False, None)
-
+    bool_ = br.determine_validity('core_[70.0, 60.0, 0.55]')
+    assert bool_ == (False, None)
     ns.shutdown()
     time.sleep(0.05)
     

@@ -180,6 +180,19 @@ class KaBase(Agent):
         """
         self.write_to_bb(bb_lvl, entry_name, entry, panel=new_panel)
         self.write_to_bb(bb_lvl, entry_name, entry, panel=old_panel, remove=True)
+
+    def test_float_int(self, obj_val, obj_dict):
+        if obj_val < obj_dict['ll'] or obj_val > obj_dict['ul']:
+            return True
+        return False
+    
+    def test_list(self, obj_val, obj_dict):
+        for num, val in enumerate(obj_val):
+            ll = obj_dict['ll'][num] if type(obj_dict['ll']) == list else obj_dict['ll']
+            ul = obj_dict['ul'][num] if type(obj_dict['ul']) == list else obj_dict['ul']
+            if val < ll or val > ul:
+                return True        
+        return False
         
     def write_to_bb(self, bb_lvl, entry_name, entry, panel=None, remove=False):
         """

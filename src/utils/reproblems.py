@@ -17,15 +17,29 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import numpy as np
+import os
 
     
 def get_problem(name):
     benchmark = {'re21': RE21(),
                  're22': RE22(),
+                 're23': RE23(),
+                 're24': RE24(),
+                 're25': RE25(),
+                 're31': RE31(),
+                 're32': RE32(),
+                 're33': RE33(),
+                 're34': RE34(),
+                 're35': RE35(),
+                 're36': RE36(),
+                 're37': RE37(),
+                 're41': RE41(),
+                 're42': RE42(),                 
+                 're61': RE61(),                 
+                 're91': RE91(),                 
                  'cre21': CRE21()}
-    return benchmark[name]
-        
-
+    return benchmark[name]    
+    
 class RE21():
     def __init__(self):
         self.problem_name = 'RE21'
@@ -84,6 +98,8 @@ class RE22():
     def evaluate(self, x):
         f = np.zeros(self.n_objectives)
         g = np.zeros(self.n_original_constraints)
+        x = [float(x1) for x1 in x]
+       
         #Reference: getNearestValue_sample2.py (https://gist.github.com/icchi-h/1d0bb1c52ebfdd31f14b3e811328390a)
         idx = np.abs(np.asarray(self.feasible_vals) - x[0]).argmin()
         x1 = self.feasible_vals[idx]
@@ -98,7 +114,8 @@ class RE22():
         g[1] = 4.0 - (x3 / x2)
         g = np.where(g < 0, -g, 0)          
         f[1] = g[0] + g[1]
-        
+        f = np.array([float(x) for x in f])
+        print(type(f[0]))
         return f
 
 class RE23():

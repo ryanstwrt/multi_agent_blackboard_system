@@ -22,22 +22,17 @@ class KaBrLevel3(KaBr):
         if self._constraints:
             for constraint, constraint_dict in self._constraints.items():
                 constraint_value = self._lvl_data[core_name]['constraints'][constraint]
-                if constraint_value < constraint_dict['ll'] or constraint_value > constraint_dict['ul']:
-                    return (False, None)
+                violated = self.test_float_int(constraint_value, constraint_dict) if type(constraint_value) == (float or int) else self.test_list(constraint_value, constraint_dict)
+                if violated:
+                    return (False, None)  
         
         for obj_name, obj_dict in self._objectives.items():     
             obj_value = self._lvl_data[core_name]['objective functions'][obj_name]
-            if type(obj_value) == (float or int):
-                if obj_value < obj_dict['ll'] or obj_value > obj_dict['ul']:
-                    return (False, None)
-            elif type(obj_value) == list:
-                for num, val in enumerate(obj_value):
-                    ll = obj_dict['ll'][num] if type(obj_dict['ll']) == list else obj_dict['ll']
-                    ul = obj_dict['ul'][num] if type(obj_dict['ul']) == list else obj_dict['ul']
-                    if val < ll or val > ul:
-                        return (False, None)                   
+            violated = self.test_float_int(obj_value, obj_dict) if type(obj_value) == (float or int) else self.test_list(obj_value, obj_dict)
+            if violated:
+                return (False, None)               
         return (True, None)
-        
+   
     def update_abstract_levels(self):
         """
         Update the KA's current understanding of the BB

@@ -41,7 +41,6 @@ def test_welded_beam():
 def test_truss_2d():
     tsp = moo.optimization_test_functions('truss2d')
     val = tsp.predict('truss_2d', [0.05,0.05,1.5])
-    print(val)
     val = [round(x, 6) for x in val['F']]
     assert  val == [0.303739, 1922.96068]    
 

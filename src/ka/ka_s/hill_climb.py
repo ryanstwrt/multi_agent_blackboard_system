@@ -60,11 +60,11 @@ class HillClimb(KaLocal):
                 design[pert_dv][obj] = derivative
                 design[pert_dv]['total'] += derivative
                                     
-            truth = True
+            violated = False
             for constraint, val in pert_design['constraints'].items():
-                if val <= self._constraints[constraint]['ll'] or val >= self._constraints[constraint]['ul']:
-                    truth = False
-            if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total'] and truth:
+                constraint_dict = self._constraints[constraint]
+                violated = self.test_float_int(val, constraint_dict) if type(val) == (float or int) else self.test_list(val, constraint_dict)
+            if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total'] and not violated:
                 best_design = design[pert_dv]
                 best_design['pert'] = pert_dv
              
