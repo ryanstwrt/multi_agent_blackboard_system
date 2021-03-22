@@ -162,7 +162,10 @@ class LatinHypercube(KaS):
         cur_design = self.lhd.pop(0)
         num = 0
         for dv, dv_dict in self._design_variables.items():
-            if dv_dict['variable type'] == dict:
+            if 'options' in dv_dict.keys():
+                dv_val = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]   
+                self.current_design_variables[dv] = dv_dict['variable type'](dv_val)
+            elif dv_dict['variable type'] == dict:
                 design = {}
                 for pos in dv_dict['dict']:
                     if dv_dict['dict'][pos]['variable type'] != float:
@@ -172,11 +175,7 @@ class LatinHypercube(KaS):
                         design[pos] = self.get_float_val(cur_design[num], dv_dict['dict'][pos]['ll'], dv_dict['dict'][pos]['ul'], self._design_accuracy)
                     num +=1
 
-                self.current_design_variables[dv] = design
-            elif dv_dict['variable type'] == str:
-                self.current_design_variables[dv] = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]  
-            elif dv_dict['variable type'] == list:
-                self.current_design_variables[dv] = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]                  
+                self.current_design_variables[dv] = design              
             else:
                 self.current_design_variables[dv] = self.get_float_val(cur_design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
             num += 1 if dv_dict['variable type'] != dict else 0

@@ -159,7 +159,7 @@ def test_read_bb_lvl():
         time.sleep(0.5)
         ns = run_nameserver()
     rp = run_agent(name='local', base=base.KaLocal)        
-    lvl_read = {'level 1': {'core_[65.0,65.0,0.42]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}}}
+    lvl_read = {'core_[65.0,65.0,0.42]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}}
 
     rp.set_attr(analyzed_design={'core_[65.0,65.0,0.42]': {'Analyzed': True}})
     rp.read_bb_lvl(lvl_read)

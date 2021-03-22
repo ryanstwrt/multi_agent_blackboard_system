@@ -141,10 +141,9 @@ class KaS(KaBase):
         
         self.clear_entry()
         t = time.time()
-        self._lvl_data = {}
         self._trigger_event = message[0]
-        for panel in message[1]['level {}'.format(self.bb_lvl_data)].values():
-            self._lvl_data.update(panel)
+        lvl_data = message[1]['level {}'.format(self.bb_lvl_data)]        
+        self._lvl_data = {**lvl_data['new'], **lvl_data['old']}
             
         self.log_debug('Executing agent {}'.format(self.name))
         self.search_method()
@@ -236,9 +235,10 @@ class KaLocal(KaS):
         t = time.time()
         self._trigger_event = message[0]
         self.log_debug('Executing agent {}'.format(self.name))
-        self.lvl_read = message[1]['level {}'.format(self.bb_lvl_read)]
-        self._lvl_data = message[1]['level {}'.format(self.bb_lvl_data)]        
-        self._lvl_data = {**self._lvl_data['new'],**self._lvl_data['old']}
+        _lvl_read = message[1]['level {}'.format(self.bb_lvl_read)]
+        self.lvl_read = _lvl_read if self.bb_lvl_read == 1 else {**_lvl_read['new'],**_lvl_read['old']}
+        _lvl_data = message[1]['level {}'.format(self.bb_lvl_data)]        
+        self._lvl_data = {**_lvl_data['new'],**_lvl_data['old']}
             
         self.search_method()
         self.agent_time = time.time() - t
@@ -263,7 +263,10 @@ class KaLocal(KaS):
             _trigger_val : int
                 Trigger value for knowledge agent
         """
-        self._trigger_val = self._base_trigger_val if self.read_bb_lvl(blackboard) else 0
+        _lvl_read = blackboard['level {}'.format(self.bb_lvl_read)]
+        _lvl_read = _lvl_read if self.bb_lvl_read == 1 else {**_lvl_read['new'],**_lvl_read['old']}
+
+        self._trigger_val = self._base_trigger_val if self.read_bb_lvl(_lvl_read) else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
@@ -307,9 +310,6 @@ class KaLocal(KaS):
             True -  if level has entries
             False -  if level is empty
         """
-        lvl = lvl['level {}'.format(self.bb_lvl_read)]
-        if self.bb_lvl_read != 1:
-            lvl = {**lvl['new'], **lvl['old']}
         self.new_designs = list(lvl.keys()) if self.reanalyze_designs else [key for key in lvl if key not in self.analyzed_design.keys()]
             
         return True if len(self.new_designs) > 0 else False   

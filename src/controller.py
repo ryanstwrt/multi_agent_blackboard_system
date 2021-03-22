@@ -120,7 +120,7 @@ class Controller(object):
                             break
                     elif bb_archived:
                         bb.write_to_h5()
-                        bb.diagnostics_replace_agent()
+#                        bb.diagnostics_replace_agent()
                         bb_archived = False
                 except RuntimeError: #RuntimeError allowed if a KA gets added to kaar while the BB is checking it's length; which causes the error
                     pass

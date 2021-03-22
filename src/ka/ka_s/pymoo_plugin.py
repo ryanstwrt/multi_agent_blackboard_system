@@ -2,7 +2,8 @@ from src.ka.ka_s.base import KaLocal
 import numpy as np
 from numpy import random
 from pymoo.model.problem import Problem
-from pymoo.factory import get_algorithm, get_termination, get_reference_directions
+from pymoo.factory import get_algorithm, get_termination, get_crossover, get_mutation
+from pymoo.operators.mixed_variable_operator import MixedVariableSampling, MixedVariableMutation, MixedVariableCrossover
 from pymoo.model.callback import Callback
 from pymoo.optimize import minimize
 from pymoo.model.population import Population
@@ -15,17 +16,16 @@ class PyMooAlgorithm(KaLocal):
     def on_init(self):
         super().on_init()
         self.pymoo_algorithm_name = 'nsga2'
+        self.crossover = 'real_sbx'
+        self.mutation = 'real_pm'
         self._class = 'local search pymoo {}'.format(self.pymoo_algorithm_name)
-        self._base_trigger_val         = 6.00000001
+        self._base_trigger_val = 6.00000001
         self.termination_type = 'n_eval'
         self.termination_criteria = 250
         self.termination = None
-        self.ref_dir_type = 'das-dennis'
-        self.n_partitions = 12
         self.pop_size = 25
         self.n_offspring = 10
         self.initial_pop = None
-        self.ref_dirs = None       
     
     class PyMooProblem(Problem):
     
@@ -59,6 +59,44 @@ class PyMooAlgorithm(KaLocal):
             
             out["F"] = np.array(obj)
             out["G"] = np.array(const)
+            
+    class PyMooProblemMixed(PyMooProblem):
+        
+        def __init__(self, ka_s,
+                           n_var=2,
+                           n_obj=2,
+                           n_constr=2,
+                           xl=np.array([0,0]),
+                           xu=np.array([1,1]),
+                           **kwargs):
+            
+            
+            super().__init__(ka_s,
+                             n_var=n_var,
+                             n_obj=n_obj,
+                             n_constr=n_constr,
+                             xl=xl,
+                             xu=xu,
+                             **kwargs)
+        def _evaluate(self, X, out, *args, **kwargs):
+            obj = []
+            const = []
+            
+            i = 0
+            for k,v in self.base._design_variables.items():
+                self.base.current_design_variables[k] = float(X[i]) if 'll' in v else v['options'][int(X[i])]
+                i+=1
+
+            self.base.calc_objectives()
+            obj.append([utils.convert_objective_to_minimize(self.base._objectives[obj], x) for obj, x in self.base.current_objectives.items()])
+            if self.base._constraints:      
+                const.append([-utils.scale_value(self.base.current_constraints[con], con_dict) for con, con_dict in self.base._constraints.items()])   
+                              
+            self.base.write_to_bb(self.base.bb_lvl_data, self.base._entry_name, self.base._entry, panel='new')
+            self.base.clear_entry()  
+            
+            out["F"] = np.array(obj)
+            out["G"] = np.array(const)            
             
     def handler_trigger_publish(self, message):
         """
@@ -104,8 +142,30 @@ class PyMooAlgorithm(KaLocal):
     
     def setup_problem(self):
         self.termination = get_termination(self.termination_type, self.termination_criteria)
-        self.ref_dirs = get_reference_directions(self.ref_dir_type, len(self._objectives), n_partitions=self.n_partitions)  
-        self._problem = self.PyMooProblem(self,
+        self.initial_pop = self.get_pf()
+        pop = Population.new('X', self.initial_pop)
+        mixed = [True if 'options' in x else False for x in self._design_variables.values()]
+        mask = ['int' if 'options' in x else 'real' for x in self._design_variables.values() ]
+
+        if True in mixed:
+            crossover = {'int':  get_crossover("int_sbx", prob=1.0, eta=3.0), 
+                 'real': get_crossover("real_sbx", prob=1.0, eta=3.0)}
+            mutation = {'int':   get_mutation("int_pm", eta=3.0),
+                'real':  get_mutation("real_pm", eta=3.0)}
+            co = MixedVariableCrossover(mask, crossover)
+            mu = MixedVariableMutation(mask, mutation)
+            self._problem = self.PyMooProblemMixed(self,
+                                         n_var=len(self._design_variables),
+                                         n_obj=len(self._objectives),
+                                         n_constr=len(self._constraints),
+                                         xl=np.array([x['ll'] if 'll' in x else 0 for x in self._design_variables.values() ]),
+                                         xu=np.array([x['ul'] if 'll' in x else len(x['options']) for x in self._design_variables.values() ]),
+                                         elementwise_evaluation=True)            
+        else:
+            co = get_crossover(self.crossover)
+            mu = get_mutation(self.mutation)
+            
+            self._problem = self.PyMooProblem(self,
                                          n_var=len(self._design_variables),
                                          n_obj=len(self._objectives),
                                          n_constr=len(self._constraints),
@@ -114,26 +174,13 @@ class PyMooAlgorithm(KaLocal):
                                          elementwise_evaluation=True)
         self._problem.base = self
         # Grab the design variables for the current PF
-        self.initial_pop = self.get_pf()
-        pop = Population.new('X', self.initial_pop)
-        
-        if self.pymoo_algorithm_name == 'nsga2':
-            self.algorithm = get_algorithm(self.pymoo_algorithm_name,
-                                           sampling = pop,
-                                           pop_size=self.pop_size,
-                                           n_offpsring=self.n_offspring)
-        elif self.pymoo_algorithm_name == 'moead':
-            self.algorithm = get_algorithm(self.pymoo_algorithm_name,
-                                           ref_dirs=self.ref_dirs,
-                                           n_neighbors=15,
-                                           decomposition="pbi",
-                                           prob_neighbor_mating=0.7)          
-        else:
-            self.algorithm = get_algorithm(self.pymoo_algorithm_name,
-                                           ref_dirs=self.ref_dirs,
-                                           sampling = pop,
-                                           pop_size=self.pop_size,
-                                           n_offpsring=self.n_offspring)            
+        self.algorithm = get_algorithm(self.pymoo_algorithm_name,
+                                       sampling = pop,
+                                       crossover=co,
+                                       mutation=mu,
+                                       pop_size=self.pop_size,
+                                       n_offpsring=self.n_offspring)
+         
 
         
     def search_method(self):

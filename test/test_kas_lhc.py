@@ -68,7 +68,7 @@ def test_search_method():
                                   'position' :  {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
                                   'experiments': {'length': 2, 'variable type': dict, 'dict': {'0':               {'options': ['exp_a', 'exp_b', 'no_exp'], 'default': 'no_exp', 'variable type': str},
                                                                                                'random variable': {'ll': 0,  'ul': 2,  'variable type': float}}},
-                                   'test': {'options': [0.1,0.2,0.3], 'variable type': list}})   
+                                   'test': {'options': [0.1,0.2,0.3], 'variable type': float}})   
     rp.set_attr(samples=2)
     rp.generate_lhc()
     lhd = rp.get_attr('lhd')[0]

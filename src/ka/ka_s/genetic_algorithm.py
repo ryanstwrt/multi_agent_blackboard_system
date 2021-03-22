@@ -45,6 +45,7 @@ class GeneticAlgorithm(KaLocal):
                 Trigger value for knowledge agent
         """
         lvl = message['level {}'.format(self.bb_lvl_read)]
+        lvl = lvl if self.bb_lvl_read == 1 else {**lvl['new'], **lvl['old']}
         new = set(list(lvl.keys()))
         old = set(list(self.analyzed_design.keys()))
 
@@ -150,13 +151,13 @@ class GeneticAlgorithm(KaLocal):
         c2 = {}
         c3 = {}
         for dv, value in genotype1['design variables'].items():
-            c1[dv] = round(0.5 * value + 0.5 * genotype2['design variables'][dv], self._objective_accuracy)
-            c2[dv] = round(1.5 * value - 0.5 * genotype2['design variables'][dv], self._objective_accuracy)
+            c1[dv] = round(0.5 * value + 0.5 * genotype2['design variables'][dv], self._design_accuracy)
+            c2[dv] = round(1.5 * value - 0.5 * genotype2['design variables'][dv], self._design_accuracy)
             if c2[dv] > self._design_variables[dv]['ul']:
                 c2[dv] = self._design_variables[dv]['ul']
             elif c2[dv] < self._design_variables[dv]['ll']:
                 c2[dv] = self._design_variables[dv]['ll']
-            c3[dv] = round(-0.5 * value + 1.5 * genotype2['design variables'][dv], self._objective_accuracy)
+            c3[dv] = round(-0.5 * value + 1.5 * genotype2['design variables'][dv], self._design_accuracy)
             if c3[dv] > self._design_variables[dv]['ul']:
                 c3[dv] = self._design_variables[dv]['ul']
             elif c3[dv] < self._design_variables[dv]['ll']:
