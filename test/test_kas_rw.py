@@ -44,7 +44,7 @@ def test_search_method():
     rp.set_random_seed(seed=10893)
 
     bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
-                                                          'objective functions': {'f1': 365.0, 'f2': 500.0, 'f3' : 600.0}}, panel='old')
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
     
     bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])

@@ -625,7 +625,7 @@ class Blackboard(Agent):
                     try:
                         assert formatted_dict[k] == lvl_format[k]
                     except(AssertionError, KeyError):
-                        self.log_warning('Entry Name: "{}" not in BB level with entries {}'.format(k, [x for x in lvl_format.keys()]))
+                        self.log_warning('Entry Name: "{}" not in BB level with entries {}. Entry Type: {} Valid Type: {}. Entry Value: {}.'.format(k, [x for x in lvl_format.keys()], formatted_dict[k], lvl_format[k]), v)
         return formatted_dict
             
     def update_abstract_lvl(self, level, name, entry, panel=None):

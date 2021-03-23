@@ -78,13 +78,16 @@ class PyMooAlgorithm(KaLocal):
                              xl=xl,
                              xu=xu,
                              **kwargs)
+            
+            
         def _evaluate(self, X, out, *args, **kwargs):
             obj = []
             const = []
             
             i = 0
             for k,v in self.base._design_variables.items():
-                self.base.current_design_variables[k] = float(X[i]) if 'll' in v else v['options'][int(X[i])]
+                val = X[i] if 'll' in v else v['options'][int(X[i])-1]
+                self.base.current_design_variables[k] = v['variable type'](val)
                 i+=1
 
             self.base.calc_objectives()

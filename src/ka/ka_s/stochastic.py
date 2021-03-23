@@ -40,7 +40,7 @@ class Stochastic(KaS):
                     dv_val = random.choice(dv_dict['options']) if random.random() > self.learning_factor else dv_dict['default']   
                     self.current_design_variables[dv] = dv_dict['variable type'](dv_val)
                 else:
-                    self.current_design_variables[dv] = random.choice(dv_dict['options'])                   
+                    self.current_design_variables[dv] = dv_dict['variable type'](random.choice(dv_dict['options']))
             elif dv_dict['variable type'] == dict:
                 design = {}
                 for pos in dv_dict['dict']:

@@ -235,7 +235,10 @@ def test_hv_indicator():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    bb.initialize_abstract_level_3(objectives=objs,design_variables=dv)
 
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 500.0, 'burnup' : 100.0}}, panel='old')
@@ -257,7 +260,14 @@ def test_handler_writer():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     rp = run_agent(name='explore', base=Stochastic)
     rp1 = run_agent(name='exploit', base=NeighborhoodSearch)
-    bb.initialize_abstract_level_3()
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float},
+            'cycle length':      {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float},
+            'pu mass':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    bb.initialize_abstract_level_3(objectives=objs,design_variables=dv)
     rp.add_blackboard(bb)
     rp1.add_blackboard(bb)
     rp.connect_writer()
@@ -388,7 +398,10 @@ def test_dc_indicator():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float},
             'power':             {'ll':0,   'ul':10,   'goal':'lt', 'goal type': 'max', 'variable type': list}}
-    bb.initialize_abstract_level_3(objectives=objs)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    bb.initialize_abstract_level_3(objectives=objs,design_variables=dv)    
     bb.initialize_metadata_level()
 
     bb.set_attr(convergence_type='dci hvi')
@@ -445,7 +458,10 @@ def test_determine_complete_dci_hvi():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float},
             'power':             {'ll':0,   'ul':10,   'goal':'lt', 'goal type': 'avg', 'variable type': list}}
-    bb.initialize_abstract_level_3(objectives=objs)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    bb.initialize_abstract_level_3(objectives=objs,design_variables=dv)   
     bb.initialize_metadata_level()
     bb.set_attr(convergence_interval=1)
     bb.set_attr(skipped_tvs=0)
@@ -532,6 +548,10 @@ def test_log_metadata():
 
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':50,  'ul':100,  'goal':'gt', 'variable type': float}}
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    bb.initialize_abstract_level_3(objectives=objs,design_variables=dv)    
     bb.initialize_abstract_level_3(objectives=objs)
 
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42}, 
@@ -584,7 +604,10 @@ def test_convergence_indicator_dci_hvi():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    bb.initialize_abstract_level_3(objectives=objs,design_variables=dv)
     bb.initialize_metadata_level()
 
     bb.set_attr(convergence_type='dci hvi')
@@ -614,7 +637,10 @@ def test_convergence_indicator_hvi():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    bb.initialize_abstract_level_3(objectives=objs,design_variables=dv)
     bb.initialize_metadata_level()
 
     bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
@@ -637,7 +663,10 @@ def test_convergence_indicator_random():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    bb.initialize_abstract_level_3(objectives=objs,design_variables=dv)
 
     bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
@@ -670,7 +699,7 @@ def test_read_from_h5():
             'burnup':           {'ll':0.0,  'ul':100.0,  'goal':'gt', 'variable type': float},
             'powers':           {'ll': -10,  'ul':10.0,  'goal':'et', 'goal_type': 'max', 'variable type': list},
             'list_powers':      {'ll': -10,  'ul':10.0,  'goal':'et', 'goal_type': 'max', 'variable type': list},}
-    cons = {'eol': {'ll': 1.0, 'ul': 2.0, 'variable type': float}}
+    cons = {'eol keff': {'ll': 1.0, 'ul': 2.0, 'variable type': float}}
 
     bb_h5.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons)    
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons)

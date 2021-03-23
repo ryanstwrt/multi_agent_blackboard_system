@@ -48,10 +48,12 @@ def test_update_abstract_levels():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}     
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)      
     
     bb.connect_agent(KaBrLevel1, 'ka_br_lvl1')
     br = ns.proxy('ka_br_lvl1')
@@ -81,10 +83,12 @@ def test_publish():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}     
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)  
     
     bb.connect_agent(KaBrLevel1, 'ka_br_lvl1')
     br = ns.proxy('ka_br_lvl1')
@@ -116,9 +120,12 @@ def test_executor():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}     
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)  
     bb.initialize_metadata_level()
     
     bb.connect_agent(KaBrLevel1, 'ka_br_lvl1')
@@ -338,10 +345,12 @@ def test_calculate_dci():
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.set_attr(sm_type='gpr')
     bb.set_attr(_sm=sm_ga)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}     
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)  
     
     read = {'core_[71.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
             'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 0.99},
@@ -418,8 +427,10 @@ def test_calculate_dci_list():
     objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':100,  'goal':'gt', 'variable type': float},
             'power':            {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type': 'avg'}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}     
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv) 
     
     read = {'core_[71.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
             'core_[70.0, 60.0, 0.50]': {'pareto type' : 'pareto', 'fitness function' : 0.99},

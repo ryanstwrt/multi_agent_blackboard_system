@@ -114,7 +114,15 @@ def test_handler_trigger_publish():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}     
+    objs = {'cycle length':     {'ll':300, 'ul':400,  'goal':'gt', 'variable type': float},
+            'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'pu mass':          {'ll':500, 'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':25,  'ul':75,   'goal':'gt', 'variable type': float}}
+
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)     
     bb.connect_agent(KaBr, 'ka_br3')
     br = bb.get_attr('_proxy_server').proxy('ka_br3')
     br.set_attr(bb_lvl_write=2)
@@ -122,9 +130,9 @@ def test_handler_trigger_publish():
     br.set_attr(_trigger_val_base=3.00000000001)    
     
     br.set_attr(_objectives={'cycle length':     {'ll':300, 'ul':400,  'goal':'gt', 'variable type': float},
-                                   'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
-                                   'pu mass':          {'ll':500, 'ul':1000, 'goal':'lt', 'variable type': float},
-                                   'burnup':           {'ll':25,  'ul':75,   'goal':'gt', 'variable type': float}})
+                             'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+                             'pu mass':          {'ll':500, 'ul':1000, 'goal':'lt', 'variable type': float},
+                             'burnup':           {'ll':25,  'ul':75,   'goal':'gt', 'variable type': float}})
     br.set_attr(_num_allowed_entries=1)
 
     bb.publish_trigger()

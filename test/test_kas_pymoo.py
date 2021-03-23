@@ -213,15 +213,15 @@ def test_search_method_mixed():
     ka_s = ka.proxy('ka_nsga2')
     ka_s.set_attr(problem=problem)            
     ka_s.set_random_seed(seed=10893) 
-    bb.update_abstract_lvl(3, 'core_[1,10.0,10.5]', {'design variables': {'x0': 1, 'x1': 10.0, 'x2': 10.50},
-                                                      'objective functions': {'f0' : 450.11, 'f1' : 35.12},
-                                                      'constraints': {}}, panel='old')
-    bb.update_abstract_lvl(1, 'core_[1,10.0,10.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
-    bb.update_abstract_lvl(3, 'core_[1,10.0,20.0]', {'design variables': {'x0': 1, 'x1': 10.0, 'x2': 20.0}, 
-                                                        'objective functions': {'f0' : 310.11,'f1' : 25.12},
-                                                        'constraints': {}}, panel='old')
+    bb.update_abstract_lvl(3, 'core_[1.0,10.0,10.5]', {'design variables': {'x0': 1.0, 'x1': 10.0, 'x2': 10.50},
+                                                     'objective functions': {'f0' : 450.11, 'f1' : 35.12},
+                                                     'constraints': {}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[1.0,10.0,10.5]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[1.0,10.0,20.0]', {'design variables': {'x0': 1.0, 'x1': 10.0, 'x2': 20.0}, 
+                                                     'objective functions': {'f0' : 310.11,'f1' : 25.12},
+                                                     'constraints': {}}, panel='old')
     
-    bb.update_abstract_lvl(1, 'core_[1,10.0,20.0]', {'pareto type' : 'pareto', 'fitness function' : 1.0})   
+    bb.update_abstract_lvl(1, 'core_[1.0,10.0,20.0]', {'pareto type' : 'pareto', 'fitness function' : 1.0})   
     ka_s.set_attr(lvl_read=bb.get_blackboard()['level 1'])
     ka_s.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
     ka_s.set_attr(pop_size=2)
@@ -230,7 +230,8 @@ def test_search_method_mixed():
 
     ka_s.search_method()
     ka_s.get_attr('_class')
-    print(list(bb.get_blackboard()['level 3']['new'].keys()))
-    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.31,10.0,10.5]', 'core_[0.31,10.0,20.0]', 'core_[0.2,13.747225989026843,10.5]', 'core_[0.93,18.179701390487754,7.564838427000653]', 'core_[1.86,10.0,10.5]', 'core_[0.2,10.0,18.218799041622493]']
+    cores = ['core_[0.2,10.0,10.5]', 'core_[0.2,10.0,20.0]', 'core_[15.0,13.747225989026843,10.5]', 'core_[0.88,18.179701390487754,7.564838427000653]', 'core_[1.2,7.350716039002607,10.5]', 'core_[0.88,14.032089207397407,10.5]']
+    assert set(list(bb.get_blackboard()['level 3']['new'].keys())) == set(cores)
+
     ns.shutdown()
     time.sleep(0.1)           

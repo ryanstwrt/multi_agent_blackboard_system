@@ -34,8 +34,10 @@ def test_update_abstract_levels():
     bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}     
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)  
     
     bb.connect_agent(KaBrLevel3, 'ka_br_lvl3')
     br = ns.proxy('ka_br_lvl3')
@@ -63,10 +65,15 @@ def test_determine_validity():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3(objectives={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
-                                               'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}},
-                                   constraints={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float},
-                                                'power':       {'ll': 0.0, 'ul':1.0, 'variable type': list, 'goal type': 'max', 'length': 3}})
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}    
+    objs={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
+                                               'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}}
+    cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float},
+          'power':       {'ll': 0.0, 'ul':1.0, 'variable type': list, 'goal type': 'max', 'length': 3}}
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons) 
+
     bb.connect_agent(KaBrLevel3, 'ka_br3')
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br3')
@@ -98,9 +105,13 @@ def test_determine_validity_constraint():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3(objectives={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
-                                               'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}},
-                                   constraints={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}})
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}    
+    objs={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
+          'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}}
+    cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons) 
     bb.connect_agent(KaBrLevel3, 'ka_br3')
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br3')
@@ -128,9 +139,13 @@ def test_read_bb_lvl():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3(objectives={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
-                                               'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}},
-                                   constraints={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}})
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}    
+    objs={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
+                                               'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}}
+    cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons) 
     bb.connect_agent(KaBrLevel3, 'ka_br3')
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br3')
@@ -157,6 +172,15 @@ def test_handler_trigger_publish():
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     br = run_agent(name='ka_br3', base=KaBrLevel3)
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}    
+    objs={'cycle length':     {'ll':300, 'ul':400,  'goal':'gt', 'variable type': float},
+           'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+           'pu mass':          {'ll':500, 'ul':1000, 'goal':'lt', 'variable type': float},
+           'burnup':           {'ll':25,  'ul':75,   'goal':'gt', 'variable type': float}}
+    cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons)     
     bb.initialize_abstract_level_3()
     br.add_blackboard(bb)
     br.connect_trigger()
@@ -203,9 +227,14 @@ def test_handler_executor():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3(objectives={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                           'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float},
-                                           'doppler_coeff': {'ll':-1.0,  'ul':-0.6, 'goal':'lt', 'variable type': float}})
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}    
+    objs={'keff':          {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+          'void_coeff':    {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float},
+          'doppler_coeff': {'ll':-1.0,  'ul':-0.6, 'goal':'lt', 'variable type': float}}
+    cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons)      
     
     bb.connect_agent(KaBrLevel3, 'ka_br3')
     ka = bb.get_attr('_proxy_server')
@@ -256,9 +285,15 @@ def test_determine_validity_list():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3(objectives={'keff':            {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                               'assembly power':  {'ll': 0.5, 'ul': 7.5, 'goal':'lt', 'variable type': list, 'goal type': 'avg'},
-                                               'burnup':          {'ll': [0.0,0.0], 'ul': [100.0,100.0], 'goal': 'lt', 'goal type': 'max','variable type': list}})
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}    
+    objs={'keff':            {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
+          'assembly power':  {'ll': 0.5, 'ul': 7.5, 'goal':'lt', 'variable type': list, 'goal type': 'avg'},
+          'burnup':          {'ll': [0.0,0.0], 'ul': [100.0,100.0], 'goal': 'lt', 'goal type': 'max','variable type': list}}
+    cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}}
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons)     
+
     bb.connect_agent(KaBrLevel3, 'ka_br3')
     ka = bb.get_attr('_proxy_server')
     br = ka.proxy('ka_br3')

@@ -153,7 +153,15 @@ def test_handler_publish():
     bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
     bb_master.initialize_abstract_level_3()  
     bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
-    bb.initialize_abstract_level_3()
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    objs = {'reactivity swing': {'ll':0.0,  'ul':1000.0, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0.0,  'ul':100.0,  'goal':'gt', 'variable type': float},}
+    cons = {'eol keff': {'ll': 1.0, 'ul': 2.0, 'variable type': float},
+            'pu mass':  {'ll': 0.0, 'ul':1000, 'variable type': float}}
+
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons) 
     bb.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_master})    
   
     ka = bb.get_attr('_proxy_server')

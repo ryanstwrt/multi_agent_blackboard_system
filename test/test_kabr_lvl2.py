@@ -58,8 +58,10 @@ def test_update_abstract_levels():
     bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
-    bb.initialize_abstract_level_3(objectives=objs)
-    bb.initialize_abstract_level_3()
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}     
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)     
     
     bb.connect_agent(KaBrLevel2, 'ka_br_lvl2')
     br = ns.proxy('ka_br_lvl2')
@@ -253,7 +255,14 @@ def test_handler_trigger_publish():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.initialize_abstract_level_3()
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}     
+    objs = {'cycle length':     {'ll':300, 'ul':400,  'goal':'gt', 'variable type': float},
+            'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'pu mass':          {'ll':500, 'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':25,  'ul':75,   'goal':'gt', 'variable type': float}}    
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv)    
     bb.connect_agent(KaBrLevel2, 'ka_br2')
     br = ns.proxy('ka_br2')
     br.set_attr(_num_allowed_entries=1)
