@@ -59,9 +59,9 @@ def get_data(design_variables, objective_variables, database_name='SFR_DB', fixe
                     obj_vars.append(avg_pf)
                     data_dict[core_name]['dependent variables'][var] = avg_pf
                 elif var == 'avg lhgr':
-                    lhgr = rx_.get_assembly_avg(cycle_length, 'power fraction') * 300
+                    lhgr = rx_.get_assembly_avg(cycle_length, 'power fraction') * 300 * 1000
                     # LHGR = power / (total length of fuel: pin length * # pins)
-                    avg_lhgr = lhgr / (rx_.rx['independent variables']['height'][0] * 271)
+                    avg_lhgr = lhgr / (rx_.rx['independent variables']['height'][0] * 0.01 * 271)
                     obj_vars.append(avg_lhgr)
                     data_dict[core_name]['dependent variables'][var] = avg_lhgr
                 elif var == 'max lhgr':

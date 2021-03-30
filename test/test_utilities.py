@@ -55,3 +55,17 @@ def test_pareto_front():
     pf = ['core_[65.0, 65.0, 0.42]', 'core_[70.0, 60.0, 0.50]', 'core_[75.0, 55.0, 0.30]']
     scaled_pf = utils.scale_pareto_front(pf, objs, _lvl_data)
     assert scaled_pf == [[0.75,0.25,0.5,0.75,0.25,0.0], [0.5,0.5,0.5,0.75,0.25,0.5], [0.25,0.75,0.5,0.75,0.25,0.5]]
+
+def test_test_limits():
+    objs = {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float}
+    
+    assert utils.test_limits(500, objs) == False
+    assert utils.test_limits(0, objs) == False
+    assert utils.test_limits(1000, objs) == False
+    assert utils.test_limits(1001, objs) == True
+
+def test_test_list_limits():
+    objs = {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'}    
+    assert utils.test_list_limits([2.5,5.0,7.5], objs) == False
+    assert utils.test_list_limits([10.5,5.0,7.5], objs) == True
+    assert utils.test_list_limits([2.5,5.0,-0.5], objs) == True

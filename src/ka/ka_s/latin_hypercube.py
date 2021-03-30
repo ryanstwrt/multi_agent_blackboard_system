@@ -1,4 +1,5 @@
 from src.ka.ka_s.base import KaS
+import src.utils.utilities as utils
 from numpy import random
 import copy
 import numpy as np
@@ -172,12 +173,12 @@ class LatinHypercube(KaS):
                         val = int(dv_dict['length'] * cur_design[num])
                         design[pos] = dv_dict['dict'][pos]['options'][val]
                     else:
-                        design[pos] = self.get_float_val(cur_design[num], dv_dict['dict'][pos]['ll'], dv_dict['dict'][pos]['ul'], self._design_accuracy)
+                        design[pos] = utils.get_float_val(cur_design[num], dv_dict['dict'][pos]['ll'], dv_dict['dict'][pos]['ul'], self._design_accuracy)
                     num +=1
 
                 self.current_design_variables[dv] = design              
             else:
-                self.current_design_variables[dv] = self.get_float_val(cur_design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
+                self.current_design_variables[dv] = utils.get_float_val(cur_design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
             num += 1 if dv_dict['variable type'] != dict else 0
         
         self._entry_name = self.get_design_name(self.current_design_variables)

@@ -86,7 +86,7 @@ class PyMooAlgorithm(KaLocal):
             
             i = 0
             for k,v in self.base._design_variables.items():
-                val = X[i] if 'll' in v else v['options'][int(X[i])-1]
+                val = X[i]
                 self.base.current_design_variables[k] = v['variable type'](val)
                 i+=1
 
@@ -148,7 +148,7 @@ class PyMooAlgorithm(KaLocal):
         self.initial_pop = self.get_pf()
         pop = Population.new('X', self.initial_pop)
         mixed = [True if 'options' in x else False for x in self._design_variables.values()]
-        mask = ['int' if 'options' in x else 'real' for x in self._design_variables.values() ]
+        mask  = ['int' if 'options' in x else 'real' for x in self._design_variables.values()]
 
         if True in mixed:
             crossover = {'int':  get_crossover("int_sbx", prob=1.0, eta=3.0), 
@@ -161,8 +161,8 @@ class PyMooAlgorithm(KaLocal):
                                          n_var=len(self._design_variables),
                                          n_obj=len(self._objectives),
                                          n_constr=len(self._constraints),
-                                         xl=np.array([x['ll'] if 'll' in x else 0 for x in self._design_variables.values() ]),
-                                         xu=np.array([x['ul'] if 'll' in x else len(x['options']) for x in self._design_variables.values() ]),
+                                         xl=np.array([x['ll'] if 'll' in x else x['options'][0] for x in self._design_variables.values() ]),
+                                         xu=np.array([x['ul'] if 'll' in x else x['options'][-1] for x in self._design_variables.values()]),
                                          elementwise_evaluation=True)            
         else:
             co = get_crossover(self.crossover)

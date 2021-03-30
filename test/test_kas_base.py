@@ -69,22 +69,7 @@ def test_get_design_name():
     
     
     ns.shutdown()
-    time.sleep(0.1)  
-    
-def test_get_float_val():
-    try:
-        ns = run_nameserver()
-    except OSError:
-        time.sleep(0.5)
-        ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=base.KaS)
-    rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
-                                 'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-                                 'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}})    
-    rp.set_random_seed(seed=10983)
-    assert 0.5 == rp.get_float_val(0.5, 0, 1, 5)
-    ns.shutdown()
-    time.sleep(0.1)      
+    time.sleep(0.1)   
     
 def test_clear_entry():
     try:

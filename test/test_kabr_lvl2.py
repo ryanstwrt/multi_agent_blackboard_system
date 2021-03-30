@@ -156,7 +156,7 @@ def test_determine_validity():
     ns.shutdown()
     time.sleep(0.05) 
     
-def test_move_curent_entry():
+def test_move_current_entry():
     try:
         ns = run_nameserver()
     except OSError:
@@ -168,8 +168,8 @@ def test_move_curent_entry():
     ka_br2.connect_writer()
 
     ka_br2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                           'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                           'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
+                                 'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
+                                 'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_panel(1, ['new', 'old'])
@@ -193,8 +193,8 @@ def test_determine_optimal_type():
         ns = run_nameserver()
     ka_br2 = run_agent(name='ka_br', base=KaBrLevel2)
     ka_br2.set_attr(_objectives={'keff':        {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
-                                           'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
-                                           'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})    
+                                 'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
+                                 'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})    
     bool_ = ka_br2.determine_optimal_type(
         {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.3}, 
         {'keff': 1.05, 'void_coeff': -120, 'doppler_coeff': -0.65, 'pu_content': 0.6})
@@ -300,22 +300,29 @@ def test_handler_executor():
                                  'void_coeff':  {'ll': -200, 'ul': -75, 'goal':'lt', 'variable type': float}, 
                                  'pu_content':  {'ll': 0,    'ul': 0.6, 'goal':'lt', 'variable type': float}})
     
+    ka_br2.set_attr(_constraints={'powers':    {'ll': 0.0,  'ul': 0.1, 'goal type': 'max', 'variable type': list}})
+    
     bb.add_abstract_lvl(1, {'pareto type': str, 'fitness function': float})
     bb.add_abstract_lvl(2, {'valid': bool})
     bb.add_panel(2, ['new', 'old'])
     bb.add_abstract_lvl(3, {'design variables': {'height': float, 'smear': float, 'pu_content': float}, 
-                            'objective functions': {'keff': float, 'void_coeff': float, 'pu_content': float}})
+                            'objective functions': {'keff': float, 'void_coeff': float, 'pu_content': float},
+                            'constraints': {'powers': list}})
     bb.add_panel(3, ['new','old'])
     
     
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.3}, 
-                                         'objective functions': {'keff': 1.05, 'void_coeff': -150.0, 'pu_content': 0.3}}, panel='old')
+                                         'objective functions': {'keff': 1.05, 'void_coeff': -150.0, 'pu_content': 0.3},
+                                         'constraints': {'powers': [0.05, 0.06]}}, panel='old')
     bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.3},
-                                         'objective functions': {'keff': 1.05, 'void_coeff': -160.0, 'pu_content': 0.3}}, panel='old')
+                                         'objective functions': {'keff': 1.05, 'void_coeff': -160.0, 'pu_content': 0.3},
+                                         'constraints': {'powers': [0.05, 0.06]}}, panel='old')
     bb.update_abstract_lvl(3, 'core_3', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.5},
-                                         'objective functions': {'keff': 1.00, 'void_coeff': -100.0, 'pu_content': 0.5}}, panel='old')
+                                         'objective functions': {'keff': 1.00, 'void_coeff': -100.0, 'pu_content': 0.5},
+                                         'constraints': {'powers': [0.05, 0.06]}}, panel='old')
     bb.update_abstract_lvl(3, 'core_4', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.2},
-                                         'objective functions': {'keff': 1.00, 'void_coeff': -100.0, 'pu_content': 0.2}}, panel='old')  
+                                         'objective functions': {'keff': 1.00, 'void_coeff': -100.0, 'pu_content': 0.2},
+                                         'constraints': {'powers': [0.05, 0.06]}}, panel='old')  
     
     bb.update_abstract_lvl(2, 'core_1', {'valid': True}, panel='new')
     bb.update_abstract_lvl(2, 'core_2', {'valid': True}, panel='new')

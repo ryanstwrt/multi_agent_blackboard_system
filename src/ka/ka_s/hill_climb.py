@@ -62,7 +62,7 @@ class HillClimb(KaLocal):
             violated = False
             for constraint, val in pert_design['constraints'].items():
                 constraint_dict = self._constraints[constraint]
-                violated = self.test_float_int(val, constraint_dict) if type(val) == (float or int) else self.test_list(val, constraint_dict)
+                violated = utils.test_limits(val, constraint_dict) if type(val) == (float or int) else self.test_list_limits(val, constraint_dict)
             if design[pert_dv]['total'] > 0 and design[pert_dv]['total'] > best_design['total'] and not violated:
                 best_design = design[pert_dv]
                 best_design['pert'] = pert_dv

@@ -1,5 +1,5 @@
 from src.ka.ka_brs.base import KaBr
-
+import src.utils.utilities as utils
 
 class KaBrLevel3(KaBr):
     """Reads 'level 3' to determine if a core design is valid."""
@@ -19,16 +19,17 @@ class KaBrLevel3(KaBr):
         
     def determine_validity(self, core_name):
         """Determine if the core falls within objective ranges and constrain ranges"""
+            
         if self._constraints:
             for constraint, constraint_dict in self._constraints.items():
                 constraint_value = self._lvl_data[core_name]['constraints'][constraint]
-                violated = self.test_float_int(constraint_value, constraint_dict) if type(constraint_value) == (float or int) else self.test_list(constraint_value, constraint_dict)
+                violated = utils.test_limits(constraint_value, constraint_dict) if type(constraint_value) == (float or int) else utils.test_list_limits(constraint_value, constraint_dict)
                 if violated:
                     return (False, None)  
         
-        for obj_name, obj_dict in self._objectives.items():     
+        for obj_name, obj_dict in self._objectives.items(): 
             obj_value = self._lvl_data[core_name]['objective functions'][obj_name]
-            violated = self.test_float_int(obj_value, obj_dict) if type(obj_value) == (float or int) else self.test_list(obj_value, obj_dict)
+            violated = utils.test_limits(obj_value, obj_dict) if type(obj_value) == (float or int) else utils.test_list_limits(obj_value, obj_dict)
             if violated:
                 return (False, None)               
         return (True, None)

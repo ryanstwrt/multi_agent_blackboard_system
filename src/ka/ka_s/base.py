@@ -121,9 +121,6 @@ class KaS(KaBase):
         name += str(dv_).replace("'", "")
         name = name.replace(" ", "")
         return name
-
-    def get_float_val(self, multiplier, ll, ul,  accuracy):
-        return round(multiplier * (ul - ll) + ll, accuracy)
                   
     def handler_executor(self, message):
         """

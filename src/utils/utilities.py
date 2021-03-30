@@ -21,8 +21,36 @@ def convert_objective_to_minimize(obj_dict, obj_val, scale=False):
         print('Warning: goal for objective with objective dictionary {} given unregistered goal {}. \n Converted to lt (minimization) problem.')
         return obj_val
 
-def get_float_val(self, multiplier, ll, ul,  accuracy):
+def convert_pf_to_list(pf, objectives, lvl_data):
+    """
+    Converte PF to list format.
+    """
+    # TODO If scale_objective returns a None, we need to figure out how to deal with it.
+    # Perhaps cancel the current iteration and tell the BB we are done
+    # Should we keep a log of what happened?
+    pf_list = []
+    for x in pf:
+        design_objectives = []
+        for obj, obj_dict in objectives.items():
+            design_objectives.append(lvl_data[x]['objective functions'][obj])
+        pf_list.append(design_objectives)
+    return pf_list   
+    
+def get_float_val(multiplier, ll, ul,  accuracy):
     return round(multiplier * (ul - ll) + ll, accuracy)
+
+def test_limits(val, val_dict):
+    if val < val_dict['ll'] or val > val_dict['ul']:
+        return True
+    return False   
+
+def test_list_limits(val, val_dict):
+    for num, v in enumerate(val):
+        ll = val_dict['ll'][num] if type(val_dict['ll']) == list else val_dict['ll']
+        ul = val_dict['ul'][num] if type(val_dict['ul']) == list else val_dict['ul']
+        if v < ll or v > ul:
+            return True        
+    return False    
 
 def get_objective_value(val, goal_type=None):
     """
@@ -42,6 +70,10 @@ def get_objective_value(val, goal_type=None):
         obj_val = min(val)
     elif goal_type == 'avg':
         obj_val = sum(val)/len(val)   
+    elif goal_type == 'abs max':
+        obj_val = max([abs(x) for x in val])
+    elif goal_type == 'abs min':
+        obj_val = min([abs(x) for x in val])
     else:
         obj_val = val
         
@@ -66,28 +98,6 @@ def scale_list_value(array, ll, ul):
             scaled_array.append(scale_float_value(row, ll, ul))
     return scaled_array 
 
-def scale_value(val, val_dict):
-    if val_dict['variable type'] == list:
-        return scale_list_value(val, val_dict['ll'], val_dict['ul'])
-    else:
-        return scale_float_value(val, val_dict['ll'], val_dict['ul'])
-    
-def convert_pf_to_list(pf, objectives, lvl_data):
-    """
-    Converte PF to list format.
-    """
-    # TODO If scale_objective returns a None, we need to figure out how to deal with it.
-    # Perhaps cancel the current iteration and tell the BB we are done
-    # Should we keep a log of what happened?
-    pf_list = []
-    for x in pf:
-        design_objectives = []
-        for obj, obj_dict in objectives.items():
-            design_objectives.append(lvl_data[x]['objective functions'][obj])
-        pf_list.append(design_objectives)
-    return pf_list   
-    
-    
 def scale_pareto_front(pf, objectives, lvl_data):
     """
     Scale the objective functions for the pareto front and return a scaled pareto front for the hypervolume.
@@ -104,3 +114,9 @@ def scale_pareto_front(pf, objectives, lvl_data):
             design_objectives.append(round(convert_objective_to_minimize(obj_dict, scaled_obj_value, scale=True), 7))
         scaled_pf.append(design_objectives)
     return scaled_pf
+
+def scale_value(val, val_dict):
+    if val_dict['variable type'] == list:
+        return scale_list_value(val, val_dict['ll'], val_dict['ul'])
+    else:
+        return scale_float_value(val, val_dict['ll'], val_dict['ul'])

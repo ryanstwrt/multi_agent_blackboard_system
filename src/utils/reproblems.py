@@ -445,16 +445,16 @@ class RE35():
 
         self.lbound = np.zeros(self.n_variables)
         self.ubound = np.zeros(self.n_variables)
-        self.lbound[0] = 2.6
-        self.lbound[1] = 0.7
-        self.lbound[2] = 17
+        self.lbound[1] = 2.6
+        self.lbound[2] = 0.7
+        self.lbound[0] = 17
         self.lbound[3] = 7.3
         self.lbound[4] = 7.3
         self.lbound[5] = 2.9
         self.lbound[6] = 5.0    
-        self.ubound[0] = 3.6
-        self.ubound[1] = 0.8
-        self.ubound[2] = 28
+        self.ubound[1] = 3.6
+        self.ubound[2] = 0.8
+        self.ubound[0] = 28
         self.ubound[3] = 8.3
         self.ubound[4] = 8.3
         self.ubound[5] = 3.9
@@ -464,9 +464,9 @@ class RE35():
         f = np.zeros(self.n_objectives)
         g = np.zeros(self.n_original_constraints)
 
-        x1 = x[0]
-        x2 = x[1]
-        x3 = np.round(x[2])
+        x1 = x[1]
+        x2 = x[2]
+        x3 = np.round(x[0])
         x4 = x[3]
         x5 = x[4]
         x6 = x[5]

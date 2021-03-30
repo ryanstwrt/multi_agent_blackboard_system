@@ -1,5 +1,6 @@
 from src.ka.ka_s.base import KaS
 from numpy import random
+import src.utils.utilities as utils
 
 class Stochastic(KaS):
     """
@@ -47,11 +48,11 @@ class Stochastic(KaS):
                     if dv_dict['dict'][pos]['variable type'] == str:
                         design[pos] = random.choice(dv_dict['dict'][pos]['options'])
                     else:
-                        design[pos] = self.get_float_val(random.random(), dv_dict['dict'][pos]['ll'], dv_dict['dict'][pos]['ul'], self._design_accuracy)
+                        design[pos] = utils.get_float_val(random.random(), dv_dict['dict'][pos]['ll'], dv_dict['dict'][pos]['ul'], self._design_accuracy)
                 self.current_design_variables[dv] = design
        
             else:
-                self.current_design_variables[dv] = self.get_float_val(random.random(), dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
+                self.current_design_variables[dv] = utils.get_float_val(random.random(), dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
         
         self._entry_name = self.get_design_name(self.current_design_variables)
         if not self.design_check():

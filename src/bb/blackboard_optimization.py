@@ -34,6 +34,7 @@ class BbOpt(blackboard.Blackboard):
         self.objectives_ll = []
         self.objectives_ul = []
         self.total_tvs = 1E6
+        self.function_evals = 1E6
         
         self.hv_list = [0.0]
         self._nadir_point = {}
@@ -49,7 +50,6 @@ class BbOpt(blackboard.Blackboard):
         self.convergence_rate = 1E-6
         self.convergence_interval = 25
         self.pf_size = 200
-        self.function_evals = 1E6
         self.dci_div = {}
         self.final_trigger = 3       
         self.problem = None
@@ -174,25 +174,18 @@ class BbOpt(blackboard.Blackboard):
         """
         if len(self.hv_list) < 2 * self.convergence_interval:
             return
-        
+
         if self.convergence_type == 'dci hvi':
             self.determine_complete_dci_hvi()
         elif self.convergence_type == 'hvi':
             self.determine_complete_hv()
-        elif self.convergence_type == 'function evals':
-            lvl3 = {**self.abstract_lvls['level 3']['new'], **self.abstract_lvls['level 3']['old']}
-            self.log_info('Problem is at {} of {} total allowable function evals'.format(len(lvl3), self.function_evals))
-            if len(lvl3) > self.function_evals:
-                self.log_info('Problem is over total allowable function evals, shutting agents down')
-                self._complete = True 
-                return
         else:
-            self.log_debug('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
-
-        # Determine if the problem is over our trigger value limit
-        if len(self._kaar) >= self.total_tvs and self._complete == False:
-            self.log_info('Problem is over total allowable TVs, shutting agents down')
-            self._complete = True      
+            self.log_warning('Convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
+            self.determine_complete_trigger_evals()
+            
+        self.determine_complete_function_evals()
+        self.determine_complete_trigger_evals()
+        
 
     def determine_complete_dci_hvi(self):
         """
@@ -203,6 +196,14 @@ class BbOpt(blackboard.Blackboard):
             self.determine_complete_hv()
         else:
             self.convergence_update()    
+            
+    def determine_complete_function_evals(self):
+        self.log_info('Problem is at {} of {} total allowable trigger values'.format(len(self._kaar), self.total_tvs))
+        lvl3 = {**self.abstract_lvls['level 3']['new'], **self.abstract_lvls['level 3']['old']}
+        self.log_info('Problem is at {} of {} total allowable function evals'.format(len(lvl3), self.function_evals))
+        if len(lvl3) > self.function_evals:
+            self.log_info('Problem is over total allowable function evals, shutting agents down')
+            self._complete = True 
             
     def determine_complete_hv(self):
         """
@@ -227,6 +228,13 @@ class BbOpt(blackboard.Blackboard):
         if hv_indicator < self.convergence_rate:
             self.log_info('Problem complete via HV convergence, shutting agents down')
             self._complete = True
+            
+    def determine_complete_trigger_evals(self):
+        # Determine if the problem is over our trigger value limit
+        self.log_info((len(self._kaar),self.total_tvs))
+        if len(self._kaar) >= self.total_tvs:
+            self.log_info('Problem is over total allowable TVs, shutting agents down')
+            self._complete = True  
 
     def get_objective_value(self, core, obj):
         objective_value = self.abstract_lvls['level 3']['old'][core]['objective functions'][obj]
@@ -265,9 +273,7 @@ class BbOpt(blackboard.Blackboard):
         """
         Calculate the Hypervolume for the current pareto front
         """
-        pf = self.get_pf()
-        
-        #return(round(pm.hypervolume_indicator(pf, self.objectives_ll, self.objectives_ul),10))         
+        pf = self.get_pf()        
         return pm.hypervolume_indicator(pf, self.objectives_ul)  
     
     def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):

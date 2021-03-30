@@ -53,7 +53,7 @@ def test_update_abstract_levels():
     br.update_abstract_levels()
     assert [x for x in br.get_attr('lvl_read').keys()]  == ['core_[65.0, 65.0, 0.45]']
     assert [x for x in br.get_attr('lvl_write').keys()] == ['core_[65.0, 65.0, 0.42]']
-    assert [x for x in br.get_attr('_lvl_data').keys()] == ['core_[65.0, 65.0, 0.45]']#, 'core_[65.0, 65.0, 0.42]']
+    assert [x for x in br.get_attr('_lvl_data').keys()] == ['core_[65.0, 65.0, 0.45]']
     
     ns.shutdown()
     time.sleep(0.05)
@@ -69,7 +69,7 @@ def test_determine_validity():
         'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
         'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}    
     objs={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
-                                               'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}}
+          'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}}
     cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float},
           'power':       {'ll': 0.0, 'ul':1.0, 'variable type': list, 'goal type': 'max', 'length': 3}}
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons) 
@@ -143,7 +143,7 @@ def test_read_bb_lvl():
         'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
         'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}    
     objs={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
-                                               'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}}
+          'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}}
     cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons) 
     bb.connect_agent(KaBrLevel3, 'ka_br3')
@@ -291,7 +291,8 @@ def test_determine_validity_list():
     objs={'keff':            {'ll': 1.0,  'ul': 1.2, 'goal':'gt', 'variable type': float}, 
           'assembly power':  {'ll': 0.5, 'ul': 7.5, 'goal':'lt', 'variable type': list, 'goal type': 'avg'},
           'burnup':          {'ll': [0.0,0.0], 'ul': [100.0,100.0], 'goal': 'lt', 'goal type': 'max','variable type': list}}
-    cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}}
+    cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float},
+          'burnup1':          {'ll': 0.0, 'ul': 100.0, 'goal type': 'max', 'variable type': list}}
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons)     
 
     bb.connect_agent(KaBrLevel3, 'ka_br3')
@@ -300,13 +301,16 @@ def test_determine_validity_list():
 
     bb.update_abstract_lvl(3, 'core_1', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
                                          'objective functions': {'keff': 1.05, 'assembly power': [0.6, 0.6, 0.8], 'burnup': [10.0, 10.0]},
-                                         'constraints': {'eol keff': 1.1}}, panel='new')
+                                         'constraints': {'eol keff': 1.1, 'burnup1': [10.0, 10.0]}}, panel='new')
     bb.update_abstract_lvl(3, 'core_2', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
                                          'objective functions': {'keff': 1.04, 'assembly power': [0.4, 0.6, 0.8], 'burnup': [10.0, 10.0]},
-                                         'constraints': {'eol keff': 1.1}}, panel='new')    
+                                         'constraints': {'eol keff': 1.1, 'burnup1': [10.0, 10.0] }}, panel='new')    
     bb.update_abstract_lvl(3, 'core_3', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
                                          'objective functions': {'keff': 1.05, 'assembly power': [0.6, 0.6, 0.8], 'burnup': [110.0, 10.0]},
-                                         'constraints': {'eol keff': 1.1}}, panel='new')    
+                                         'constraints': {'eol keff': 1.1, 'burnup1': [10.0, 10.0]}}, panel='new')   
+    bb.update_abstract_lvl(3, 'core_4', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
+                                         'objective functions': {'keff': 1.05, 'assembly power': [0.6, 0.6, 0.8], 'burnup': [10.0, 10.0]},
+                                         'constraints': {'eol keff': 1.1, 'burnup1': [10.0, 110.0]}}, panel='new')   
     bb.publish_trigger()
     bool_ = br.determine_validity('core_1')
     assert bool_ == (True, None)
@@ -314,6 +318,7 @@ def test_determine_validity_list():
     assert bool_ == (False, None)
     bool_ = br.determine_validity('core_3')
     assert bool_ == (False, None)
-
+    bool_ = br.determine_validity('core_4')
+    assert bool_ == (False, None)
     ns.shutdown()
     time.sleep(0.05)
