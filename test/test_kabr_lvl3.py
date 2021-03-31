@@ -69,7 +69,8 @@ def test_determine_validity():
         'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
         'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}    
     objs={'reactivity swing': {'ll':0, 'ul':20000, 'goal':'lt', 'variable type': float},
-          'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float}}
+          'burnup':           {'ll':0,  'ul':200,  'goal':'gt', 'variable type': float},
+          'num exp':          {'ll':0,  'ul':10,  'goal':'gt', 'variable type': int},}
     cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float},
           'power':       {'ll': 0.0, 'ul':1.0, 'variable type': list, 'goal type': 'max', 'length': 3}}
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons) 
@@ -79,15 +80,19 @@ def test_determine_validity():
     br = ka.proxy('ka_br3')
     
     bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
-                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0, 'num exp': 9},
                                                           'constraints': {'eol keff': 1.1, 'power': [0.1,0.2,0.3]}}, panel='new')
     bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.50]', {'design variables': {'height': 70.0, 'smear': 60.0, 'pu_content': 0.50},
-                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 250.0},
+                                                          'objective functions': {'reactivity swing' : 500.0, 'burnup' : 250.0, 'num exp': 9},
                                                           'constraints': {'eol keff': 1.1, 'power': [0.1,0.2,0.3]}}, panel='new')
     
     bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.55]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
-                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0, 'num exp': 9},
+                                                          'constraints': {'eol keff': 1.1, 'power': [0.1,0.2,1.1]}}, panel='new')  
+    bb.update_abstract_lvl(3, 'core_[70.0, 60.0, 0.65]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
+                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0, 'num exp': 12},
                                                           'constraints': {'eol keff': 1.1, 'power': [0.1,0.2,1.1]}}, panel='new')    
+    bb.publish_trigger()          
     bb.publish_trigger()
     bool_ = br.determine_validity('core_[65.0, 65.0, 0.42]')
     assert bool_ == (True, None)
@@ -95,6 +100,8 @@ def test_determine_validity():
     assert bool_ == (False, None)
     bool_ = br.determine_validity('core_[70.0, 60.0, 0.55]')
     assert bool_ == (False, None)
+    bool_ = br.determine_validity('core_[70.0, 60.0, 0.65]')
+    assert bool_ == (False, None)          
     ns.shutdown()
     time.sleep(0.05)
     
