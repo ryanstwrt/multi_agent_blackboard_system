@@ -235,3 +235,52 @@ def test_search_method_mixed():
 
     ns.shutdown()
     time.sleep(0.1)           
+    
+def test_force_shutdown():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
+    objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}
+        
+    problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'dtlz1')        
+        
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.set_attr(constraints={})
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints={})
+    bb.initialize_metadata_level()
+
+
+    bb.connect_agent(pm.PyMooAlgorithm, 'ka_nsga2')
+    ka = bb.get_attr('_proxy_server')
+    ka_s = ka.proxy('ka_nsga2')
+    ka_s.set_random_seed(seed=10893) 
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[0.650,0.750,0.24]', {'design variables': {'x0': 0.650, 'x1': 0.750, 'x2': 0.24},
+                                                          'objective functions': {'f0': 36.0, 'f1': 50.0, 'f2' : 60.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.750,0.24]', {'pareto type' : 'pareto', 'fitness function' : 1.0})   
+    ka_s.set_attr(lvl_read=bb.get_blackboard()['level 1'])
+    ka_s.set_attr(_lvl_data=bb.get_blackboard()['level 3']['old'])
+    ka_s.set_attr(pop_size=2)
+    ka_s.set_attr(n_pop=1)
+    ka_s.set_attr(termination_criteria=15)
+
+    ka_s.set_attr(problem=problem, debug_wait=True, debug_wait_time=0.05)    
+    bb.set_attr(final_trigger=0, _kaar = {0: {}, 1: {'ka_nsga2': 2}}, _ka_to_execute=('ka_nsga2', 2))    
+    bb.send_executor()
+    time.sleep(0.1)
+    bb.send_shutdown()
+    time.sleep(0.1)   
+   
+    assert ns.agents() == ['blackboard', 'ka_nsga2']
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.65,0.4]', 'core_[0.65,0.75,0.24]']
+
+    ns.shutdown() 
+    time.sleep(0.1)       

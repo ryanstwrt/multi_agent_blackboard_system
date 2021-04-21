@@ -63,6 +63,7 @@ class Blackboard(Agent):
         self._kaar = {}
         self._pub_trigger_alias = 'trigger'
         self._pub_trigger_addr = self.bind('PUB', alias=self._pub_trigger_alias)
+        self.write_h5 = True
         
         self._panels = {}
         
@@ -144,8 +145,7 @@ class Blackboard(Agent):
         ka.connect_shutdown()
         ka.connect_complete()
         self.connect_ka_specific(agent_alias, attr=attr)
-        self.agent_addrs[agent_alias].update({'class': agent_type, 'performing action':False})
- #       self.agent_addrs[agent_alias].update({})
+        self.agent_addrs[agent_alias].update({'class': agent_type, 'performing action': False, '_class': ka.get_attr('_class')})
         self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
 
     def connect_complete(self, message):
@@ -278,6 +278,7 @@ class Blackboard(Agent):
                 self.log_info('Agent {} found non-responsive, killing agent.'.format(agent))
                 return False
         except:
+            self.log_info('Found no agent named {}'.format(agent))
             return False
     
     def diagnostics_replace_agent(self):
@@ -672,6 +673,9 @@ class Blackboard(Agent):
         Root directory will have a sub dicrectory for each abstract level.
         Each abstract level will then have a number of subdirectories, based on what results are written to them.
         """
+        if not self.write_h5:
+            return
+        
         if not os.path.isfile(self.archive_name):
             self.log_debug('Creating New Database: {}'.format(self.archive_name))
             h5 = h5py.File(self.archive_name, 'w')

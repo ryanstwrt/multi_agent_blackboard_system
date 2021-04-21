@@ -267,7 +267,7 @@ class BbOpt(blackboard.Blackboard):
         self._new_entry = True
         self.log_debug('Logging agent {} complete.'.format(message[0]))
         self.agent_addrs[message[0]].update({'performing action':False})
-        self.meta_data_entry(message[0], message[1], message[2])    
+        self.meta_data_entry(message[0], message[1], message[2])
     
     def hv_indicator(self):
         """
@@ -335,6 +335,10 @@ class BbOpt(blackboard.Blackboard):
                 array.append(function_evals)
             elif md == 'PF size':
                 array.append(float(len(list(self.abstract_lvls['level 1'].keys()))))
+            elif md == 'total time':
+                array.append(float(len(list(self.abstract_lvls['level 1'].keys()))))
+
+                
             
     def meta_data_entry(self, name, time, trigger_event):
         """
@@ -425,8 +429,29 @@ class BbOpt(blackboard.Blackboard):
 
     def send_shutdown(self):
         """
-        Tell each agent to shutdown
-        """
+        We first shutdown all search agents in the proble. 
+        We follow this up by running the three blackboard reader agents, where we wait until each one is complete before moving to the next.
+        We finish this by shutting down the blackboard reader agents.
+        """      
+        
+
+        
+        search_agents = {ka: ka_dict for ka, ka_dict in self.agent_addrs.items() if 'reader' not in ka_dict['_class']}
+
+        if search_agents != []:
+            for agent_name, connections in search_agents.items():
+                if agent_name in self.agent_addrs.keys():
+                    if not connections['shutdown']:
+                        self.agent_addrs.pop(agent_name)
+                    elif connections['performing action']:
+                        agent = self._proxy_server.proxy(agent_name)
+                        agent.unsafe.handler_shutdown('kill')
+                    elif not self.diagnostics_agent_present(agent_name):
+                        self.agent_addrs.pop(agent_name)
+                    else:
+                        self.send(connections['shutdown'][0], "shutdown")
+                        self.agent_addrs.pop(agent_name)      
+        
         if True in [ka['performing action'] for ka in self.agent_addrs.values()]:
             return
         
@@ -436,21 +461,12 @@ class BbOpt(blackboard.Blackboard):
             self.send_executor()
             self.final_trigger -= 1
             return
-
+        # Add something for inter-agent BB
         agent_addrs = copy.copy(self.agent_addrs)      
         for agent_name, connections in self.agent_addrs.items():
-        # elif statement is for inter_BB agent who only have a write function assocaiated with the BB
-            if not connections['shutdown']:
-                agent_addrs.pop(agent_name)
-            elif agent_name in agent_addrs.keys():  
-                if connections['performing action']:
-                    ...
-                elif not self.diagnostics_agent_present(agent_name):
-                    agent_addrs.pop(agent_name)
-                else:
-                    self.send(connections['shutdown'][0], "shutdown")
-                    agent_addrs.pop(agent_name)
-                
+            self.send(connections['shutdown'][0], "shutdown")
+            agent_addrs.pop(agent_name)
+               
         self.agent_addrs = agent_addrs        
         
     def set_random_seed(self, seed=None):

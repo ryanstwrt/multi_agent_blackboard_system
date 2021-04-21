@@ -96,6 +96,8 @@ class GeneticAlgorithm(KaLocal):
                 self.current_design_variables = child
                 self.determine_model_applicability(next(iter(child)))
                 num_children += len(children)
+            if self.kill_switch:
+                break
 
             
     def single_point_crossover(self, genotype1, genotype2, num_crossover_points):

@@ -56,6 +56,7 @@ class KaBase(Agent):
         self._trigger_publish_addr = None
         self._trigger_val = 0
         self._class = 'base'
+        self.kill_switch = False
         
         self._shutdown_addr = None
         self._shutdown_alias = None
@@ -134,6 +135,7 @@ class KaBase(Agent):
             message sent by BB 
         """
         self.log_info('Agent {} shutting down'.format(self.name))
+        self.kill_switch = True
         self.shutdown()
             
     def handler_executor(self, message):

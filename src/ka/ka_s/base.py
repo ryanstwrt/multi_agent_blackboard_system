@@ -40,8 +40,7 @@ class KaS(KaBase):
         self.learning_factor = 0.5
         self.debug_wait = False
         self.debug_wait_time = 0.5
-        self.problem = None
-        
+        self.problem = None        
         self.execute_once = False
         
     def set_random_seed(self, seed=None):
@@ -57,6 +56,7 @@ class KaS(KaBase):
         self.send(self._complete_alias, (self.name, self.agent_time, self._trigger_event))
         if self.execute_once:
             self.log_info('Agent {} shutting down'.format(self.name))
+            self._base_trigger_val = 0
             self.shutdown()    
             
     def calc_objectives(self):
@@ -133,8 +133,8 @@ class KaS(KaBase):
         message : str
             Push-pull message from blackboard, contains the current state of all abstract levels on BB
         """
-        if self.debug_wait:
-            time.sleep(self.debug_wait_time)
+#        if self.debug_wait:
+#            time.sleep(self.debug_wait_time)
         
         self.clear_entry()
         t = time.time()

@@ -188,4 +188,8 @@ class LatinHypercube(KaS):
             self.clear_entry()
                   
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
-        self.search_method()
+        if self.kill_switch:
+            self.log_info('Returning agent to allow for shutdown.')            
+            return
+        else:
+            self.search_method()

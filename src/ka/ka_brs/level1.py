@@ -2,6 +2,7 @@ from src.ka.ka_brs.base import KaBr
 import src.utils.performance_measure as pm
 import src.utils.utilities as utils
 import time
+import copy
 
 class KaBrLevel1(KaBr):
     """
@@ -24,7 +25,7 @@ class KaBrLevel1(KaBr):
         self._class = 'reader level 1'
         self.pf_increase = 1.25
         self.total_pf_size = 100
-        self._previous_pf = None
+        self._previous_pf = {}
         self.dci = False
         self.dci_div = None
         self._nadir_point = None
@@ -104,8 +105,9 @@ class KaBrLevel1(KaBr):
         self.lvl_read = message['level {}'.format(self.bb_lvl_read)]
         self.lvl_write = self.lvl_read
         new_pf_size = len(self.lvl_read)
+        old_pf_size = len(self._previous_pf)
         
-        self._trigger_val = self._trigger_val_base if new_pf_size > self._pf_size * self.pf_increase else 0
+        self._trigger_val = self._trigger_val_base if new_pf_size > old_pf_size * self.pf_increase else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
@@ -126,9 +128,7 @@ class KaBrLevel1(KaBr):
 
         self.lvl_read = message[1]['level {}'.format(self.bb_lvl_read)]
         self.lvl_write = self.lvl_read
-#        self._lvl_data = {**message[1]['level {}'.format(self.bb_lvl_data)]['new'], **message[1]['level {}'.format(self.bb_lvl_data)]['old']}
-        for panel in message[1]['level {}'.format(self.bb_lvl_data)].values():
-            self._lvl_data.update(panel)        
+        self._lvl_data = {**message[1]['level {}'.format(self.bb_lvl_data)]['new'], **message[1]['level {}'.format(self.bb_lvl_data)]['old']}     
         
         self.clear_bb_lvl()
         self._pf_size = len(self.lvl_read)
@@ -150,6 +150,7 @@ class KaBrLevel1(KaBr):
         else:
             self.log_debug('Pareto Sorter ({}) not recognized, please select from `non-dominated`, `dci`, `hvi`, or `dci hvi`. Automatically selecting `non-dominated`'.format(self.pareto_sorter)) 
         self.clear_entry()
+        self._previous_pf = copy.copy(self.lvl_read)
         self.agent_time = time.time() - t
         self.action_complete()
             

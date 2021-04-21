@@ -136,6 +136,10 @@ class HillClimb(KaLocal):
                             step_design = gradient_vector[next_step]['design variables']
                             step_objs = gradient_vector[next_step]['objective functions']
                             break
+                if self.kill_switch:
+                    break
+            if self.kill_switch:
+                break
             
             # Determine which step is the steepest, update our design, and write this to the BB
             if gradient_vector and self.hc_type != 'simple':

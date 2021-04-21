@@ -141,3 +141,32 @@ def test_search_method_mixed():
 
     ns.shutdown()
     time.sleep(0.1)
+    
+def test_force_shutdown():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.initialize_metadata_level()
+    bb.connect_agent(nhs.NeighborhoodSearch, 'ka_rp_ns')
+    bb.set_attr(final_trigger=0)
+    
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    rp = ns.proxy('ka_rp_ns')
+    rp.set_attr(problem=problem, debug_wait=True, debug_wait_time=0.05)    
+    rp.set_attr(lvl_read=bb.get_blackboard()['level 1'], _lvl_data=bb.get_blackboard()['level 3']['old'], new_designs=['core_[0.650,0.650,0.4]'])
+    bb.set_attr(_kaar = {0: {}, 1: {'ka_rp_ns': 2}}, _ka_to_execute=('ka_rp_ns', 2))
+    bb.send_executor()
+    bb.send_shutdown()
+    time.sleep(0.1)
+    assert ns.agents() == ['blackboard']
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.6175,0.65,0.4]']
+
+    ns.shutdown() 
+    time.sleep(0.1)      

@@ -842,18 +842,17 @@ def test_agent_shutdown():
     rp2 = ns.proxy('ka_rp2')
     # Force the agent to fail due to passing False
     rp = ns.proxy('ka_rp')
-    bb.send('executor_{}'.format('ka_rp2'), False)
+    bb.send('executor_{}'.format('ka_rp2'), 1.0)
     
-    rp.set_attr(debug_wait=True)
-    rp.set_attr(debug_wait_time=0.1)
+    rp.set_attr(debug_wait=True, debug_wait_time=0.1)
     bb.set_attr(_ka_to_execute=('ka_rp', 2))
     rp.set_random_seed(seed=1)
     bb.send_executor()
     assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == True
     while len(bb.get_attr('agent_addrs')) > 0:
         bb.send_shutdown()
-        time.sleep(0.01)
     time.sleep(0.05)
+    
     assert ns.agents() == ['blackboard'] 
     assert bb.get_attr('final_trigger') == 0
     assert list(bb.get_blackboard()['level 3']['old'].keys()) == ['core_[0.650,0.650,0.4]', 'core_[0.41702,0.72032,0.00011]']
@@ -862,7 +861,6 @@ def test_agent_shutdown():
 
     ns.shutdown()       
     time.sleep(0.05)  
-
     
 def test_pass_agent_attr():
     try:

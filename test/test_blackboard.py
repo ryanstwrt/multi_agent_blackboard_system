@@ -233,8 +233,15 @@ def test_diagnostics_agent_present():
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     assert bb.diagnostics_agent_present('blank') == False
-    ka_b = run_agent(name='ka_b', base=ka.KaBase)
+    bb.connect_agent(ka.KaBase, 'ka_b')
+    ka_b = ns.proxy('ka_b')
     assert bb.diagnostics_agent_present('ka_b') == True
+    assert ns.agents() == ['blackboard', 'ka_b']
+    bb.set_attr(_ka_to_execute=('ka_b',1))
+    bb.send_executor() 
+    assert bb.diagnostics_agent_present('ka_b') == False
+    assert ns.agents() == ['blackboard']
+
 
     ns.shutdown()
     time.sleep(0.05)
@@ -677,3 +684,4 @@ def test_connect_sub_blackboard():
     
     ns.shutdown()       
     time.sleep(0.05)  
+    

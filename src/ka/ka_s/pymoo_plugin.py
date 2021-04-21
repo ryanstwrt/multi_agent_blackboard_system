@@ -26,6 +26,12 @@ class PyMooAlgorithm(KaLocal):
         self.pop_size = 25
         self.n_offspring = 10
         self.initial_pop = None
+        
+    def clear_entry(self):
+        self._entry = {}
+        self._entry_name = None 
+        if self.kill_switch:
+            assert 1 > 2        
     
     class PyMooProblem(Problem):
     
@@ -56,9 +62,10 @@ class PyMooAlgorithm(KaLocal):
                               
             self.base.write_to_bb(self.base.bb_lvl_data, self.base._entry_name, self.base._entry, panel='new')
             self.base.clear_entry()  
-            
+                        
             out["F"] = np.array(obj)
             out["G"] = np.array(const)
+
             
     class PyMooProblemMixed(PyMooProblem):
         
@@ -99,7 +106,7 @@ class PyMooAlgorithm(KaLocal):
             self.base.clear_entry()  
             
             out["F"] = np.array(obj)
-            out["G"] = np.array(const)            
+            out["G"] = np.array(const)           
             
     def handler_trigger_publish(self, message):
         """

@@ -35,6 +35,7 @@ class NeighborhoodSearch(KaLocal):
         These results are written to the BB level 3, so there are design_vars * pert added to level 3.
         """
         core = self.select_core()
+        print(core)
         if core == False:
             return
         design_ = self._lvl_data[core]['design variables']
@@ -61,5 +62,8 @@ class NeighborhoodSearch(KaLocal):
             self.current_design_variables = design
             self._entry_name = self.get_design_name(self.current_design_variables)
             self.determine_model_applicability(dv)
+            if self.kill_switch:
+                self.log_info('Returning agent to allow for shutdown.')
+                return
         
         self.analyzed_design[core] = {'Analyzed': True}

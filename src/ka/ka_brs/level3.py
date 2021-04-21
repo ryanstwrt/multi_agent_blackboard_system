@@ -23,14 +23,12 @@ class KaBrLevel3(KaBr):
         if self._constraints:
             for constraint, constraint_dict in self._constraints.items():
                 constraint_value = self._lvl_data[core_name]['constraints'][constraint]
-                self.log_info((type(constraint_value), type(constraint_value) == (type(constraint_value) == float or type(constraint_value) == int)))
                 violated = utils.test_limits(constraint_value, constraint_dict) if (type(constraint_value) == float or type(constraint_value) == int) else utils.test_list_limits(constraint_value, constraint_dict)
                 if violated:
                     return (False, None)  
         
         for obj_name, obj_dict in self._objectives.items(): 
             obj_value = self._lvl_data[core_name]['objective functions'][obj_name]
-            self.log_info((type(obj_value) == (float) or type(obj_value) == int), type(obj_value))
             violated = utils.test_limits(obj_value, obj_dict) if (type(obj_value) == float or type(obj_value) == int) else utils.test_list_limits(obj_value, obj_dict)
             if violated:
                 return (False, None)               

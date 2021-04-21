@@ -29,7 +29,7 @@ def test_init():
     assert ka_br1.get_attr('_class') == 'reader level 1'
     assert ka_br1.get_attr('pf_increase') == 1.25
     assert ka_br1.get_attr('total_pf_size') == 100
-    assert ka_br1.get_attr('_previous_pf') == None
+    assert ka_br1.get_attr('_previous_pf') == {} 
     assert ka_br1.get_attr('dci') == False
     assert ka_br1.get_attr('dci_div') == None
     assert ka_br1.get_attr('_nadir_point') == None

@@ -249,7 +249,7 @@ def test_shutdown():
     assert ns.agents() ==['blackboard']
 
     ns.shutdown()
-    time.sleep(0.05)    
+    time.sleep(0.05)          
     
 def test_complete():
     try:

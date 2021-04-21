@@ -92,6 +92,7 @@ def test_handler_executor():
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.initialize_metadata_level()    
     bb.connect_agent(lhc.LatinHypercube, 'ka_rp_lhc')
     
     rp = ns.proxy('ka_rp_lhc')
@@ -169,3 +170,28 @@ def test_handler_trigger_publish():
     
     ns.shutdown()
     time.sleep(0.1)
+    
+def test_force_shutdown():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.initialize_metadata_level()
+    bb.connect_agent(lhc.LatinHypercube, 'ka_rp_lhc')
+    rp = ns.proxy('ka_rp_lhc')
+    rp.set_random_seed(seed=10997)
+    rp.set_attr(_trigger_val=5, samples=10)   
+    rp.set_attr(problem=problem, debug_wait=True, debug_wait_time=0.05)    
+    rp.generate_lhc()
+    bb.set_attr(final_trigger=0, _kaar = {0: {}, 1: {'ka_rp_lhc': 2}}, _ka_to_execute=('ka_rp_lhc', 2))    
+    bb.send_executor()
+    bb.send_shutdown()
+    time.sleep(0.15)
+    assert ns.agents() == ['blackboard']
+    assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.18139,0.12684,0.96443]']
+
+    ns.shutdown() 
+    time.sleep(0.1)   
