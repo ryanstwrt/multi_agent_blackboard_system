@@ -64,10 +64,9 @@ class Blackboard(Agent):
         self._pub_trigger_alias = 'trigger'
         self._pub_trigger_addr = self.bind('PUB', alias=self._pub_trigger_alias)
         self.write_h5 = True
-        
         self._panels = {}
-        
         self._sub_bbs = {}
+        self.agent_list = []        
         
     def add_abstract_lvl(self, level, entry):
         """
@@ -146,6 +145,7 @@ class Blackboard(Agent):
         ka.connect_complete()
         self.connect_ka_specific(agent_alias, attr=attr)
         self.agent_addrs[agent_alias].update({'class': agent_type, 'performing action': False, '_class': ka.get_attr('_class')})
+        self.agent_list.append(agent_alias)
         self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
 
     def connect_complete(self, message):

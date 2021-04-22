@@ -849,10 +849,10 @@ def test_agent_shutdown():
     rp.set_random_seed(seed=1)
     bb.send_executor()
     assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == True
-    while len(bb.get_attr('agent_addrs')) > 0:
+    while len(bb.get_attr('agent_list')) > 0:
         bb.send_shutdown()
-    time.sleep(0.05)
-    
+    time.sleep(0.5)
+
     assert ns.agents() == ['blackboard'] 
     assert bb.get_attr('final_trigger') == 0
     assert list(bb.get_blackboard()['level 3']['old'].keys()) == ['core_[0.650,0.650,0.4]', 'core_[0.41702,0.72032,0.00011]']

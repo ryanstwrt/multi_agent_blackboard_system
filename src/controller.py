@@ -148,11 +148,9 @@ class Controller(object):
         bb.write_to_h5() 
 
     def shutdown_agents(self,bb):
-        while len(bb.get_attr('agent_addrs')) > 0:                                   
-            if True in [agent['performing action'] for agent in bb.get_attr('agent_addrs').values()]:
-                time.sleep(1)
-            else:
-                bb.send_shutdown()
+        while len(bb.get_attr('agent_list')) > 0:  
+            bb.send_shutdown()
+            time.sleep(0.01)
         
     def run_multi_tiered(self):
         """

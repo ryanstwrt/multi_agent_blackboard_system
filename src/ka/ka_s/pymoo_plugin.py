@@ -31,6 +31,9 @@ class PyMooAlgorithm(KaLocal):
         self._entry = {}
         self._entry_name = None 
         if self.kill_switch:
+            self.execute_once = True
+            self.action_complete()
+            # Force and error to kill the agent
             assert 1 > 2        
     
     class PyMooProblem(Problem):

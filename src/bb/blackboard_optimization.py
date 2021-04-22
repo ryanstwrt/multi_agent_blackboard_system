@@ -434,25 +434,26 @@ class BbOpt(blackboard.Blackboard):
         We finish this by shutting down the blackboard reader agents.
         """      
         
+        search_agents = {ka: self.agent_addrs[ka] for ka in self.agent_list if 'reader' not in self.agent_addrs[ka]['_class']}
 
-        
-        search_agents = {ka: ka_dict for ka, ka_dict in self.agent_addrs.items() if 'reader' not in ka_dict['_class']}
+        if search_agents != {}:
+            for agent_name, connections in search_agents.items():              
+                if not connections['shutdown']:
+                    ...
+                elif connections['performing action']:
+                    agent = self._proxy_server.proxy(agent_name)
+                    agent.unsafe.handler_shutdown('kill')
+                elif not self.diagnostics_agent_present(agent_name):
+                    ...
+                else:
+                    self.send(connections['shutdown'][0], "shutdown")    
+                try:
+                    self.agent_list.remove(agent_name)  
+                except:
+                    ...
 
-        if search_agents != []:
-            for agent_name, connections in search_agents.items():
-                if agent_name in self.agent_addrs.keys():
-                    if not connections['shutdown']:
-                        self.agent_addrs.pop(agent_name)
-                    elif connections['performing action']:
-                        agent = self._proxy_server.proxy(agent_name)
-                        agent.unsafe.handler_shutdown('kill')
-                    elif not self.diagnostics_agent_present(agent_name):
-                        self.agent_addrs.pop(agent_name)
-                    else:
-                        self.send(connections['shutdown'][0], "shutdown")
-                        self.agent_addrs.pop(agent_name)      
-        
         if True in [ka['performing action'] for ka in self.agent_addrs.values()]:
+            #self.log_info('Waiting for agents to finish action')
             return
         
         if self.final_trigger > 0:
@@ -463,12 +464,10 @@ class BbOpt(blackboard.Blackboard):
             return
         # Add something for inter-agent BB
         agent_addrs = copy.copy(self.agent_addrs)      
-        for agent_name, connections in self.agent_addrs.items():
-            self.send(connections['shutdown'][0], "shutdown")
-            agent_addrs.pop(agent_name)
-               
-        self.agent_addrs = agent_addrs        
-        
+        for agent_name in self.agent_list:
+            self.send(self.agent_addrs[agent_name]['shutdown'][0], "shutdown")
+            self.agent_list.remove(agent_name)
+                      
     def set_random_seed(self, seed=None):
         """
         Sets the random seed number to provide a reproducabel result

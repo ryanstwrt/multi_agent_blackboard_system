@@ -151,7 +151,46 @@ def test_run_multi_agent_bb():
     
     bb_controller.shutdown()    
     os.remove('bb_opt.h5')
-    time.sleep(0.05)        
+    time.sleep(0.05)   
+    
+def test_force_shutdown():
+    kas = {'ka_rp_explore': {'type': Stochastic, 'attr': {'debug_wait':True, 'debug_wait_time':1.5}},
+           'ka_rp_exploit': {'type': NeighborhoodSearch, 'attr': {'debug_wait':True, 'debug_wait_time':1.5}},
+           'ka_br_lvl3': {'type': KaBrLevel3},
+           'ka_br_lvl2': {'type': KaBrLevel2},
+           'ka_br_lvl1': {'type': KaBrLevel1}}
+    bb = {'name': 'bb_opt', 'type': bb_opt.BbOpt, 'attr': {'archive_name': 'bb_opt.h5', 'function_evals': 6, 
+                                                           'skipped_tvs': 0, 'convergence_type': 'function_evals', 
+                                                           'convergence_interval':2, 'pf_size':5}}
+    
+    try:
+        bb_controller = controller.Controller()
+        bb_controller.initialize_blackboard(blackboard=bb,
+                                  ka=kas, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=10983,
+                                  problem=problem) 
+    except OSError:
+        time.sleep(0.5)        
+        bb_controller = controller.Controller()
+        bb_controller.initialize_blackboard(blackboard=bb,
+                                  ka=kas, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=10983,
+                                  problem=problem) 
+   
+    bb_controller.run_multi_agent_bb('bb_opt')
+    time.sleep(0.05)
+
+    bb = bb_controller.bb_opt
+
+    
+    bb_controller.shutdown()    
+    os.remove('bb_opt.h5')
+    time.sleep(0.05)      
+    assert 1 > 2
 
 def test_multi_tiered_init():
     kas_tier_1 = {'ka_rp_t1': {'type': Stochastic},

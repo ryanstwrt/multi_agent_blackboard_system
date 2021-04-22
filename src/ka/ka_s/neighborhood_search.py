@@ -35,7 +35,6 @@ class NeighborhoodSearch(KaLocal):
         These results are written to the BB level 3, so there are design_vars * pert added to level 3.
         """
         core = self.select_core()
-        print(core)
         if core == False:
             return
         design_ = self._lvl_data[core]['design variables']
