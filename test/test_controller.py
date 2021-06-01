@@ -438,8 +438,8 @@ def test_controlleragent_handler_run_bb():
     time.sleep(0.05)          
     
 def test_multi_tiered_run():
-    kas_tier_1 = {'mc_t1': {'type': Stochastic},
-           'ns_t1': {'type': NeighborhoodSearch},
+    kas_tier_1 = {'mc_t1': {'type': Stochastic, 'attr':{'debug_wait': True, 'debug_wait_time':0.05}},
+           'ns_t1': {'type': NeighborhoodSearch, 'attr':{'debug_wait': True, 'debug_wait_time':0.05}},
            'lvl3_t1': {'type': KaBrLevel3},
            'lvl2_t1': {'type': KaBrLevel2},
            'lvl1_t1': {'type': KaBrLevel1}}
@@ -448,8 +448,8 @@ def test_multi_tiered_run():
                                                            'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
                                                            'pf_size':1}}
     
-    kas_tier_2 = {'mc_t2': {'type': Stochastic},
-           'ns_t2': {'type': NeighborhoodSearch},
+    kas_tier_2 = {'mc_t2': {'type': Stochastic, 'attr':{'debug_wait': True, 'debug_wait_time':0.05}},
+           'ns_t2': {'type': NeighborhoodSearch, 'attr':{'debug_wait': True, 'debug_wait_time':0.05}},
            'inter':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
            'lvl3_t2': {'type': KaBrLevel3},
            'lvl2_t2': {'type': KaBrLevel2},
