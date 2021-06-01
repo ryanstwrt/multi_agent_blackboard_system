@@ -2,9 +2,8 @@ import src.bb.blackboard as blackboard
 import src.utils.utilities as utils
 import src.utils.benchmark_utils as bu
 
-import src.utils.database_generator as dg
 import src.utils.performance_measure as pm
-import src.utils.train_surrogate_models as tm
+import matplotlib.pyplot as plt
 import osbrain
 from osbrain import proxy
 from osbrain import run_agent

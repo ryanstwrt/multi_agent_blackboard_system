@@ -188,13 +188,11 @@ class PyMooAlgorithm(KaLocal):
         self._problem.base = self
         # Grab the design variables for the current PF
         self.algorithm = get_algorithm(self.pymoo_algorithm_name,
-                                       sampling = pop,
+                                       sampling=pop,
                                        crossover=co,
                                        mutation=mu,
                                        pop_size=self.pop_size,
                                        n_offpsring=self.n_offspring)
-         
-
         
     def search_method(self):
         """

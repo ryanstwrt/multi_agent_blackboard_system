@@ -190,7 +190,6 @@ def test_force_shutdown():
     bb_controller.shutdown()    
     os.remove('bb_opt.h5')
     time.sleep(0.05)      
-    assert 1 > 2
 
 def test_multi_tiered_init():
     kas_tier_1 = {'ka_rp_t1': {'type': Stochastic},

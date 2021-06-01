@@ -42,6 +42,7 @@ class KaS(KaBase):
         self.debug_wait_time = 0.5
         self.problem = None        
         self.execute_once = False
+        self.run_multi_agent_mode = False
         
     def set_random_seed(self, seed=None):
         """
@@ -57,7 +58,8 @@ class KaS(KaBase):
         if self.execute_once:
             self.log_info('Agent {} shutting down'.format(self.name))
             self._base_trigger_val = 0
-            self.shutdown()    
+            if self.run_multi_agent_mode:
+                self.shutdown()    
             
     def calc_objectives(self):
         """

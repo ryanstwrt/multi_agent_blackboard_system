@@ -4,11 +4,7 @@ import src.bb.blackboard_optimization as bb_opt
 import time
 from osbrain import run_nameserver
 from osbrain import run_agent
-import pickle
 
-with open('./sm_gpr.pkl', 'rb') as pickle_file:
-    sm_ga = pickle.load(pickle_file)
-    
 def test_init():
     try:
         ns = run_nameserver()
@@ -30,8 +26,6 @@ def test_update_abstract_levels():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    bb.set_attr(sm_type='gpr')
-    bb.set_attr(_sm=sm_ga)
     objs = {'reactivity swing': {'ll':0,   'ul':15000, 'goal':'lt', 'variable type': float},
             'burnup':           {'ll':0,   'ul':2000,  'goal':'gt', 'variable type': float}}
     dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},

@@ -46,14 +46,14 @@ def test_setup_mixed():
     ka_s.set_attr(_design_variables=dvs)
     ka_s.set_attr(_objectives=objs)
     
-    ka_s.set_attr(lvl_read= {'core_[1,10.0,10.5]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
-                                 'core_[1,10.0,20.0]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
-    ka_s.set_attr(_lvl_data= {'core_[1,10.0,10.5]': {'design variables': {'x0': 1, 'x1': 10.0, 'x2': 10.50},
+    ka_s.set_attr(lvl_read = {'core_[1,10.0,10.5]': {'pareto type' : 'pareto', 'fitness function' : 1.0},
+                              'core_[1,10.0,20.0]': {'pareto type' : 'pareto', 'fitness function' : 1.0}})
+    ka_s.set_attr(_lvl_data = {'core_[1,10.0,10.5]': {'design variables': {'x0': 1, 'x1': 10.0, 'x2': 10.50},
                                                       'objective functions': {'f0' : 450.11, 'f1' : 35.12},
                                                       'constraints': {}},
-                              'core_[1,10.0,20.0]': {'design variables': {'x0': 1, 'x1': 10.0, 'x2': 20.0}, 
-                                                        'objective functions': {'f0' : 310.11,'f1' : 25.12},
-                                                        'constraints': {}}})   
+                               'core_[1,10.0,20.0]': {'design variables': {'x0': 1, 'x1': 10.0, 'x2': 20.0}, 
+                                                      'objective functions': {'f0' : 310.11,'f1' : 25.12},
+                                                      'constraints': {}}})   
     assert ka_s.get_attr('crossover') == 'real_sbx'
     assert ka_s.get_attr('mutation') == 'real_pm'
     assert ka_s.get_attr('_class') == 'local search pymoo nsga2'    

@@ -200,41 +200,9 @@ def test_check_new_designs():
 
     assert rp.get_attr('new_designs') == ['core_[65.0,65.0,0.1]']
     ns.shutdown()
-    time.sleep(0.1) 
+    time.sleep(0.1)   
     
 def test_calc_objective():
-    
-    with open('./sm_gpr.pkl', 'rb') as pickle_file:
-        sm_ga = pickle.load(pickle_file)
-        
-    dvs={'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
-         'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
-         'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
-    objs={'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
-          'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
-    cons={'eol keff':    {'ll': 1.0, 'ul': 2.5, 'variable type': float}}    
-    problem = SFRProblem(design_variables=dvs,
-                         objectives=objs,
-                         constraints=cons,
-                         sm = sm_ga,
-                         sm_type='gpr')
-    try:
-        ns = run_nameserver()
-    except OSError:
-        time.sleep(0.5)
-        ns = run_nameserver()
-    rp = run_agent(name='ka_rp', base=base.KaLocal)
-    rp.set_attr(problem=problem)
-    rp.set_attr(current_design_variables={'height': 65.0, 'smear': 65.0, 'pu_content': 0.4})
-    rp.calc_objectives()
-    
-    assert rp.get_attr('current_objectives') == {'reactivity swing': 677.1446654822049, 'burnup': 71.10762739696487}
-    assert rp.get_attr('current_constraints') == {'eol keff': 1.0365716174664996}
-
-    ns.shutdown()
-    time.sleep(0.1)     
-    
-def test_calc_objective_benchmark():
     
     try:
         ns = run_nameserver()

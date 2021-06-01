@@ -22,8 +22,21 @@ class NeighborhoodSearch(KaLocal):
         super().on_init()
         self._base_trigger_val = 5.00001
         self.perturbation_size = 0.05
+        self.additional_perturbations = 0
         self.neighboorhod_search = 'fixed'
         self._class = 'local search neighborhood search'
+        
+    def get_perturbed_design(self,dv,design_,pert):
+        dv_value = design_[dv]
+        dv_type = type(dv_value)
+        design = copy.copy(design_)
+        if 'options' in self._design_variables[dv]:
+            options = copy.copy(self._design_variables[dv]['options'])
+            options.remove(design[dv])
+            design[dv] = dv_type(random.choice(options))
+        else:
+            design[dv] = dv_type(round(dv_value * pert, self._design_accuracy))    
+        return design
         
     def search_method(self):
         """
@@ -43,20 +56,23 @@ class NeighborhoodSearch(KaLocal):
         perts = [1.0 - pert, 1.0 + pert]
         pert_designs = []
             
+        
+        if self.additional_perturbations > len(dv_keys) - 1:
+            self.log_warning(f'Additional perturbations set to {self.additional_perturbations}, which is greater than number of design variabels {len(dv_keys)} minus 1. Seting additional_perturbations to {len(dv_keys) - 1}.')
+            self.additional_perturbations = len(dv_keys) - 1
+            
         for dv in dv_keys:
-            dv_value = design_[dv]
-            design = copy.copy(design_)
-            if 'options' in self._design_variables[dv]:
-                options = copy.copy(self._design_variables[dv]['options'])
-                dv_type = type(dv_value)
-                options.remove(design[dv])
-                design[dv] = dv_type(random.choice(options))
-                pert_designs.append((dv,design))                
-            else:
-                for pert in perts:
-                    design[dv] = round(dv_value * pert, self._design_accuracy)
-                    pert_designs.append((dv,design))
-                    design = copy.copy(design_)
+            for pert in perts:
+                dvs_left = copy.copy(dv_keys)
+                design = self.get_perturbed_design(dv,design_, pert)
+                multi_perts = self.additional_perturbations
+                while multi_perts > 0:
+                    dvs_left.remove(dv)
+                    dv = random.choice(dvs_left)
+                    design = self.get_perturbed_design(dv,design,random.choice(perts))
+                    multi_perts -= 1
+                pert_designs.append((dv,design))
+        
         for dv, design in pert_designs:
             self.current_design_variables = design
             self._entry_name = self.get_design_name(self.current_design_variables)
