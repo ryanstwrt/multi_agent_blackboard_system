@@ -230,7 +230,6 @@ class BbOpt(blackboard.Blackboard):
             
     def determine_complete_trigger_evals(self):
         # Determine if the problem is over our trigger value limit
-        self.log_info((len(self._kaar),self.total_tvs))
         if len(self._kaar) >= self.total_tvs:
             self.log_info('Problem is over total allowable TVs, shutting agents down')
             self._complete = True  

@@ -243,76 +243,77 @@ def test_multi_tiered_init():
     mtc.shutdown()    
     time.sleep(0.05)         
     
-#def test_multi_tiered_run():
-#    kas_tier_1 = {'ka_rp_t1': {'type': Stochastic},
-#           'ka_rp_ns_t1': {'type': NeighborhoodSearch},
-#           'ka_br_lvl3t1': {'type': KaBrLevel3},
-#           'ka_br_lvl2t1': {'type': KaBrLevel2},
-#           'ka_br_lvl1t1': {'type': KaBrLevel1}}
-#
-#    bb_tier1 = {'name': 'bb_opt_1', 'type': bb_opt.BbOpt, 'tier': 1, 'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 4, 'convergence_interval': 2,
-#                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
-#                                                           'pf_size':1}}
-#
-#    
-#    kas_tier_2 = {'ka_rp_exploret2': {'type': Stochastic},
-#           'ka_rp_exploitt2': {'type': NeighborhoodSearch},
-#           'ka_br_inter':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
-#           'ka_br_lvl3t2': {'type': KaBrLevel3},
-#           'ka_br_lvl2t2': {'type': KaBrLevel2},
-#           'ka_br_lvl1t2': {'type': KaBrLevel1}}            
-#    bb_tier2 = {'name': 'bb_opt_2', 'type': bb_opt.BbOpt, 'tier': 2,  'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 4, 'convergence_interval': 2,
-#                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
-#                                                           'pf_size':1}} 
-#    
-#    kas_tier_3 = {'ka_rp_exploret3': {'type': Stochastic},
-#           'ka_rp_exploitt3': {'type': NeighborhoodSearch},
-#           'ka_br_inter3':  {'type': InterBB, 'attr':{'bb': 'bb_opt_2'}},
-#           'ka_br_inter32':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
-#           'ka_br_lvl3t3': {'type': KaBrLevel3},
-#           'ka_br_lvl2t3': {'type': KaBrLevel2},
-#           'ka_br_lvl1t3': {'type': KaBrLevel1}}      
-#    bb_tier3 = {'name': 'bb_opt_3', 'type': bb_opt.BbOpt, 'tier': 3,  'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 4, 'convergence_interval': 2,
-#                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
-#                                                           'pf_size':1}}     
-#    
-#    mtc = controller.Controller()
-#        
-#    mtc.initialize_blackboard(blackboard=bb_tier1,
-#                                  ka=kas_tier_1, 
-#                                  agent_wait_time=10,
-#                                  plot_progress=False,
-#                                  random_seed=1097,
-#                                  problem=problem)             
-#    mtc.initialize_blackboard(blackboard=bb_tier2,
-#                                  ka=kas_tier_2, 
-#                                  agent_wait_time=10,
-#                                  plot_progress=False,
-#                                  random_seed=2097337,
-#                                  problem=problem)  
-#    mtc.initialize_blackboard(blackboard=bb_tier3,
-#                                  ka=kas_tier_3, 
-#                                  agent_wait_time=10,
-#                                  plot_progress=False,
-#                                  random_seed=3093373,
-#                                  problem=problem)  
-#
-#    mtc.run_multi_agent_bb('bb_opt_3')    
-#    mtc.run_multi_agent_bb('bb_opt_2')
-#    mtc.run_multi_agent_bb('bb_opt_1')
-#    
-#    bb3 = mtc.bb_opt_3
-#    assert list(bb3.get_blackboard()['level 1']) == ['core_[0.99131,0.71506,0.43058]']
-#
-#    bb2 = mtc.bb_opt_2
-#    assert list(bb2.get_blackboard()['level 1']) == ['core_[0.75342,0.31156,0.6875]']
-#    
-#    bb1 = mtc.bb_opt_1
-#    assert list(bb1.get_blackboard()['level 1']) == ['core_[0.99131,0.71506,0.43058]', 'core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]']
-#    
-#    mtc.shutdown()    
-#    os.remove('bb_opt.h5')    
-#    time.sleep(0.05)     
+def test_multi_tiered_run():
+    kas_tier_1 = {'ka_rp_t1': {'type': Stochastic},
+           'ka_rp_ns_t1': {'type': NeighborhoodSearch},
+           'ka_br_lvl3t1': {'type': KaBrLevel3},
+           'ka_br_lvl2t1': {'type': KaBrLevel2},
+           'ka_br_lvl1t1': {'type': KaBrLevel1}}
+
+    bb_tier1 = {'name': 'bb_opt_1', 'type': bb_opt.BbOpt, 'tier': 1, 'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 6, 'convergence_interval': 2,
+                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
+                                                           'pf_size':1}}
+
+    
+    kas_tier_2 = {'ka_rp_exploret2': {'type': Stochastic},
+           'ka_rp_exploitt2': {'type': NeighborhoodSearch},
+           'ka_br_inter':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
+           'ka_br_lvl3t2': {'type': KaBrLevel3},
+           'ka_br_lvl2t2': {'type': KaBrLevel2},
+           'ka_br_lvl1t2': {'type': KaBrLevel1}}            
+    bb_tier2 = {'name': 'bb_opt_2', 'type': bb_opt.BbOpt, 'tier': 2,  'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 4, 'convergence_interval': 2,
+                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
+                                                           'pf_size':1}} 
+    
+    kas_tier_3 = {'ka_rp_exploret3': {'type': Stochastic},
+           'ka_rp_exploitt3': {'type': NeighborhoodSearch},
+           'ka_br_inter3':  {'type': InterBB, 'attr':{'bb': 'bb_opt_2'}},
+           'ka_br_inter32':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
+           'ka_br_lvl3t3': {'type': KaBrLevel3},
+           'ka_br_lvl2t3': {'type': KaBrLevel2},
+           'ka_br_lvl1t3': {'type': KaBrLevel1}}      
+    bb_tier3 = {'name': 'bb_opt_3', 'type': bb_opt.BbOpt, 'tier': 3,  'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 6, 'convergence_interval': 2,
+                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
+                                                           'pf_size':1}}     
+    
+    mtc = controller.Controller()
+        
+    mtc.initialize_blackboard(blackboard=bb_tier1,
+                                  ka=kas_tier_1, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=1097,
+                                  problem=problem)             
+    mtc.initialize_blackboard(blackboard=bb_tier2,
+                                  ka=kas_tier_2, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=2097337,
+                                  problem=problem)  
+    mtc.initialize_blackboard(blackboard=bb_tier3,
+                                  ka=kas_tier_3, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=3093373,
+                                  problem=problem)  
+
+    mtc.run_multi_agent_bb('bb_opt_3')    
+    mtc.run_multi_agent_bb('bb_opt_2')
+    mtc.run_multi_agent_bb('bb_opt_1')
+    
+    bb3 = mtc.bb_opt_3
+    assert list(bb3.get_blackboard()['level 1']) == ['core_[0.99131,0.71506,0.43058]']
+
+    bb2 = mtc.bb_opt_2
+    assert list(bb2.get_blackboard()['level 1']) == ['core_[0.99131,0.71506,0.43058]']
+    
+    bb1 = mtc.bb_opt_1
+
+    assert list(bb1.get_blackboard()['level 1']) == ['core_[0.99131,0.71506,0.40905]']
+    
+    mtc.shutdown()    
+    os.remove('bb_opt.h5')    
+    time.sleep(0.05)     
     
 def test_ControllerAgent_init():  
     try:
@@ -328,56 +329,56 @@ def test_ControllerAgent_init():
     ns.shutdown()
     time.sleep(0.05)          
     
-#def test_serial_multi_tiered_run():
-#    kas_tier_1 = {'ka_rp_t1': {'type': Stochastic},
-#           'ka_rp_ns_t1': {'type': NeighborhoodSearch},
-#           'ka_br_lvl3t1': {'type': KaBrLevel3},
-#           'ka_br_lvl2t1': {'type': KaBrLevel2},
-#           'ka_br_lvl1t1': {'type': KaBrLevel1}}
-#
-#    bb_tier1 = {'name': 'bb_opt_1', 'type': bb_opt.BbOpt, 'tier': 1, 'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 8, 'convergence_interval': 2,
-#                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
-#                                                           'pf_size':1}}
-#    
-#    kas_tier_2 = {'ka_rp_exploret2': {'type': Stochastic},
-#           'ka_rp_exploitt2': {'type': NeighborhoodSearch},
-#           'ka_br_inter':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
-#           'ka_br_lvl3t2': {'type': KaBrLevel3},
-#           'ka_br_lvl2t2': {'type': KaBrLevel2},
-#           'ka_br_lvl1t2': {'type': KaBrLevel1}}            
-#    bb_tier2 = {'name': 'bb_opt_2', 'type': bb_opt.BbOpt, 'tier': 2,  'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 8, 'convergence_interval': 2,
-#                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
-#                                                           'pf_size':1}} 
-#    try:
-#        mtc = controller.Controller()
-#    except OSError:
-#        time.sleep(0.5)
-#        mtc = controller.Controller()      
-#        
-#    mtc.initialize_blackboard(blackboard=bb_tier1,
-#                                  ka=kas_tier_1, 
-#                                  agent_wait_time=10,
-#                                  plot_progress=False,
-#                                  random_seed=1097,
-#                                  problem=problem,)             
-#    mtc.initialize_blackboard(blackboard=bb_tier2,
-#                                  ka=kas_tier_2, 
-#                                  agent_wait_time=10,
-#                                  plot_progress=False,
-#                                  random_seed=2097337,
-#                                  problem=problem)   
-#
-#    mtc.run_multi_tiered()
-#    bb2 = mtc.bb_opt_2
-#    bb1 = mtc.bb_opt_1
-#    
-#    assert set(list(bb2.get_blackboard()['level 1'].keys())).issubset(list(bb1.get_blackboard()['level 3']['old'].keys())) == True
-#    assert list(bb2.get_blackboard()['level 1']) == ['core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]']
-#    assert list(bb1.get_blackboard()['level 1']) == ['core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]']
-#    
-#    mtc.shutdown()    
-#    os.remove('bb_opt.h5')    
-#    time.sleep(0.05)   
+def test_serial_multi_tiered_run():
+    kas_tier_1 = {'ka_rp_t1': {'type': Stochastic},
+           'ka_rp_ns_t1': {'type': NeighborhoodSearch},
+           'ka_br_lvl3t1': {'type': KaBrLevel3},
+           'ka_br_lvl2t1': {'type': KaBrLevel2},
+           'ka_br_lvl1t1': {'type': KaBrLevel1}}
+
+    bb_tier1 = {'name': 'bb_opt_1', 'type': bb_opt.BbOpt, 'tier': 1, 'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 8, 'convergence_interval': 2,
+                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
+                                                           'pf_size':1}}
+    
+    kas_tier_2 = {'ka_rp_exploret2': {'type': Stochastic},
+           'ka_rp_exploitt2': {'type': NeighborhoodSearch},
+           'ka_br_inter':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
+           'ka_br_lvl3t2': {'type': KaBrLevel3},
+           'ka_br_lvl2t2': {'type': KaBrLevel2},
+           'ka_br_lvl1t2': {'type': KaBrLevel1}}            
+    bb_tier2 = {'name': 'bb_opt_2', 'type': bb_opt.BbOpt, 'tier': 2,  'attr': {'archive_name': 'bb_opt.h5', 'total_tvs': 8, 'convergence_interval': 2,
+                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
+                                                           'pf_size':1}} 
+    try:
+        mtc = controller.Controller()
+    except OSError:
+        time.sleep(0.5)
+        mtc = controller.Controller()      
+        
+    mtc.initialize_blackboard(blackboard=bb_tier1,
+                                  ka=kas_tier_1, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=1097,
+                                  problem=problem,)             
+    mtc.initialize_blackboard(blackboard=bb_tier2,
+                                  ka=kas_tier_2, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=2097337,
+                                  problem=problem)   
+
+    mtc.run_multi_tiered()
+    bb2 = mtc.bb_opt_2
+    bb1 = mtc.bb_opt_1
+    
+    assert set(list(bb2.get_blackboard()['level 1'].keys())).issubset(list(bb1.get_blackboard()['level 3']['old'].keys())) == True
+    assert list(bb2.get_blackboard()['level 1']) == ['core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]']
+    assert list(bb1.get_blackboard()['level 1']) == ['core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]']
+    
+    mtc.shutdown()    
+    os.remove('bb_opt.h5')    
+    time.sleep(0.05)   
     
 def test_controlleragent_init_master():
 
@@ -435,62 +436,62 @@ def test_controlleragent_handler_run_bb():
     ns.shutdown()
     time.sleep(0.05)          
     
-#def test_multi_tiered_run():
-#    kas_tier_1 = {'mc_t1': {'type': Stochastic},
-#           'ns_t1': {'type': NeighborhoodSearch},
-#           'lvl3_t1': {'type': KaBrLevel3},
-#           'lvl2_t1': {'type': KaBrLevel2},
-#           'lvl1_t1': {'type': KaBrLevel1}}
-#
-#    bb_tier1 = {'name': 'bb_opt_1', 'type': bb_opt.BbOpt, 'tier': 1, 'attr': {'archive_name': 'bb_opt_1.h5', 'total_tvs': 8, 'convergence_interval': 2,
-#                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
-#                                                           'pf_size':1}}
-#    
-#    kas_tier_2 = {'mc_t2': {'type': Stochastic},
-#           'ns_t2': {'type': NeighborhoodSearch},
-#           'inter':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
-#           'lvl3_t2': {'type': KaBrLevel3},
-#           'lvl2_t2': {'type': KaBrLevel2},
-#           'lvl1_t2': {'type': KaBrLevel1}}            
-#    bb_tier2 = {'name': 'bb_opt_2', 'type': bb_opt.BbOpt, 'tier': 2,  'attr': {'archive_name': 'bb_opt_2.h5', 'total_tvs': 8, 'convergence_interval': 2,
-#                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
-#                                                           'pf_size':1}} 
-#    try:
-#        ns = run_nameserver()
-#    except OSError:
-#        time.sleep(0.5)
-#        ns = run_nameserver()
-#    mtc = run_agent(name='mca', base=controller.MasterControllerAgent)       
-#        
-#    mtc.initialize_blackboard(blackboard=bb_tier1,
-#                                  ka=kas_tier_1, 
-#                                  agent_wait_time=10,
-#                                  plot_progress=False,
-#                                  random_seed=1097,
-#                                  problem=problem)             
-#    mtc.initialize_blackboard(blackboard=bb_tier2,
-#                                  ka=kas_tier_2, 
-#                                  agent_wait_time=10,
-#                                  plot_progress=False,
-#                                  random_seed=2097337,
-#                                  problem=problem)   
-#
-#    mtc.run_multi_tiered()
-#    complete = False
-#    time.sleep(5)
-#    while not complete:
-#        mtc.check_multi_tiered()
-#        complete = False if False in [x['complete'] for x in mtc.get_attr('bb_attr').values()] else True
-#
-#    ca_attr = mtc.get_attr('controller_agent_attr')
-#    bb2 = getattr(ca_attr['ca_bb_opt_2']['controller agent'], ca_attr['ca_bb_opt_2']['blackboard'])
-#    bb1 = getattr(ca_attr['ca_bb_opt_1']['controller agent'], ca_attr['ca_bb_opt_1']['blackboard']) 
-#    
-#    assert sorted(list(bb2.get_blackboard()['level 1'])) == sorted(['core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]'])
-#    assert sorted(list(bb1.get_blackboard()['level 1'])) == sorted(['core_[0.75342,0.31156,0.6875]', 'core_[0.98618,0.88344,0.20599]', 'core_[0.93922,0.88344,0.19569]', 'core_[0.93922,0.92761,0.20599]'])    
-#                  
-#    mtc.shutdown()    
-#    os.remove('bb_opt_1.h5')    
-#    os.remove('bb_opt_2.h5')    
-#    ns.shutdown()    
-#    time.sleep(0.05)
+def test_multi_tiered_run():
+    kas_tier_1 = {'mc_t1': {'type': Stochastic},
+           'ns_t1': {'type': NeighborhoodSearch},
+           'lvl3_t1': {'type': KaBrLevel3},
+           'lvl2_t1': {'type': KaBrLevel2},
+           'lvl1_t1': {'type': KaBrLevel1}}
+
+    bb_tier1 = {'name': 'bb_opt_1', 'type': bb_opt.BbOpt, 'tier': 1, 'attr': {'archive_name': 'bb_opt_1.h5', 'total_tvs': 8, 'convergence_interval': 2,
+                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
+                                                           'pf_size':1}}
+    
+    kas_tier_2 = {'mc_t2': {'type': Stochastic},
+           'ns_t2': {'type': NeighborhoodSearch},
+           'inter':  {'type': InterBB, 'attr':{'bb': 'bb_opt_1'}},
+           'lvl3_t2': {'type': KaBrLevel3},
+           'lvl2_t2': {'type': KaBrLevel2},
+           'lvl1_t2': {'type': KaBrLevel1}}            
+    bb_tier2 = {'name': 'bb_opt_2', 'type': bb_opt.BbOpt, 'tier': 2,  'attr': {'archive_name': 'bb_opt_2.h5', 'total_tvs': 8, 'convergence_interval': 2,
+                                                           'skipped_tvs': 0, 'convergence_type': 'hvi', 'convergence_rate':1E-2,
+                                                           'pf_size':1}} 
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    mtc = run_agent(name='mca', base=controller.MasterControllerAgent)       
+        
+    mtc.initialize_blackboard(blackboard=bb_tier1,
+                                  ka=kas_tier_1, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=1097,
+                                  problem=problem)             
+    mtc.initialize_blackboard(blackboard=bb_tier2,
+                                  ka=kas_tier_2, 
+                                  agent_wait_time=10,
+                                  plot_progress=False,
+                                  random_seed=2097337,
+                                  problem=problem)   
+
+    mtc.run_multi_tiered()
+    complete = False
+    time.sleep(5)
+    while not complete:
+        mtc.check_multi_tiered()
+        complete = False if False in [x['complete'] for x in mtc.get_attr('bb_attr').values()] else True
+
+    ca_attr = mtc.get_attr('controller_agent_attr')
+    bb2 = getattr(ca_attr['ca_bb_opt_2']['controller agent'], ca_attr['ca_bb_opt_2']['blackboard'])
+    bb1 = getattr(ca_attr['ca_bb_opt_1']['controller agent'], ca_attr['ca_bb_opt_1']['blackboard']) 
+
+    assert sorted(list(bb2.get_blackboard()['level 1'])) == sorted(['core_[0.75342,0.31156,0.6875]', 'core_[0.71575,0.31156,0.6875]', 'core_[0.79109,0.31156,0.6875]', 'core_[0.75342,0.29598,0.6875]', 'core_[0.75342,0.32714,0.6875]'])
+    assert sorted(list(bb1.get_blackboard()['level 1'])) == sorted(['core_[0.75342,0.31156,0.6875]', 'core_[0.93922,0.88344,0.20599]', 'core_[0.98618,0.88344,0.21683]'])    
+                  
+    mtc.shutdown()    
+    os.remove('bb_opt_1.h5')    
+    os.remove('bb_opt_2.h5')    
+    ns.shutdown()    
+    time.sleep(0.05)
