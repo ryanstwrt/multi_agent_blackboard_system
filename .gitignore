@@ -10,3 +10,5 @@ test/__pycache__
 test/*.h5
 src/scratch.ipynb
 *.coverage*
+doc/
+.DS*

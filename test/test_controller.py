@@ -1,4 +1,4 @@
-import src.controller as controller
+import src.ca.controller as controller
 import src.bb.blackboard as blackboard
 import src.bb.blackboard_optimization as bb_opt
 from osbrain import run_agent
@@ -433,6 +433,7 @@ def test_controlleragent_handler_run_bb():
     bb_attr = ca.get_attr('bb_attr')
     ca.handler_run_bb(bb_attr)
     
+    os.remove('bb_opt.h5')        
     ns.shutdown()
     time.sleep(0.05)          
     
