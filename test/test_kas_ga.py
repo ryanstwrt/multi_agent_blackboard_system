@@ -3,9 +3,7 @@ from osbrain import run_agent
 import src.ka.ka_s.genetic_algorithm as ga
 import src.bb.blackboard_optimization as bb_opt
 from src.utils.problem import BenchmarkProblem
-from src.utils.problem import SFRProblem
 import time
-from src.utils.problem import BenchmarkProblem
 
 dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
 objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}    

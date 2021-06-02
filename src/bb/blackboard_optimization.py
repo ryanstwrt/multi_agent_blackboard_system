@@ -248,10 +248,8 @@ class BbOpt(blackboard.Blackboard):
     def get_pf(self, scaled=True):
         cores = list(self.abstract_lvls['level 1'].keys())
         lvl_3 = {**self.abstract_lvls['level 3']['old'], **self.abstract_lvls['level 3']['new']}
-        if scaled:
-            return utils.scale_pareto_front(cores, self.objectives, lvl_3)
-        else:
-            return utils.convert_pf_to_list(cores, self.objectives, lvl_3)
+        pf = utils.scale_pareto_front(cores, self.objectives, lvl_3) if scaled else utils.convert_pf_to_list(cores, self.objectives, lvl_3)
+        return pf
 
     def handler_agent_complete(self, message):
         """

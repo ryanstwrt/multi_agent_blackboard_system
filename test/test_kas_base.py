@@ -4,7 +4,6 @@ from osbrain import run_agent
 import src.ka.ka_s.base as base
 import time
 from src.utils.problem import BenchmarkProblem
-from src.utils.problem import SFRProblem
 import pickle
     
 def test_init():

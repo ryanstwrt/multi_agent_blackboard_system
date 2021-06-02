@@ -18,34 +18,6 @@ class Problem():
     def evaluate(self, design_variables, objectives, constraints):
         ...
         
-class SFRProblem(Problem):
-    def __init__(self,
-                 design_variables=None,
-                 objectives=None,
-                 constraints=[],
-                 sm=None,
-                 sm_type=None):
-    
-        super().__init__(design_variables=design_variables,
-                 objectives=objectives,
-                 constraints=constraints,)
-        self.sm=sm
-        self.sm_type=sm_type
-    
-    def evaluate(self, design_variables):
-        """
-        Calculate the objectives based on a benchmark problem
-        """
-        objs = {}
-        cnsts = {}
-        obj_dict = self.sm.predict(self.sm_type, design_variables, output='dict')
-        for obj in self.objs.keys():
-            objs[obj] = float(obj_dict[obj])
-        for cnst in self.cons.keys():
-            cnsts[cnst] = float(obj_dict[cnst])       
-        
-        return objs, cnsts
-        
 class BenchmarkProblem(Problem):
     def __init__(self,
                  design_variables=None,

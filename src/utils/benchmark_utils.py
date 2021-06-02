@@ -10,16 +10,18 @@ def get_indicator(indicator, benchmark_name, bb_pf):
         known_pf = get_problem(benchmark_name).pareto_front()
     elif 're' in benchmark_name:
         known_pf = get_re_pf(benchmark_name)
-    else:
+    elif 'zdt' in benchmark_name or 'dtlz' in benchmark_name:
         known_pf = get_problem(benchmark_name).pareto_front(ref_dirs)
+    else:
+        return 0.0
 
     indicator = get_performance_indicator(indicator, known_pf)
     return float(indicator.calc(given_pf))
 
 
-def get_re_pf(benchmark, path_to_pf='/projects/reproblems-master/approximated_Pareto_fronts/'):
-    home = os.getenv("HOME")
-    path = home + path_to_pf + 'reference_points_{}.dat'.format(benchmark.upper())
+def get_re_pf(benchmark, path_to_pf='test/benchmark_problems/approximated_Pareto_fronts/'):
+   # home = os.getenv("HOME")
+    path = path_to_pf + 'reference_points_{}.dat'.format(benchmark.upper())
     pf = []
     with open(path, 'r') as f:
         for line in f:

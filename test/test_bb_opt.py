@@ -832,3 +832,28 @@ def test_pass_agent_attr():
 
     ns.shutdown()       
     time.sleep(0.05)  
+    
+def test_plot_progress():
+    # No assertion, just checking to ensure it runs
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    objs = {'reactivity swing': {'ll':0,   'ul':1000, 'goal':'lt', 'variable type': float},
+            'burnup':           {'ll':0,  'ul':100,  'goal':'gt', 'variable type': float}}
+    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
+        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
+        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
+    bb.initialize_abstract_level_3(objectives=objs,design_variables=dv)
+    bb.initialize_metadata_level()
+
+    bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
+                                                          'objective functions': {'reactivity swing' : 1000.0, 'burnup' : 0.0}}, panel='old')
+    bb.set_attr(plot=True)
+    bb.plot_progress()
+
+    ns.shutdown()       
+    time.sleep(0.05)      

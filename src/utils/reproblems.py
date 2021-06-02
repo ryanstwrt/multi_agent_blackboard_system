@@ -20,7 +20,7 @@ import numpy as np
 import os
 
     
-def get_problem(name):
+def get_problem(name, set_random_seed=False):
     benchmark = {'re21': RE21(),
                  're22': RE22(),
                  're23': RE23(),
@@ -36,8 +36,15 @@ def get_problem(name):
                  're41': RE41(),
                  're42': RE42(),                 
                  're61': RE61(),                 
-                 're91': RE91(),                 
-                 'cre21': CRE21()}
+                 're91': RE91(set_random_seed=set_random_seed),                 
+                 'cre21': CRE21(),
+                 'cre22': CRE22(),
+                 'cre23': CRE23(),
+                 'cre24': CRE24(),
+                 'cre25': CRE25(),
+                 'cre31': CRE31(),
+                 'cre32': CRE32(),
+                 'cre51': CRE51(),}
     return benchmark[name]    
     
 class RE21():
@@ -768,7 +775,7 @@ class RE61():
         return f
 
 class RE91():
-    def __init__(self):
+    def __init__(self, set_random_seed=False):
         self.problem_name = 'RE91'
         self.n_objectives = 9
         self.n_variables = 7
@@ -791,6 +798,8 @@ class RE91():
         self.ubound[4] = 2.625
         self.ubound[5] = 1.2
         self.ubound[6] = 1.2    
+        if set_random_seed:
+            np.random.seed(seed=0)
                 
     def evaluate(self, x):
         f = np.zeros(self.n_objectives)

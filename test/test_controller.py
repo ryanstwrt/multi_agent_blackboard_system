@@ -15,7 +15,6 @@ from src.ka.ka_brs.level3 import KaBrLevel3
 from src.ka.ka_brs.level2 import KaBrLevel2
 from src.ka.ka_brs.level1 import KaBrLevel1
 from src.ka.ka_brs.inter_bb import InterBB
-from src.utils.problem import SFRProblem    
 from src.utils.problem import BenchmarkProblem
 
 dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
