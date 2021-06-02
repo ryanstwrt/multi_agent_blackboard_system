@@ -852,7 +852,6 @@ def test_plot_progress():
     bb.update_abstract_lvl(1, 'core_[70.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     bb.update_abstract_lvl(3, 'core_[70.0, 65.0, 0.42]', {'design variables': {'height': 70.0, 'smear': 65.0, 'pu_content': 0.42}, 
                                                           'objective functions': {'reactivity swing' : 1000.0, 'burnup' : 0.0}}, panel='old')
-    bb.set_attr(plot=True)
     bb.plot_progress()
 
     ns.shutdown()       
