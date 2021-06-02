@@ -1,13 +1,17 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.blackboard as blackboard
-import src.ka as ka
+import src.bb.blackboard as blackboard
+import src.ka.base as ka
 import time
 import os
 
 def test_ka_init_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     assert ka_b.get_attr('bb') == None
     assert ka_b.get_attr('bb_lvl') == 0
@@ -28,7 +32,11 @@ def test_ka_init_agent():
     time.sleep(0.05)
     
 def test_add_blackboard():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.add_blackboard(bb)
@@ -41,7 +49,11 @@ def test_add_blackboard():
     time.sleep(0.05)
 
 def test_connect_executor():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.add_blackboard(bb)
@@ -54,7 +66,11 @@ def test_connect_executor():
     time.sleep(0.05)
     
 def test_connect_complete():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.add_blackboard(bb)
@@ -67,7 +83,11 @@ def test_connect_complete():
     time.sleep(0.05)
 
 def test_connect_trigger_event():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.add_blackboard(bb)
@@ -82,7 +102,11 @@ def test_connect_trigger_event():
     time.sleep(0.05)
 
 def test_connect_shutdown():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.add_blackboard(bb)
@@ -93,7 +117,11 @@ def test_connect_shutdown():
     time.sleep(0.05)
     
 def test_connect_writer():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.add_blackboard(bb)
@@ -102,9 +130,34 @@ def test_connect_writer():
     assert bb.get_attr('agent_addrs')['ka_base']['writer'] == (ka_b.get_attr('_writer_alias'), ka_b.get_attr('_writer_addr'))
     ns.shutdown()
     time.sleep(0.05)
-
+    
+def test_fail_to_connect():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    ka_b = run_agent(name='ka_base', base=ka.KaBase)
+    ka_b.connect_writer()
+    ka_b.connect_executor()
+    ka_b.connect_shutdown()
+    ka_b.connect_trigger()
+    ka_b.connect_complete()
+    
+    assert ka_b.get_attr('_executor_alias') != 'executor_ka_base'
+    assert ka_b.get_attr('_trigger_publish_alias') != 'trigger'
+    assert ka_b.get_attr('_trigger_publish_alias') != 'trigger'
+    assert ka_b.get_attr('_shutdown_alias') != 'shutdown_ka_base'
+    assert ka_b.get_attr('_writer_alias') != 'writer_ka_base'
+    ns.shutdown()
+    time.sleep(0.05)
+        
 def test_move_curent_entry():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_base = run_agent(name='ka', base=ka.KaBase)
     ka_base.add_blackboard(bb)
@@ -124,7 +177,11 @@ def test_move_curent_entry():
     
     
 def test_write_to_blackboard():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.set_attr(bb_lvl=1)
@@ -144,7 +201,11 @@ def test_write_to_blackboard():
     time.sleep(0.05)
     
 def test_trigger_event():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b1 = run_agent(name='ka_base1', base=ka.KaBase)
@@ -158,13 +219,13 @@ def test_trigger_event():
     
     bb.publish_trigger()
     bb.controller()
-    time.sleep(0.5)
+    time.sleep(0.05)
     assert bb.get_attr('_kaar') == {1: {'ka_base': 0, 'ka_base1': 0, 'ka_base2': 0}}
     assert bb.get_attr('_ka_to_execute') == (None, 0)
     ka_b1.set_attr(_trigger_val=1)
     bb.publish_trigger()
     bb.controller()
-    time.sleep(1.25)
+    time.sleep(0.1)
     assert bb.get_attr('_kaar') == {1: {'ka_base': 0, 'ka_base1': 0, 'ka_base2': 0},
                                     2: {'ka_base': 0, 'ka_base1': 1, 'ka_base2': 0}}
     assert bb.get_attr('_ka_to_execute') == ('ka_base1', 1)
@@ -173,28 +234,36 @@ def test_trigger_event():
     time.sleep(0.05)
 
 def test_shutdown():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.add_blackboard(bb)
     ka_b.connect_shutdown()
     assert ns.agents() == ['blackboard', 'ka_base']
     bb.send('shutdown_ka_base', 'message')
-    time.sleep(0.1)
+    time.sleep(0.05)
     assert ns.agents() ==['blackboard']
 
     ns.shutdown()
-    time.sleep(0.05)    
+    time.sleep(0.05)          
     
 def test_complete():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_base', base=ka.KaBase)
     ka_b.add_blackboard(bb)
     ka_b.connect_complete()
     assert bb.get_attr('_new_entry') == False
     ka_b.action_complete()
-    time.sleep(0.1)
+    time.sleep(0.05)
     assert bb.get_attr('_new_entry') == True
     ns.shutdown()
     time.sleep(0.05)  

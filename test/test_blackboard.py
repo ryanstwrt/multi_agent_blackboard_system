@@ -2,15 +2,19 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import numpy as np
-import src.blackboard as blackboard
-import src.ka as ka
+import src.bb.blackboard as blackboard
+import src.ka.base as ka
 import time
 import os
 import h5py
 from collections.abc import Iterable
     
 def test_blackboard_init_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     assert bb.get_attr('agent_addrs') == {}
     assert bb.get_attr('_agent_writing') == False
@@ -30,7 +34,11 @@ def test_blackboard_init_agent():
     time.sleep(0.05)
 
 def test_add_abstract_lvl():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     assert bb.get_attr('abstract_lvls') == {}
     assert bb.get_attr('abstract_lvls_format') == {}
@@ -42,7 +50,11 @@ def test_add_abstract_lvl():
     time.sleep(0.05)
 
 def test_add_panel():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': int})
     assert bb.get_attr('abstract_lvls') == {'level 1': {}}
@@ -61,7 +73,11 @@ def test_add_panel():
     time.sleep(0.05)
     
 def test_connect_executor():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.set_attr(agent_addrs={'test':{}})
     bb.connect_executor('test')
@@ -70,7 +86,11 @@ def test_connect_executor():
     time.sleep(0.05)
     
 def test_connect_executor_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_base = run_agent(name='ka_b', base=ka.KaBase)
     ka_base.add_blackboard(bb)
@@ -80,7 +100,11 @@ def test_connect_executor_agent():
     time.sleep(0.05)
     
 def test_connect_trigger_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_base = run_agent(name='ka_b', base=ka.KaBase)
     ka_base.add_blackboard(bb)
@@ -91,7 +115,11 @@ def test_connect_trigger_agent():
     time.sleep(0.05)    
 
 def test_connect_shutdown():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.set_attr(agent_addrs={'test':{}})
     bb.connect_shutdown('test')
@@ -101,7 +129,11 @@ def test_connect_shutdown():
     time.sleep(0.05) 
     
 def test_connect_shutdown_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka', base=ka.KaBase)
     ka_b.add_blackboard(bb)    
@@ -112,7 +144,11 @@ def test_connect_shutdown_agent():
     time.sleep(0.05) 
     
 def test_connect_writer():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.set_attr(agent_addrs={'test':{}})
     bb.connect_writer('test')
@@ -121,7 +157,11 @@ def test_connect_writer():
     time.sleep(0.05)
     
 def test_connect_writer_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka', base=ka.KaBase)
     ka_b1 = run_agent(name='ka_b1', base=ka.KaBase)
@@ -138,7 +178,11 @@ def test_connect_writer_agent():
     time.sleep(0.05)
 
 def test_connect_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.connect_agent(ka.KaBase, 'base')
     
@@ -158,7 +202,11 @@ def test_connect_agent():
     time.sleep(0.05)
     
 def test_controller():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_b', base=ka.KaBase)
     ka_b1 = run_agent(name='ka_b1', base=ka.KaBase)
@@ -169,7 +217,7 @@ def test_controller():
     ka_b1.connect_trigger()
     ka_b1.set_attr(_trigger_val=2)
     bb.publish_trigger()
-    time.sleep(0.25)
+    time.sleep(0.05)
     bb.controller()
     assert bb.get_attr('_kaar') == {0: {}, 1: {'ka_b': 0, 'ka_b1': 2}}
     assert bb.get_attr('_ka_to_execute') == ('ka_b1', 2)
@@ -178,17 +226,32 @@ def test_controller():
     time.sleep(0.05)
 
 def test_diagnostics_agent_present():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     assert bb.diagnostics_agent_present('blank') == False
-    ka_b = run_agent(name='ka_b', base=ka.KaBase)
+    bb.connect_agent(ka.KaBase, 'ka_b')
+    ka_b = ns.proxy('ka_b')
     assert bb.diagnostics_agent_present('ka_b') == True
+    assert ns.agents() == ['blackboard', 'ka_b']
+    bb.set_attr(_ka_to_execute=('ka_b',1))
+    bb.send_executor() 
+    assert bb.diagnostics_agent_present('ka_b') == False
+    assert ns.agents() == ['blackboard']
+
 
     ns.shutdown()
     time.sleep(0.05)
 
 def test_diagnostics_replace_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.set_attr(required_agents=[ka.KaBase])
     bb.connect_agent(ka.KaBase, 'ka_b')
@@ -208,10 +271,60 @@ def test_diagnostics_replace_agent():
     assert ns.agents() == ['blackboard', 'ka_b']
 
     ns.shutdown()
+    time.sleep(0.05)  
+    
+def test_get_blackbaord():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': int})
+    bb.add_panel(1, ['panel_a', 'panel_b', 'panel_c'])
+
+    
+    bb.update_abstract_lvl(1, 'test_name', {'entry 1': 'foo', 'entry 2': 5})
+    bb.update_abstract_lvl(1, 'test_name', {'entry 1': 'foo', 'entry 2': 5}, panel='panel_a')
+    assert bb.get_blackboard() == {'level 1': {'panel_a': {'test_name': {'entry 1': 'foo', 'entry 2': 5}},'panel_b': {},'panel_c': {}}}
+    
+    ns.shutdown()
+    time.sleep(0.05) 
+    
+def test_get_kaar():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.set_attr(_kaar={1: {'ka': 0, 'ka2': 1}})
+    
+    assert bb.get_kaar() == {1: {'ka': 0, 'ka2': 1}}
+    
+    ns.shutdown()
     time.sleep(0.05)    
     
+def test_get_current_trigger_value():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    bb.set_attr(_trigger_event=10)
+    
+    assert bb.get_current_trigger_value() == 10
+    
+    ns.shutdown()
+    time.sleep(0.05) 
+    
 def test_send_executor():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_b = run_agent(name='ka_b', base=ka.KaBase)
     ka_b.add_blackboard(bb)
@@ -227,7 +340,11 @@ def test_send_executor():
     time.sleep(0.05)    
 
 def test_remove_bb_entry():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.add_abstract_lvl(2, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
@@ -245,7 +362,11 @@ def test_remove_bb_entry():
     time.sleep(0.05) 
     
 def test_remove_bb_entry_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.add_abstract_lvl(2, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
@@ -272,7 +393,11 @@ def test_remove_bb_entry_agent():
     time.sleep(0.05)
     
 def test_update_abstract_lvl():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
 
@@ -294,7 +419,11 @@ def test_update_abstract_lvl():
     time.sleep(0.05)
 
 def test_update_abstract_lvl_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_base = run_agent(name='ka', base=ka.KaBase)
     ka_base.add_blackboard(bb)
@@ -309,7 +438,11 @@ def test_update_abstract_lvl_agent():
     time.sleep(0.05)
     
 def test_update_abstract_lvl_overwrite():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.update_abstract_lvl(1, 'core_1', {'entry 1': 'test', 'entry 2': False, 'entry 3': 2})
@@ -322,7 +455,11 @@ def test_update_abstract_lvl_overwrite():
     time.sleep(0.05)   
     
 def test_update_abstract_lvl_mult():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb.add_abstract_lvl(1, {'entry 1': str, 'entry 2': bool, 'entry 3': int})
     bb.add_abstract_lvl(2, {'entry 1': float, 'entry 2': str})
@@ -342,7 +479,11 @@ def test_update_abstract_lvl_mult():
     time.sleep(0.05)
 
 def test_update_abstract_lvl_multi_agent():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_base = run_agent(name='ka', base=ka.KaBase)
     ka_base1 = run_agent(name='ka1', base=ka.KaBase)
@@ -365,7 +506,11 @@ def test_update_abstract_lvl_multi_agent():
     time.sleep(0.05)
 
 def test_rewrite_bb_entry():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     ka_base = run_agent(name='ka', base=ka.KaBase)
     ka_base1 = run_agent(name='ka1', base=ka.KaBase)
@@ -392,7 +537,11 @@ def test_rewrite_bb_entry():
     time.sleep(0.05)
     
 def test_write_to_h5():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     
     raw_data = {'test_1': (1,1,1), 'test_2': 0.0, 'test_3': 1}
@@ -407,7 +556,7 @@ def test_write_to_h5():
     bb.update_abstract_lvl(4, 'core_4', {'entry 1': {'test 1': {'nested_test': 3}}})
 
     
-    time.sleep(0.1)
+    time.sleep(0.05)
     bb.write_to_h5()
     
     abs_lvls = bb.get_attr('abstract_lvls')
@@ -435,10 +584,14 @@ def test_write_to_h5():
     bb_archive.close()
     os.remove('blackboard_archive.h5')
     ns.shutdown()    
-    time.sleep(0.1) 
+    time.sleep(0.05) 
 
 def test_load_h5():
-    ns = run_nameserver()
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
     bb_h5 = run_agent(name='blackboard1', base=blackboard.Blackboard)
     bb_h5_2 = run_agent(name='blackboard2', base=blackboard.Blackboard)
@@ -459,7 +612,7 @@ def test_load_h5():
 
     
     bb.update_abstract_lvl(2, 'core_2', {'entry 1': 1, 'entry 2': 1.2})
-    bb.update_abstract_lvl(3, 'core_3', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1,2,3]})
+    bb.update_abstract_lvl(3, 'core_3', {'entry 1': raw_data, 'entry 2': 'test', 'entry 3': [1.1,2.0,3.0]})
     bb.update_abstract_lvl(4, 'core_4', {'entry 1': {'test 1': {'nested_test': 3}}})
     
     time.sleep(0.05)
@@ -470,7 +623,6 @@ def test_load_h5():
     bb_h5_bb = bb_h5.get_attr('abstract_lvls')
     bb_bb = bb.get_attr('abstract_lvls')
 
-    
     assert bb_h5_bb == bb_bb
 
     bb.update_abstract_lvl(2, 'core_3', {'entry 1': 1, 'entry 2': 1.2})
@@ -492,7 +644,7 @@ def test_load_h5():
 
 def test_h5_group_writer():
     """
-    Function cannot current be isolated to test, cannot pickle an H5 file to send to teh agent
+    Function cannot current be isolated to test, cannot pickle an H5 file to send to the agent
     """
     pass
 #    ns = run_nameserver()
@@ -514,3 +666,22 @@ def test_h5_group_writer():
   #  os.remove('blackboard_archive.h5')
     
    # time.sleep(0.05)
+
+def test_connect_sub_blackboard():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    
+    bb.connect_sub_blackboard('sub_bb', blackboard.Blackboard)
+    sub_bb = bb.get_attr('_sub_bbs')
+    assert [x for x in sub_bb.keys()] == ['sub_bb']
+    sub_bb = sub_bb['sub_bb']
+    assert sub_bb.get_attr('name') == 'sub_bb'
+    assert sub_bb.get_attr('archive_name') == 'sub_bb.h5'
+    
+    ns.shutdown()       
+    time.sleep(0.05)  
+    
