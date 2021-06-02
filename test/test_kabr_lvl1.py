@@ -272,7 +272,6 @@ def test_calculate_hvi_contribution_list():
     ns.shutdown()
     time.sleep(0.05)
     
-    
 def test_remove_dominated_entries():
     try:
         ns = run_nameserver()

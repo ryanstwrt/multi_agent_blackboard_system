@@ -1,6 +1,6 @@
-# Controller
+# Controller Agent (CA)
 
-The controller organizes the problem, controls the problem flow, and allocates resources for knowledge source to preform an action.
+The CA organizes the problem, controls the problem flow, and allocates resources for knowledge source to preform an action.
 Organizing and controlling the problem flow requires the controller to assess how each knowledge source can contribute to the problem.
 This process is performed via a triggering system with the BA, where knowledge sources respond to the trigger with a trigger value (some numerical value) to indicate their ability to contribute to the problem.
 Based on this information, the BA selects the knowledge source which can provide the most information to the problem (typically has the highest trigger value) and selects them to perform their action.

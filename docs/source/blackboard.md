@@ -34,52 +34,60 @@ We note that most of these variables are able to be set through the [controller]
         * design_variable_name (str):
           * Description : Name of the design variable.  
         * options (list of `variavble type`):
-          * Description : List of available discrete options, must contain `defuaut` value.
+          * Description : List of available discrete options, must contain `defaul` value.
         * default (`variable type`):
           * Description : Default value for discrete variable.
-        * 'variable type' (float object):
-          * Description : Python `float` object to denote the variable type
+        * 'variable type' (object):
+          * Description : Python `float`, `int`, or `str` object to denote the variable type.
     * Example:
-      * ```design_variables = {'cycle length':     {'ll':100,   'ul':550,  'goal':'gt', 'variable type': float}, 'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float}, 'position' :        {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}}```
+        * ```design_variables = {'x0': {'ll':0., 'ul':1., 'variable type': float}, 'x2': {'ll':0., 'ul':7., 'variable type': float}, 'x3' : {'options': ['a', 'b', 'c', 'd', 'e'], 'default': 'e', 'variable type': str}}```
 
 * objectives (dict of dicts):
-  * ```{objective_name : {'ll': float, 'ul': float, 'goal': str, 'target': float, 'goal type': str, variable type': [float,list]}}```
+  * ```{objective_name : {'ll': float, 'ul': float, 'goal': str, variable type': type}}```
     * objective_name (str):
         * Description : Name of the objective function.
         * ll (float):
-            * Description : Lower limit for the design variable.
+            * Description : Lower limit for the objective function.
         * ul (float):
-            * Description : Upper limit for the design variable.
+            * Description : Upper limit for the objective function.
         * goal (str):
-            * Description : Type of optimization to achieve, currently allows minimization (lt), maximization(gt), and optimize equal to (et) a target value.
-            * Options : 'lt', 'gt', 'et'
+            * Description : Type of optimization to achieve, currently allows minimization (`lt`), maximization (`gt`), and equal to (`et`) a target value.
+            * Options : `lt`, `gt`, `et`
+        * 'variable type' (object):
+            * Description : Python type to denote the variable type.   
+            * Options :`float`, `int`, or `list`
         * target (float) : 
             * Description: Value we want to optimize to in `et` optimization goal
             * Note : This parameters is only required for `et` optimization goal.
         * goal_type (str):
-            * Description : Value to select for optimizing with a `variable_type` list, currently we can select the maximum value (max), minimum value (min), or average value (avg) in a list.
-            * Options : 'min', 'max', 'avg'
-            * Note : This parameter is only required if `variable_type` is list.
-        * 'variable type' (object):
-            * Description : Python `float` or `list` object to denote the variable type.
+            * Description : Value to select for optimizing with a `variable_type` list, currently we can select the maximum value (`max`), minimum value (`min`), average value (`avg`), maximum absolute value (`abs max)`, or minimum absolute value (`abs min`) in a list.
+            * Options : `min`, `max`, `avg`, `abs max', `abs min`
+            * Note : This parameter is only required if `variable_type` is `list`.
+        * length (int):
+            * Description : Length of the list.
+            * Note : This parameter is only required if `variable_type` is `list`.
     * Example:
-        * ```objectives = {'reactivity swing': {'ll':0,   'ul':1500, 'goal':'lt', 'variable type': float}, 'burnup':           {'ll':0,   'ul':2000, 'goal':'gt', 'variable type': float},  'eol keff':         {'ll':1.0, 'ul':2.0,  'goal':'et', 'target': 1.5, 'variable type': float}, 'power':            {'ll':0,   'ul':10,   'goal':'lt', 'variable type': list, 'goal type':'max'}}```
+        * ```objectives = {'f0': {'ll':0., 'ul':1., 'goal':'lt', 'variable type': float}, 'f1': {'ll':0.,   'ul':1., 'goal':'gt', 'variable type': float}, 'f2': {'ll':0., 'ul':1.,  'goal':'et', 'target': 0.5, 'variable type': float}, 'f3': {'ll':0, 'ul':10, 'goal':'lt', 'variable type': list, 'goal type':'max', 'length': 6}}```
 
 * constraints (dict):
-    * ```{constraint_name : {'ll': float, 'ul': float, 'goal type': str, variable type': [float,list]}}```
+    * ```{constraint_name : {'ll': float, 'ul': float, 'variable type': type}}```
         * Description : Name of the constraint.
         * ll (float):
-            * Description : Lower limit for the design variable.
+            * Description : Lower limit for the constraint.
         * ul (float):
-            * Description : Upper limit for the design variable.
-        * goal_type (str):
-            * Description : Value to select for optimizing with a `variable_type` list, currently we can select the maximum value (max), minimum value (min), or average value (avg) in a list.
-            * Options : 'min', 'max', 'avg'
-            * Note : This parameter is only required if `variable_type` is list.
+            * Description : Upper limit for the constraint
         * 'variable type' (object):
-            * Description : Python `float` or `list` object to denote the variable type.    
+            * Description : Python type to denote the variable type.   
+            * Options :`float`, `int`, or `list`              
+        * goal_type (str):
+            * Description : Value to select for optimizing with a `variable_type` list, currently we can select the maximum value (`max`), minimum value (`min`), average value (`avg`), maximum absolute value (`abs max)`, or minimum absolute value (`abs min`) in a list.
+            * Options : `min`, `max`, `avg`, `abs max', `abs min`
+            * Note : This parameter is only required if `variable_type` is `list`.
+        * length (int):
+            * Description : Length of the list.
+            * Note : This parameter is only required if `variable_type` is `list`.                        
     * Example:
-        * ```constraints = {'reactivity swing': {'ll':0,   'ul':1500, 'variable type': float}, 'burnup':           {'ll':0,   'ul':2000, 'variable type': float}, 'eol keff':         {'ll':1.0, 'ul':2.0,  'variable type': float}, 'power':            {'ll':0,   'ul':10,   'variable type': list, 'goal type':'max'}}```
+        * ```constraints = {'c0': {'ll':0., 'ul':150., 'variable type': float}, 'c1': {'ll':0, 'ul':2000, 'variable type': int}, 'c2': {'ll':1.0, 'ul':2.0, 'variable type': float}, 'c3': {'ll':0., 'ul':10., 'variable type': list, 'goal type':'max', 'length': 6}}```
                          
 * convergence_model (dict):
   * ```{'type': str, 'convergence rate': val, 'interval': int, 'pf size': int, 'skipped tvs': int, 'total tvs': int, dci_dvi : dict}```
