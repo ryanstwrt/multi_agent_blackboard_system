@@ -18,7 +18,7 @@ class Controller(object):
     """
     
     def __init__(self):
-        self.master_bb = None
+        self.prime_bb = None
         self.sub_bb = None
         self.bb_attr = {}
         self.controller_agent_attr = {}
@@ -104,6 +104,7 @@ class Controller(object):
         bb = getattr(self, bb) 
         bb_time = time.time()
         num_agents = len(bb.get_attr('agent_addrs'))
+        
         while not bb.get_complete_status():
             bb.publish_trigger()
             trig_num = bb.get_current_trigger_value()
@@ -122,7 +123,8 @@ class Controller(object):
                         bb.write_to_h5()
 #                        bb.diagnostics_replace_agent()
                         bb_archived = False
-                except RuntimeError: #RuntimeError allowed if a KA gets added to kaar while the BB is checking it's length; which causes the error
+                #RuntimeError allowed if a KA gets added to kaar while the BB is checking it's length; which causes the error    
+                except RuntimeError: 
                     pass
                 
             bb.controller()
@@ -186,25 +188,25 @@ class ControllerAgent(Agent, Controller):
         self.log_info('Connected {}'.format(self.name))
         self._run_bb_alias = None
         self._run_bb_addr = None
-        self.master_ca = None
+        self.prime_ca = None
         self.bb_attr = {}
         self.controller_agent_attr = {}        
         
     def connect_run_bb(self):
         """Create a push-pull communication channel to execute KA."""
-        self._run_bb_alias, self._run_bb_addr = self.master_ca.connect_run_bb(self.name)
+        self._run_bb_alias, self._run_bb_addr = self.prime_ca.connect_run_bb(self.name)
         self.connect(self._run_bb_addr, alias=self._run_bb_alias, handler=self.handler_run_bb)
-        self.log_info('Agent {} connected run BB to Master CA'.format(self.name))       
+        self.log_info('Agent {} connected run BB to prime CA'.format(self.name))       
   
     def handler_run_bb(self, message):
         self.bb_attr = message
         self.run_multi_agent_bb(self.bb_attr[self.bb_name]['name'])
         
-class MasterControllerAgent(Agent, Controller):
+class PrimeControllerAgent(Agent, Controller):
     
     def on_init(self):
       
-        self.log_info('Connected Master Controller Agent')   
+        self.log_info('Connected Prime Controller Agent')   
         self.bb_addrs = {}
         self.bb_attr = {}
         self.controller_agent_attr = {}        
@@ -240,15 +242,14 @@ class MasterControllerAgent(Agent, Controller):
             _bb.connect_agent(ka_data['type'], ka_name, attr=attr)
             
         self.bb_attr.update({blackboard['name']: {'plot': plot_progress,
-                                       'name': blackboard['name'],
-                                       'agent_wait_time': agent_wait_time,
-                                       'progress_rate': _bb.get_attr('convergence_interval'),
-                                       'plot':plot_progress,
-                                       'complete':False}})
+                                                  'name': blackboard['name'],
+                                                  'agent_wait_time': agent_wait_time,
+                                                  'progress_rate': _bb.get_attr('convergence_interval'),
+                                                  'complete':False}})
 
         ca_name = 'ca_{}'.format( blackboard['name'])
         ca = run_agent(name=ca_name, base=ControllerAgent)
-        ca.set_attr(master_ca=self)
+        ca.set_attr(prime_ca=self)
         ca.set_attr(bb_name=blackboard['name'])
         setattr(ca, blackboard['name'], _bb)
         self.controller_agent_attr[ca_name] = {'controller agent': ca,

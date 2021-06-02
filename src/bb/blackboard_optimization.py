@@ -127,6 +127,8 @@ class BbOpt(blackboard.Blackboard):
             self.dc_indicator()
         elif self.convergence_type == 'hvi':
             self.hv_list.append(self.hv_indicator())
+        elif self.convergence_type == 'total_tvs':
+            self.hv_list.append(0.0)            
         else:
             self.log_debug('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
             self.hv_list.append(0.0)
@@ -178,6 +180,8 @@ class BbOpt(blackboard.Blackboard):
             self.determine_complete_dci_hvi()
         elif self.convergence_type == 'hvi':
             self.determine_complete_hv()
+        elif self.convergence_type == 'total_tvs':
+            self.determine_complete_trigger_evals()            
         else:
             self.log_warning('Convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
             self.determine_complete_trigger_evals()
