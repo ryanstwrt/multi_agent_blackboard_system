@@ -3,8 +3,16 @@ from osbrain import run_agent
 import src.bb.blackboard as blackboard
 import src.bb.blackboard_optimization as bb_opt
 from src.ka.ka_brs.inter_bb import InterBB 
+from src.utils.problem import BenchmarkProblem
 import time
 
+dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
+objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}    
+        
+problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'dtlz1')    
 
 def test_init():
     try:
@@ -29,14 +37,14 @@ def test_add_bb():
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
-    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
+    bb = run_agent(name='sub_bb', base=bb_opt.BbOpt)
     bb.initialize_abstract_level_3()
-    bb_master = run_agent(name='bb', base=bb_opt.BbOpt)
-    bb_master.initialize_abstract_level_3()    
+    bb_prime = run_agent(name='bb', base=bb_opt.BbOpt)
+    bb_prime.initialize_abstract_level_3()    
     br = run_agent(name='ka_br_inter', base=InterBB)
     
-    br.connect_bb_to_write(bb_master)    
-    bb_writer = bb_master.get_attr('agent_addrs')['ka_br_inter']['writer']
+    br.connect_bb_to_write(bb_prime)    
+    bb_writer = bb_prime.get_attr('agent_addrs')['ka_br_inter']['writer']
     
     assert br.get_attr('_writer_alias') == 'writer_ka_br_inter'
     assert br.get_attr('_writer_alias') == bb_writer[0]
@@ -51,31 +59,32 @@ def test_connect_ka():
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
-    bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
-    bb_master.initialize_abstract_level_3()  
-    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
-    bb.initialize_abstract_level_3()
-    bb.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_master})    
-  
-    ka = bb.get_attr('_proxy_server')
+    objs = {'f{}'.format(x+1): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}        
+    cons = {'f0': {'ll':0.0, 'ul':1000, 'variable type': float}}           
+    bb_prime = run_agent(name='bb_prime', base=bb_opt.BbOpt)
+    bb_prime.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints=cons)
+    bb_prime.set_attr(problem=problem)
+    bb_prime.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    
+    objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}        
+    cons = {'f3': {'ll':0.0, 'ul':1000, 'variable type': float}}     
+    bb_sub = run_agent(name='sub_bb', base=bb_opt.BbOpt)
+    bb_sub.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints=cons)
+    bb_sub.set_attr(problem=problem)    
+    bb_sub.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    bb_sub.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_prime})  
+    
+    ka = bb_sub.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')    
 
-    assert br.get_attr('_design_variables') == {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
-                                                'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
-                                                'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
-    assert br.get_attr('_objectives') == {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
-                                          'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
-    assert br.get_attr('_constraints') ==  {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'variable type': float},
-                                            'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
-    assert br.get_attr('_new_entry_format') == {'design variables': {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
-                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
-                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}},
-                                               'objective functions': {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'goal': 'gt', 'variable type': float},
-                                                                       'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}},
-                                               'constraints': {
-                            'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
-                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}}
-    assert br.get_attr('_writer_addr') == bb_master.get_attr('agent_addrs')['ka_br_inter']['writer'][1]
+    assert br.get_attr('_design_variables') == {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
+    assert br.get_attr('_objectives') == {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)} 
+    assert br.get_attr('_constraints') ==  {'f3': {'ll':0.0, 'ul':1000, 'variable type': float}} 
+    assert br.get_attr('_new_entry_format') == {'design variables': {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)},
+                                                'objective functions': {'f{}'.format(x+1): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)},
+                                                'constraints': {'f0': {'ll':0.0, 'ul':1000, 'variable type': float}}}
+    
+    assert br.get_attr('_writer_addr') == bb_prime.get_attr('agent_addrs')['ka_br_inter']['writer'][1]
 
     ns.shutdown()
     time.sleep(0.05) 
@@ -86,30 +95,31 @@ def test_write_to_bb():
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
-    bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
-    bb_master.initialize_abstract_level_3()  
-    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
-    bb.initialize_abstract_level_3()
-    bb.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_master})    
+    bb_prime = run_agent(name='bb_prime', base=bb_opt.BbOpt)
+    bb_prime.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_prime.set_attr(problem=problem)
+    bb_prime.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    
+    bb_sub = run_agent(name='sub_bb', base=bb_opt.BbOpt)
+    bb_sub.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_sub.set_attr(problem=problem)    
+    bb_sub.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    bb_sub.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_prime})           
   
-    ka = bb.get_attr('_proxy_server')
+    ka = bb_sub.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')    
-    bb_writer = bb_master.get_attr('agent_addrs')['ka_br_inter']['writer']
+    bb_writer = bb_prime.get_attr('agent_addrs')['ka_br_inter']['writer']
     
     name = 'core_1'
-    entry = {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-             'objective functions': {'eol keff': 1.1, 'pu mass': 290.2},
-             'constraints': {
-                             'burnup': 69.0,
-                             'reactivity swing': 1000.0}}
+    entry = {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+            'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+            'constraints': {}}
     
     br.write_to_bb(3, name, entry, panel='new')
     br.get_attr('name')
-    assert bb_master.get_attr('abstract_lvls')['level 3']['new']['core_1'] == {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-             'objective functions': {'eol keff': 1.1, 'pu mass': 290.2},
-             'constraints': {
-                             'burnup': 69.0,
-                             'reactivity swing': 1000.0}}
+    assert bb_prime.get_attr('abstract_lvls')['level 3']['new']['core_1'] == {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                                                                              'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+                                                                              'constraints': {}}
     ns.shutdown()
     time.sleep(0.05) 
     
@@ -119,28 +129,33 @@ def test_format_entry():
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
-    bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
-    bb_master.initialize_abstract_level_3()  
-    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
-    bb.initialize_abstract_level_3()
-    bb.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_master})    
+        
+    objs = {'f{}'.format(x+1): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}        
+    cons = {'f0': {'ll':0.0, 'ul':1000, 'variable type': float}}           
+    bb_prime = run_agent(name='bb_prime', base=bb_opt.BbOpt)
+    bb_prime.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints=cons)
+    bb_prime.set_attr(problem=problem)
+    bb_prime.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}        
+    cons = {'f3': {'ll':0.0, 'ul':1000, 'variable type': float}}     
+    bb_sub = run_agent(name='sub_bb', base=bb_opt.BbOpt)
+    bb_sub.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints=cons)
+    bb_sub.set_attr(problem=problem)    
+    bb_sub.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    bb_sub.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_prime})     
   
-    ka = bb.get_attr('_proxy_server')
+    ka = bb_sub.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')   
     
-    data = {'core_[65.0,65.0,0.4]': {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-             'objective functions': {'burnup': 69.0,
-                                     'reactivity swing': 1000.0},
-             'constraints': {'eol keff': 1.1,
-                             'pu mass': 290.2}}}
+    data = {'core_[0.25, 0.5, 0.75]': {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+            'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+            'constraints': {'f3':100.0}}}
     
     br.set_attr(_lvl_data=data)
-    entry = br.format_entry('core_[65.0,65.0,0.4]')
-    assert entry == {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.4}, 
-                     'objective functions': {'eol keff': 1.1, 'pu mass': 290.2},
-                     'constraints': {
-                                     'burnup': 69.0,
-                                     'reactivity swing': 1000.0}}
+    entry = br.format_entry('core_[0.25, 0.5, 0.75]')
+    assert entry == {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                     'objective functions': {f'f{num+1}':x for num,x in enumerate([50.0,75.0,100.0])},
+                     'constraints': {'f0':25.0}}
     ns.shutdown()
     time.sleep(0.05) 
     
@@ -150,74 +165,156 @@ def test_handler_publish():
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
-    bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
-    bb_master.initialize_abstract_level_3()  
-    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
-    dv={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
-        'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
-        'pu_content': {'ll': 0,  'ul': 1,  'variable type': float}}   
-    objs = {'reactivity swing': {'ll':0.0,  'ul':1000.0, 'goal':'lt', 'variable type': float},
-            'burnup':           {'ll':0.0,  'ul':100.0,  'goal':'gt', 'variable type': float},}
-    cons = {'eol keff': {'ll': 1.0, 'ul': 2.0, 'variable type': float},
-            'pu mass':  {'ll': 0.0, 'ul':1000, 'variable type': float}}
+    bb_prime = run_agent(name='bb_prime', base=bb_opt.BbOpt)
+    bb_prime.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_prime.set_attr(problem=problem)
+    bb_prime.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
 
-    bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons) 
-    bb.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_master})    
+    bb_sub = run_agent(name='sub_bb', base=bb_opt.BbOpt)
+    bb_sub.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_sub.set_attr(problem=problem)    
+    bb_sub.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    bb_sub.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_prime})     
   
-    ka = bb.get_attr('_proxy_server')
+    ka = bb_sub.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')   
     
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
-                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
-                                                          'constraints': {'eol keff': 1.1, 'pu mass': 1500.0}}, panel='old')
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb_sub.update_abstract_lvl(3, 'core_[0.25, 0.5, 0.75]', {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                                                                'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+                                                                'constraints': {}},  panel='old')
+    bb_sub.update_abstract_lvl(1, 'core_[0.25, 0.5, 0.75]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
-    bb.publish_trigger()
+    bb_sub.publish_trigger()
     time.sleep(0.05)
-    assert bb.get_attr('_kaar') == {1: {'ka_br_inter': 6.00000000001}}
-    br.set_attr(_entries_moved=['core_[65.0, 65.0, 0.42]'])
-    bb.publish_trigger()
+    assert bb_sub.get_attr('_kaar') == {1: {'ka_br_inter': 6.00000000001}}
+    br.set_attr(_entries_moved=['core_[0.25, 0.5, 0.75]'])
+    bb_sub.publish_trigger()
     time.sleep(0.05)
-    assert bb.get_attr('_kaar') == {1: {'ka_br_inter': 6.00000000001},
-                                    2: {'ka_br_inter': 0.0}} 
+    assert bb_sub.get_attr('_kaar') == {1: {'ka_br_inter': 6.00000000001},
+                                        2: {'ka_br_inter': 0.0}} 
     
     ns.shutdown()
     time.sleep(0.05) 
     
-def test_handler_executor():
+def test_handler_executor_lower_to_upper():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
-    bb_master = run_agent(name='bb', base=bb_opt.MasterBbOpt)
-    bb_master.initialize_abstract_level_3()  
-    bb = run_agent(name='sub_bb', base=bb_opt.SubBbOpt)
-    bb.initialize_abstract_level_3()
-    bb.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_master})    
+    bb_prime = run_agent(name='bb_prime', base=bb_opt.BbOpt)
+    bb_prime.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_prime.set_attr(problem=problem)
+    bb_prime.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+
+    bb_sub = run_agent(name='sub_bb', base=bb_opt.BbOpt)
+    bb_sub.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_sub.set_attr(problem=problem)    
+    bb_sub.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    bb_sub.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_prime})    
   
-    ka = bb.get_attr('_proxy_server')
+    ka = bb_sub.get_attr('_proxy_server')
     br = ka.proxy('ka_br_inter')   
     
-    bb.update_abstract_lvl(3, 'core_[65.0, 65.0, 0.42]', {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
-                                                          'objective functions': {'reactivity swing' : 750.0, 'burnup' : 75.0},
-                                                          'constraints': {'eol keff': 1.1, 'pu mass': 1500.0}}, panel='old')
-    bb.update_abstract_lvl(1, 'core_[65.0, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    bb_sub.update_abstract_lvl(3, 'core_[0.25, 0.5, 0.75]', {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                                                                'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+                                                                'constraints': {}},  panel='old')
+    bb_sub.update_abstract_lvl(1, 'core_[0.25, 0.5, 0.75]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
     
-    bb.publish_trigger()
+    bb_sub.publish_trigger()
     time.sleep(0.05)
-    bb.controller()
-    assert bb.get_attr('_ka_to_execute') == ('ka_br_inter', 6.00000000001)
-    bb.send_executor()
+    bb_sub.controller()
+    assert bb_sub.get_attr('_ka_to_execute') == ('ka_br_inter', 6.00000000001)
+    bb_sub.send_executor()
     time.sleep(0.05) 
     
-    assert bb_master.get_attr('abstract_lvls')['level 3']['new']['core_[65.0, 65.0, 0.42]'] == {'design variables': {'height': 65.0, 'smear': 65.0, 'pu_content': 0.42},
-                                                          'objective functions': {'eol keff': 1.1, 'pu mass': 1500.0},
-                                                          'constraints': { 'reactivity swing' : 750.0, 'burnup' : 75.0}}
-    
-    bb.publish_trigger()
-    time.sleep(0.05)
+    assert bb_prime.get_attr('abstract_lvls')['level 3']['new']['core_[0.25, 0.5, 0.75]'] == {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                                                                                             'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+                                                                                             'constraints': {}}
 
-    
     ns.shutdown()
     time.sleep(0.05) 
+    
+def test_handler_executor_upper_to_lower():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    
+    bb_prime = run_agent(name='bb_prime', base=bb_opt.BbOpt)
+    bb_prime.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_prime.set_attr(problem=problem)
+    bb_prime.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+
+    bb_sub = run_agent(name='sub_bb', base=bb_opt.BbOpt)
+    bb_sub.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_sub.set_attr(problem=problem)    
+    bb_sub.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    bb_prime.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_sub})    
+    
+    ka = bb_sub.get_attr('_proxy_server')
+    br = ka.proxy('ka_br_inter')   
+    
+    bb_prime.update_abstract_lvl(3, 'core_[0.25, 0.5, 0.75]', {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                                                                'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+                                                                'constraints': {}},  panel='old')
+    bb_prime.update_abstract_lvl(1, 'core_[0.25, 0.5, 0.75]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    bb_prime.publish_trigger()
+    time.sleep(0.05)
+    bb_prime.controller()
+    assert bb_prime.get_attr('_ka_to_execute') == ('ka_br_inter', 6.00000000001)
+    bb_prime.send_executor()
+    time.sleep(0.05) 
+    
+    assert bb_sub.get_attr('abstract_lvls')['level 3']['new']['core_[0.25, 0.5, 0.75]'] == {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                                                                                             'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+                                                                                             'constraints': {}}
+
+    ns.shutdown()
+    time.sleep(0.05)     
+    
+def test_handler_executor_update_entry():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    
+    bb_prime = run_agent(name='bb_prime', base=bb_opt.BbOpt)
+    bb_prime.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_prime.set_attr(problem=problem)
+    bb_prime.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+
+    bb_sub = run_agent(name='sub_bb', base=bb_opt.BbOpt)
+    bb_sub.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb_sub.set_attr(problem=problem)    
+    bb_sub.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    bb_prime.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_sub})    
+    
+    ka = bb_sub.get_attr('_proxy_server')
+    br = ka.proxy('ka_br_inter')   
+    
+    bb_prime.update_abstract_lvl(3, 'core_[0.25, 0.5, 0.75]', {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                                                                'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+                                                                'constraints': {}},  panel='old')
+    bb_prime.update_abstract_lvl(1, 'core_[0.25, 0.5, 0.75]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    
+    bb_sub.update_abstract_lvl(3, 'core_[0.25, 0.5, 0.75]', {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                                                                'objective functions': {f'f{num}':x for num,x in enumerate([50.0,75.0,25.0])},
+                                                                'constraints': {}},  panel='old')
+    
+    bb_prime.publish_trigger()
+    time.sleep(0.05)
+    bb_prime.controller()
+    assert bb_prime.get_attr('_ka_to_execute') == ('ka_br_inter', 6.00000000001)
+    bb_prime.send_executor()
+    time.sleep(0.05) 
+    
+    assert bb_sub.get_attr('abstract_lvls')['level 3']['new']['core_[0.25, 0.5, 0.75]'] == {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                                                                                             'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+                                                                                             'constraints': {}}
+
+    ns.shutdown()
+    time.sleep(0.05)         

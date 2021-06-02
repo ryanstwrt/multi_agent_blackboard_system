@@ -8,7 +8,7 @@ import osbrain
 from osbrain import proxy
 from osbrain import run_agent
 import time
-import os 
+import os
 import numpy as np
 import scipy.interpolate
 import plotly.express as px
@@ -19,7 +19,7 @@ cur_dir = os.path.dirname(__file__)
 test_path = os.path.join(cur_dir, '../test/')
 
 class BbOpt(blackboard.Blackboard):
-    
+
     def on_init(self):
         super().on_init()
         self._complete = False
@@ -34,7 +34,7 @@ class BbOpt(blackboard.Blackboard):
         self.objectives_ul = []
         self.total_tvs = 1E6
         self.function_evals = 1E6
-        
+
         self.hv_list = [0.0]
         self._nadir_point = {}
         self._ideal_point = {}
@@ -43,18 +43,18 @@ class BbOpt(blackboard.Blackboard):
         self.dci_convergence_list = [0.0]
         self.random_seed = None
         self.plot = False
-        
+
         self.skipped_tvs = 200
         self.convergence_type = 'hvi'
         self.convergence_rate = 1E-6
         self.convergence_interval = 25
         self.pf_size = 200
         self.dci_div = {}
-        self.final_trigger = 3       
+        self.final_trigger = 3
         self.problem = None
         self.meta_data_to_log = ['hvi']
         self.meta_data = {}
-                        
+
     def controller(self):
         """Determines which KA to select after a trigger event."""
         self.log_debug('Determining which KA to execute')
@@ -68,7 +68,7 @@ class BbOpt(blackboard.Blackboard):
             if cur_tv[max_ka] > 0:
                 equal_vals = [k for k,v in cur_tv.items() if v == cur_tv[max_ka]]
                 ka_ = str(random.choice(equal_vals))
-                self._ka_to_execute = (ka_, cur_tv[ka_])        
+                self._ka_to_execute = (ka_, cur_tv[ka_])
 
     def create_level_format(self, level_entry):
         level_format = {}
@@ -77,12 +77,12 @@ class BbOpt(blackboard.Blackboard):
                 level_format[dv] = self.create_level_format(dv_dict['dict'])
             else:
                 level_format[dv] = dv_dict['variable type']
-        return level_format             
+        return level_format
 
     def connect_ka_specific(self, agent, attr={}):
         """
         Assigns specific variables for each KA type in the SFR optimization problem.
-        
+
         Parameters
         ----------
         agent : str
@@ -91,13 +91,13 @@ class BbOpt(blackboard.Blackboard):
         ns = proxy.NSProxy()
         ka = ns.proxy(agent)
         agent_class = ka.get_attr('_class')
-        
+
         ka.set_attr(_objectives=self.objectives)
         ka.set_attr(_constraints=self.constraints)
         ka.set_attr(problem=self.problem)
         for k,v in attr.items():
             ka.set_attr(**{k:v})
-        
+
         if 'search' in agent_class:
             ka.set_random_seed(seed=self.random_seed)
             ka.set_attr(_design_variables=self.design_variables)
@@ -114,11 +114,11 @@ class BbOpt(blackboard.Blackboard):
             elif 'inter' in agent_class:
                 ka.set_attr(_design_variables=self.design_variables)
                 ka.connect_bb_to_write(attr['bb'])
-                
+
         else:
             self.log_info('Agent type ({}) does not match a known agent type of BbOpt, no specific KA attributes'.format(agent))
             return
-        
+
     def convergence_indicator(self):
         """
         Determine what to do after a trigger event has been processed
@@ -130,7 +130,7 @@ class BbOpt(blackboard.Blackboard):
         else:
             self.log_debug('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
             self.hv_list.append(0.0)
-            
+
     def convergence_update(self):
         """
         Determine if any values need to be udpated after a trigger event
@@ -141,14 +141,14 @@ class BbOpt(blackboard.Blackboard):
 
     def dc_indicator(self):
         """
-        Calculate the DCI 
+        Calculate the DCI
         """
         current_pf = {name: {obj: self.get_objective_value(name, obj) for obj in self.objectives.keys()} for name in self.abstract_lvls['level 1'].keys()}
         if self.previous_pf == {}:
             self.previous_pf = current_pf
             self.convergence_update()
             return
-        
+
         total_pf = [current_pf, self.previous_pf]
         goal = {}
         for obj_name, obj in self.objectives.items():
@@ -156,7 +156,7 @@ class BbOpt(blackboard.Blackboard):
                 goal.update({obj_name: (obj['goal'], obj['target'])})
             else:
                 goal.update({obj_name: obj['goal']})
-        
+
         dci = pm.diversity_comparison_indicator(self._nadir_point, self._ideal_point, total_pf, goal=goal, div=self.dci_div)
         dci._grid_generator()
         dci.compute_dci(current_pf)
@@ -165,8 +165,8 @@ class BbOpt(blackboard.Blackboard):
         previous_dci = dci.dci
         self.dci_convergence_list.append(current_dci - previous_dci)
         self.previous_pf = current_pf
-        self.convergence_update()        
-        
+        self.convergence_update()
+
     def determine_complete(self):
         """
         Determine if the problem has converged
@@ -181,29 +181,29 @@ class BbOpt(blackboard.Blackboard):
         else:
             self.log_warning('Convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
             self.determine_complete_trigger_evals()
-            
+
         self.determine_complete_function_evals()
         self.determine_complete_trigger_evals()
-        
+
 
     def determine_complete_dci_hvi(self):
         """
         Determine if the problem is complete using the convergence of dci and the hvi
-        """        
+        """
         if self.dci_convergence_list[-1] < self.convergence_rate:
             self.hv_list[self._trigger_event] = self.hv_indicator()
             self.determine_complete_hv()
         else:
-            self.convergence_update()    
-            
+            self.convergence_update()
+
     def determine_complete_function_evals(self):
         self.log_info('Problem is at {} of {} total allowable trigger values'.format(len(self._kaar), self.total_tvs))
         lvl3 = {**self.abstract_lvls['level 3']['new'], **self.abstract_lvls['level 3']['old']}
         self.log_info('Problem is at {} of {} total allowable function evals'.format(len(lvl3), self.function_evals))
         if len(lvl3) > self.function_evals:
             self.log_info('Problem is over total allowable function evals, shutting agents down')
-            self._complete = True 
-            
+            self._complete = True
+
     def determine_complete_hv(self):
         """
         Determine if the problem is complete using the convergence of the hypervolume
@@ -213,7 +213,7 @@ class BbOpt(blackboard.Blackboard):
         prev_hv = self.hv_list[-2*num:-num]
         hv_average = abs(sum(recent_hv) / num - sum(prev_hv) / num)
         hv_indicator = hv_average
-              
+
         # Should we add the following to ensure there is something on the BB?
         if len(self._kaar.keys()) < self.skipped_tvs:
             self.log_info('Below minimum skipped trigger values, skipping convergence check')
@@ -221,42 +221,42 @@ class BbOpt(blackboard.Blackboard):
         if len(self.abstract_lvls['level 1']) < self.pf_size:
             self.log_info('Number of solutions on Pareto Front ({}) less than desired Pareto Front ({})'.format(len(self.abstract_lvls['level 1']), self.pf_size))
             return
-        # Wait for a number of cycles before we check for convergence        
+        # Wait for a number of cycles before we check for convergence
         self.log_info('Convergence Rate: {} '.format(hv_indicator))
-            
+
         if hv_indicator < self.convergence_rate:
             self.log_info('Problem complete via HV convergence, shutting agents down')
             self._complete = True
-            
+
     def determine_complete_trigger_evals(self):
         # Determine if the problem is over our trigger value limit
         if len(self._kaar) >= self.total_tvs:
             self.log_info('Problem is over total allowable TVs, shutting agents down')
-            self._complete = True  
+            self._complete = True
 
     def get_objective_value(self, core, obj):
         objective_value = self.abstract_lvls['level 3']['old'][core]['objective functions'][obj]
         goal = self.objectives[obj]['goal type'] if 'goal type' in self.objectives[obj] else None
-        return utils.get_objective_value(objective_value, goal)             
-           
+        return utils.get_objective_value(objective_value, goal)
+
     def get_hv_list(self):
         return self.hv_list
-    
+
     def get_complete_status(self):
-        return self._complete      
-    
+        return self._complete
+
     def get_pf(self, scaled=True):
         cores = list(self.abstract_lvls['level 1'].keys())
         lvl_3 = {**self.abstract_lvls['level 3']['old'], **self.abstract_lvls['level 3']['new']}
         if scaled:
             return utils.scale_pareto_front(cores, self.objectives, lvl_3)
         else:
-            return utils.convert_pf_to_list(cores, self.objectives, lvl_3)            
+            return utils.convert_pf_to_list(cores, self.objectives, lvl_3)
 
     def handler_agent_complete(self, message):
         """
         Handler for KAs complete response, i.e. when a KA has finished their action
-        
+
         Parameters
         ----------
         agent_name : str
@@ -266,14 +266,14 @@ class BbOpt(blackboard.Blackboard):
         self.log_debug('Logging agent {} complete.'.format(message[0]))
         self.agent_addrs[message[0]].update({'performing action':False})
         self.meta_data_entry(message[0], message[1], message[2])
-    
+
     def hv_indicator(self):
         """
         Calculate the Hypervolume for the current pareto front
         """
-        pf = self.get_pf()        
-        return pm.hypervolume_indicator(pf, self.objectives_ul)  
-    
+        pf = self.get_pf()
+        return pm.hypervolume_indicator(pf, self.objectives_ul)
+
     def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
         """
         Initialze BB abstract level three with problem specific objectives and design variables
@@ -284,7 +284,7 @@ class BbOpt(blackboard.Blackboard):
             self.design_variables = design_variables
         if constraints:
             self.constraints = constraints
-                
+
         # TODO: Do we need to do something for equal to goal?
         for obj, obj_dict in self.objectives.items():
             if obj_dict['goal'] == 'lt':
@@ -301,8 +301,8 @@ class BbOpt(blackboard.Blackboard):
         obj = self.create_level_format(self.objectives)
         cnst  = self.create_level_format(self.constraints)
         self.add_abstract_lvl(3, {'design variables': dv, 'objective functions': obj, 'constraints' : cnst})
-        self.add_panel(3, ['new','old'])    
-            
+        self.add_panel(3, ['new','old'])
+
     def initialize_metadata_level(self):
         """
         Create the abstract level for the meta data
@@ -310,8 +310,8 @@ class BbOpt(blackboard.Blackboard):
         md_entry = {md_type: float for md_type in self.meta_data_to_log}
         self.meta_data = {md_type: [0.0,] for md_type in self.meta_data_to_log}
         md_entry.update({'agent': str, 'time': float})
-        self.add_abstract_lvl(100, md_entry)       
-            
+        self.add_abstract_lvl(100, md_entry)
+
     def log_metadata(self):
         """
         Log the any metadata values that the user wants in the metadata abstract level.
@@ -325,7 +325,7 @@ class BbOpt(blackboard.Blackboard):
                 else:
                     self.convergence_update()
             elif md == 'gd':
-                array.append(bu.get_indicator('gd', self.problem.benchmark_name, self.get_pf(scaled=False)))  
+                array.append(bu.get_indicator('gd', self.problem.benchmark_name, self.get_pf(scaled=False)))
             elif md == 'igd':
                 array.append(bu.get_indicator('igd', self.problem.benchmark_name, self.get_pf(scaled=False)))
             elif md == 'function evals':
@@ -336,29 +336,29 @@ class BbOpt(blackboard.Blackboard):
             elif md == 'total time':
                 array.append(float(len(list(self.abstract_lvls['level 1'].keys()))))
 
-                
-            
+
+
     def meta_data_entry(self, name, time, trigger_event):
         """
         Add an entry to abstract level 100 for meta-data
-        
+
         Trigger events start at 1, not 0, so we offset by 1 when looking at the vals
         """
         entry = {md: array[trigger_event-1] for md, array in self.meta_data.items()}
         entry.update({'agent': name, 'time': float(time)})
-        self.update_abstract_lvl(100, str(trigger_event), entry)            
-                                
+        self.update_abstract_lvl(100, str(trigger_event), entry)
+
     def plot_progress(self):
         """
         Generate a plot of the hypervolume and Pareto front during the problem.
         """
         if self.plot == False:
             return
-            
+
         lvl_1 = self.abstract_lvls['level 1']
         if lvl_1 == {}:
             return
-        
+
         lvl_3 = {**self.abstract_lvls['level 3']['new'], **self.abstract_lvls['level 3']['old']}
 
         fitness = []
@@ -369,7 +369,7 @@ class BbOpt(blackboard.Blackboard):
             fitness.append(values['fitness function'])
             core_params = lvl_3[core]['objective functions']
             core_designs = lvl_3[core]['design variables']
-        
+
             for obj in self.objectives.keys():
                 if obj in obj_dict.keys():
                     obj_dict[obj].append(core_params[obj])
@@ -379,7 +379,7 @@ class BbOpt(blackboard.Blackboard):
                 if dv in ind_dict.keys():
                     ind_dict[dv].append(core_designs[dv])
                 else:
-                    ind_dict[dv] = [core_designs[dv]]                    
+                    ind_dict[dv] = [core_designs[dv]]
         objs = [x for x in self.objectives.keys()]
         dvs = [x for x in self.design_variables.keys()]
 
@@ -393,19 +393,19 @@ class BbOpt(blackboard.Blackboard):
             fig1.show()
         except UnboundLocalError:
             pass
-        
+
         fig2 = px.scatter_3d(x=ind_dict[dvs[0]], y=ind_dict[dvs[1]], z=ind_dict[dvs[2]], labels={'x':dvs[0], 'y': dvs[1], 'z': dvs[2]})
         try:
             fig2.show()
         except UnboundLocalError:
             pass
-        
+
         # Plot HV Convergece
         for md, array in self.meta_data.items():
             try:
-                fig2 = px.line(x=self.meta_data['function evals'], y=array, labels={'x':'Function Evals', 'y':"{}".format(md)})        
+                fig2 = px.line(x=self.meta_data['function evals'], y=array, labels={'x':'Function Evals', 'y':"{}".format(md)})
             except:
-                fig2 = px.line(x=[x for x in range(len(array))], y=array, labels={'x':'Trigger Value', 'y':"{}".format(md)})                  
+                fig2 = px.line(x=[x for x in range(len(array))], y=array, labels={'x':'Trigger Value', 'y':"{}".format(md)})
             fig2.show()
 
     def publish_trigger(self):
@@ -414,7 +414,7 @@ class BbOpt(blackboard.Blackboard):
         self.log_debug('\n\nPublishing Trigger Event {}'.format(self._trigger_event))
         self._kaar[self._trigger_event] = {}
         self.send(self._pub_trigger_alias, self.abstract_lvls)
-                
+
     def send_executor(self):
         """Send an executor message to the triggered KA."""
         if self._ka_to_execute != (None, 0):
@@ -427,15 +427,15 @@ class BbOpt(blackboard.Blackboard):
 
     def send_shutdown(self):
         """
-        We first shutdown all search agents in the proble. 
+        We first shutdown all search agents in the proble.
         We follow this up by running the three blackboard reader agents, where we wait until each one is complete before moving to the next.
         We finish this by shutting down the blackboard reader agents.
-        """      
-        
+        """
+
         search_agents = {ka: self.agent_addrs[ka] for ka in self.agent_list if 'reader' not in self.agent_addrs[ka]['_class']}
 
         if search_agents != {}:
-            for agent_name, connections in search_agents.items():              
+            for agent_name, connections in search_agents.items():
                 if not connections['shutdown']:
                     ...
                 elif connections['performing action']:
@@ -444,16 +444,16 @@ class BbOpt(blackboard.Blackboard):
                 elif not self.diagnostics_agent_present(agent_name):
                     ...
                 else:
-                    self.send(connections['shutdown'][0], "shutdown")    
+                    self.send(connections['shutdown'][0], "shutdown")
                 try:
-                    self.agent_list.remove(agent_name)  
+                    self.agent_list.remove(agent_name)
                 except:
                     ...
 
         if True in [ka['performing action'] for ka in self.agent_addrs.values()]:
             #self.log_info('Waiting for agents to finish action')
             return
-        
+
         if self.final_trigger > 0:
             ka_ = [ka for ka, ka_dict in self.agent_addrs.items() if str(self.final_trigger) in ka_dict['class'].__name__]
             self._ka_to_execute=(ka_[0], 2)
@@ -461,68 +461,14 @@ class BbOpt(blackboard.Blackboard):
             self.final_trigger -= 1
             return
         # Add something for inter-agent BB
-        agent_addrs = copy.copy(self.agent_addrs)      
+        agent_addrs = copy.copy(self.agent_addrs)
         for agent_name in self.agent_list:
             self.send(self.agent_addrs[agent_name]['shutdown'][0], "shutdown")
             self.agent_list.remove(agent_name)
-                      
+
     def set_random_seed(self, seed=None):
         """
         Sets the random seed number to provide a reproducabel result
         """
         random.seed(seed=seed)
-        self.random_seed = seed        
-
-class MasterBbOpt(BbOpt):
-    
-    def on_init(self):
-        super().on_init()
-        self.objectives = {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'goal': 'gt', 'variable type': float},
-                           'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
-        self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
-                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
-                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
-
-        self.constraints = {
-                            'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
-                            'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float}}
-        
-        self.total_tvs = 2E4
-        self.convergence_type = 'hvi'
-        self.convergence_rate = 1E-4
-        self.convergence_interval = 25
-        self.pf_size = 200
-        self.dci_div = {}
-        # Initialize an abstract level which holds meta-data about the problem
-        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
-
-
-
-
-class SubBbOpt(BbOpt):
-    
-    def on_init(self):
-        super().on_init()
-        self.objectives = {'reactivity swing': {'ll':0,     'ul':750,  'goal':'lt', 'variable type': float},
-                           'burnup':           {'ll':0,     'ul':200,  'goal':'gt', 'variable type': float},}
-        self.design_variables = {'height':     {'ll': 50.0, 'ul': 80.0, 'variable type': float},
-                                 'smear':      {'ll': 50.0, 'ul': 70.0, 'variable type': float},
-                                 'pu_content': {'ll': 0.0,  'ul': 1.0,  'variable type': float}}
-
-        self.constraints = {'eol keff':  {'ll': 1.0, 'ul': 2.5, 'variable type': float},
-                            'pu mass':   {'ll':0,     'ul':2000, 'goal':'lt', 'variable type': float}}
-        
-        self.objectives_ll = []
-        self.objectives_ul = []
-
-        self.total_tvs = 2E4
-        self.convergence_type = 'hvi'
-        self.convergence_rate = 1E-4
-        self.convergence_interval = 25
-        self.pf_size = 200
-        self.dci_div = {}
-        
-        # Initialize an abstract level which holds meta-data about the problem
-        self.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
-
-
+        self.random_seed = seed
