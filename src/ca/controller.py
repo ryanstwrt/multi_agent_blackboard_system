@@ -52,7 +52,6 @@ class Controller(object):
                                        'name': blackboard['name'],
                                        'agent_wait_time': agent_wait_time,
                                        'progress_rate': _bb.get_attr('convergence_interval'),
-                                       'plot': plot_progress,
                                        'complete':False}})
 
     def run_single_agent_bb(self, bb):
@@ -67,12 +66,13 @@ class Controller(object):
             trig_num = bb.get_current_trigger_value()
             responses = False
             # Wait until all responses have been recieved
+            i=0
             while not responses:
                 try:
                     if len(bb.get_kaar()[trig_num]) == num_agents:
-                        responses = True
+                        responses = True                      
                 except RuntimeError:
-                    pass
+                    ...
             bb.controller()
             bb.set_attr(_new_entry=False)
             bb.send_executor()
@@ -82,11 +82,10 @@ class Controller(object):
                     break
             agent_time = time.time() - agent_time
             if len(bb.get_kaar()) %  bb_attr['progress_rate'] == 0 or bb.get_complete_status() == True:
-                bb.convergence_indicator()
+                bb.determine_complete()
                 bb.log_metadata()
                 bb.write_to_h5()
                 bb.diagnostics_replace_agent()
-                bb.determine_complete()
                 bb.plot_progress()
                 if bb.get_complete_status():
                     self.shutdown_agents(bb) 
@@ -131,11 +130,10 @@ class Controller(object):
             bb.send_executor()
 
             if len(bb.get_kaar()) % bb_attr['progress_rate'] == 0 or bb.get_complete_status() == True:
-                bb.convergence_indicator()
+                bb.determine_complete()
                 bb.log_metadata()
                 bb.write_to_h5()
                 bb.diagnostics_replace_agent()
-                bb.determine_complete()
                 bb.plot_progress()
                 if bb.get_complete_status():
                     self.shutdown_agents(bb)     

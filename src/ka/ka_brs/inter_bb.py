@@ -50,9 +50,20 @@ class InterBB(KaBr):
         design.update({k:v for k,v in self._lvl_data[entry_name]['constraints'].items()})
         new_design = {}
         
-        for k,v in self._new_entry_format.items():
-            new_design[k] = {param: design[param] for param, val in v.items()}
-            
+        for k, v in self._new_entry_format.items():
+            new_design[k] = {}
+            for param, val in v.items():
+                if design.get(param):
+                    new_design[k][param] = design[param]
+                elif val['variable type'] == float:
+                    new_design[k][param] = 0.0
+                elif val['variable type'] == int:
+                    new_design[k][param] = 0
+                elif val['variable type'] == list:
+                    new_design[k][param] = [0.0 for x in range(val['length'])]
+                else:
+                    self.log_info(f'Failed to log {entry_name} due to a failure in {param} type')
+                        
         return new_design        
         
     def handler_executor(self, message):

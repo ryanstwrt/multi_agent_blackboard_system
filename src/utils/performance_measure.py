@@ -13,7 +13,7 @@ def hypervolume_indicator(pf, upper_ref):
     """
     hv = get_performance_indicator("hv", ref_point=np.array(upper_ref))
     
-    return hv.calc(np.array(pf))
+    return float(hv.calc(np.array(pf)))
 
 class diversity_comparison_indicator(object):
     
@@ -113,12 +113,11 @@ class diversity_comparison_indicator(object):
         self._pf = pf
     
     def _convert_to_minimize(self, obj, obj_val):
-        goal = self.goal[obj]
-        if goal == 'gt':
+        if self.goal[obj] == 'gt':
             return -obj_val
-        elif goal =='lt':
+        elif self.goal[obj] =='lt':
             return obj_val
-        elif goal[0] =='et':
+        elif self.goal[obj][0] =='et':
             target = self.goal[obj][1]
             return abs(target - obj_val)        
     

@@ -63,7 +63,6 @@ class KaBrLevel1(KaBr):
         pf = {name: {obj: self.get_objective_value(name, obj) for obj in self._objectives.keys()} for name in self.lvl_read.keys()}
             
         goal = {}
-        
         #Convert our objectives to a minimization system
         for obj_name, obj in self._objectives.items():
             if obj['goal'] == 'et':
@@ -182,6 +181,6 @@ class KaBrLevel1(KaBr):
         """
         Update the KA's current understanding of the BB
         """
-        self.lvl_read =  self.update_abstract_level(self.bb_lvl_read)
+        self.lvl_read = self.update_abstract_level(self.bb_lvl_read)
         self.lvl_write = self.lvl_read
         self._lvl_data = self.update_abstract_level(self.bb_lvl_data, panels=[self.new_panel, self.old_panel])

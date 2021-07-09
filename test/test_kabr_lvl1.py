@@ -325,7 +325,6 @@ def test_prune_entries():
     ns.shutdown()
     time.sleep(0.05)
 
-    
 def test_calculate_dci():
     try:
         ns = run_nameserver()

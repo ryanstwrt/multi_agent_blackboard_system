@@ -182,7 +182,6 @@ def test_handler_trigger_publish():
            'burnup':           {'ll':25,  'ul':75,   'goal':'gt', 'variable type': float}}
     cons={'eol keff':    {'ll': 1.0, 'ul': 1.5, 'variable type': float}}
     bb.initialize_abstract_level_3(objectives=objs, design_variables=dv, constraints=cons)     
-    bb.initialize_abstract_level_3()
     br.add_blackboard(bb)
     br.connect_trigger()
     br.connect_writer()

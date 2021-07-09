@@ -35,24 +35,22 @@ class BbOpt(blackboard.Blackboard):
         self.total_tvs = 1E6
         self.function_evals = 1E6
 
-        self.hv_list = [0.0]
         self._nadir_point = {}
         self._ideal_point = {}
         self._pareto_level = ['level 1']
         self.previous_pf = {}
-        self.dci_convergence_list = [0.0]
         self.random_seed = None
         self.plot = False
 
         self.skipped_tvs = 200
-        self.convergence_type = 'hvi'
+        self.convergence_type = 'total tvs'
         self.convergence_rate = 1E-6
         self.convergence_interval = 25
         self.pf_size = 200
         self.dci_div = {}
         self.final_trigger = 3
         self.problem = None
-        self.meta_data_to_log = ['hvi']
+        self.meta_data_to_log = []
         self.meta_data = {}
 
     def controller(self):
@@ -119,27 +117,12 @@ class BbOpt(blackboard.Blackboard):
             self.log_info('Agent type ({}) does not match a known agent type of BbOpt, no specific KA attributes'.format(agent))
             return
 
-    def convergence_indicator(self):
-        """
-        Determine what to do after a trigger event has been processed
-        """
-        if self.convergence_type == 'dci hvi':
-            self.dc_indicator()
-        elif self.convergence_type == 'hvi':
-            self.hv_list.append(self.hv_indicator())
-        elif self.convergence_type == 'total_tvs':
-            self.hv_list.append(0.0)            
-        else:
-            self.log_debug('convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
-            self.hv_list.append(0.0)
-
     def convergence_update(self):
         """
         Determine if any values need to be udpated after a trigger event
         """
         for md, array in self.meta_data.items():
             array.append(array[-1])
-        self.hv_list.append(self.hv_list[-1])
 
     def dc_indicator(self):
         """
@@ -148,7 +131,7 @@ class BbOpt(blackboard.Blackboard):
         current_pf = {name: {obj: self.get_objective_value(name, obj) for obj in self.objectives.keys()} for name in self.abstract_lvls['level 1'].keys()}
         if self.previous_pf == {}:
             self.previous_pf = current_pf
-            self.convergence_update()
+            self.meta_data['dci hvi'].append(self.meta_data['dci hvi'][-1])
             return
 
         total_pf = [current_pf, self.previous_pf]
@@ -165,45 +148,46 @@ class BbOpt(blackboard.Blackboard):
         current_dci = dci.dci
         dci.compute_dci(self.previous_pf)
         previous_dci = dci.dci
-        self.dci_convergence_list.append(current_dci - previous_dci)
+        self.meta_data['dci hvi'].append(current_dci - previous_dci)
         self.previous_pf = current_pf
-        self.convergence_update()
-
+        
     def determine_complete(self):
         """
         Determine if the problem has converged
         """
-        if len(self.hv_list) < 2 * self.convergence_interval:
-            return
-
         if self.convergence_type == 'dci hvi':
+            self.dc_indicator()
             self.determine_complete_dci_hvi()
         elif self.convergence_type == 'hvi':
             self.determine_complete_hv()
-        elif self.convergence_type == 'total_tvs':
-            self.determine_complete_trigger_evals()            
+        elif self.convergence_type == 'total tvs':
+            ...
+        elif self.convergence_type == 'total function evals':
+            ... 
         else:
             self.log_warning('Convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
-            self.determine_complete_trigger_evals()
+            self.convergence_type = 'total tvs'
 
         self.determine_complete_function_evals()
         self.determine_complete_trigger_evals()
-
 
     def determine_complete_dci_hvi(self):
         """
         Determine if the problem is complete using the convergence of dci and the hvi
         """
-        if self.dci_convergence_list[-1] < self.convergence_rate:
-            self.hv_list[self._trigger_event] = self.hv_indicator()
+        dci_0 = self.meta_data.get('dci hvi')[-1]
+        dci_1 = self.meta_data.get('dci hvi')[-2] if len(self.meta_data.get('dci hvi')) > 1 else -1.0
+        
+        if dci_0 <= dci_1:
+            self.log_info(f'DCI convergence met ({dci_0}<={dci_1}), testing HV convergence.')
             self.determine_complete_hv()
         else:
-            self.convergence_update()
+            self.log_info(f'DCI convergence not met ({dci_0}>{dci_1}), skipping HV convergence.')            
+            self.meta_data['hvi'].append(self.meta_data['hvi'][-1])    
 
     def determine_complete_function_evals(self):
-        self.log_info('Problem is at {} of {} total allowable trigger values'.format(len(self._kaar), self.total_tvs))
         lvl3 = {**self.abstract_lvls['level 3']['new'], **self.abstract_lvls['level 3']['old']}
-        self.log_info('Problem is at {} of {} total allowable function evals'.format(len(lvl3), self.function_evals))
+        self.log_info(f'Problem is at {len(lvl3)} of {self.function_evals} total allowable function evals')
         if len(lvl3) > self.function_evals:
             self.log_info('Problem is over total allowable function evals, shutting agents down')
             self._complete = True
@@ -212,27 +196,36 @@ class BbOpt(blackboard.Blackboard):
         """
         Determine if the problem is complete using the convergence of the hypervolume
         """
+        if len(self.meta_data.get('hvi')) < 2 * self.convergence_interval:
+            self.log_info(f'Below minimum skipped trigger values in convergence interval ({self.convergence_interval}), skipping convergence check')            
+            self.meta_data['hvi'].append(0.0) 
+            return
+
+        self.meta_data['hvi'].append(self.hv_indicator())       
+        hv_list = self.meta_data.get('hvi')
         num = self.convergence_interval
-        recent_hv = self.hv_list[-num:]
-        prev_hv = self.hv_list[-2*num:-num]
+        recent_hv = hv_list[-num:]
+        prev_hv = hv_list[-2*num:-num]
         hv_average = abs(sum(recent_hv) / num - sum(prev_hv) / num)
         hv_indicator = hv_average
-
+        
         # Should we add the following to ensure there is something on the BB?
         if len(self._kaar.keys()) < self.skipped_tvs:
-            self.log_info('Below minimum skipped trigger values, skipping convergence check')
+            self.log_info('Below minimum skipped trigger values, skipping HV convergence check')
             return
-        if len(self.abstract_lvls['level 1']) < self.pf_size:
-            self.log_info('Number of solutions on Pareto Front ({}) less than desired Pareto Front ({})'.format(len(self.abstract_lvls['level 1']), self.pf_size))
+        lvl_size = len(self.abstract_lvls['level 1'])
+        if lvl_size < self.pf_size:
+            self.log_info(f'Number of solutions on Pareto Front ({lvl_size}) less than desired Pareto Front ({self.pf_size})')
             return
         # Wait for a number of cycles before we check for convergence
-        self.log_info('Convergence Rate: {} '.format(hv_indicator))
+        self.log_info('HV Convergence Rate: {} '.format(hv_indicator))
 
         if hv_indicator < self.convergence_rate:
             self.log_info('Problem complete via HV convergence, shutting agents down')
             self._complete = True
 
     def determine_complete_trigger_evals(self):
+        self.log_info(f'Problem is at {len(self._kaar)} of {int(self.total_tvs)} total allowable trigger values')
         # Determine if the problem is over our trigger value limit
         if len(self._kaar) >= self.total_tvs:
             self.log_info('Problem is over total allowable TVs, shutting agents down')
@@ -244,7 +237,7 @@ class BbOpt(blackboard.Blackboard):
         return utils.get_objective_value(objective_value, goal)
 
     def get_hv_list(self):
-        return self.hv_list
+        return self.meta_data.get('hvi')
 
     def get_complete_status(self):
         return self._complete
@@ -276,25 +269,18 @@ class BbOpt(blackboard.Blackboard):
         pf = self.get_pf()
         return pm.hypervolume_indicator(pf, self.objectives_ul)
 
-    def initialize_abstract_level_3(self, objectives=None, design_variables=None, constraints=None):
+    def initialize_abstract_level_3(self, objectives={}, design_variables={}, constraints={}):
         """
         Initialze BB abstract level three with problem specific objectives and design variables
         """
-        if objectives:
-            self.objectives = objectives
-        if design_variables:
-            self.design_variables = design_variables
-        if constraints:
-            self.constraints = constraints
+        self.objectives = objectives
+        self.design_variables = design_variables
+        self.constraints = constraints
 
         # TODO: Do we need to do something for equal to goal?
         for obj, obj_dict in self.objectives.items():
-            if obj_dict['goal'] == 'lt':
-                self._nadir_point.update({obj: obj_dict['ll']})
-                self._ideal_point.update({obj: obj_dict['ul']})
-            else:
-                self._nadir_point.update({obj: -obj_dict['ul']})
-                self._ideal_point.update({obj: -obj_dict['ll']})
+            self._nadir_point.update({obj: obj_dict['ll'] if obj_dict['goal'] == 'lt' else -obj_dict['ul']})
+            self._ideal_point.update({obj: obj_dict['ul'] if obj_dict['goal'] == 'lt' else -obj_dict['ll']})
 
         self.objectives_ll = [0.0 for x in self.objectives.keys()]
         self.objectives_ul = [1.0 for x in self.objectives.keys()]
@@ -309,6 +295,10 @@ class BbOpt(blackboard.Blackboard):
         """
         Create the abstract level for the meta data
         """
+        self.meta_data_to_log.append(self.convergence_type)
+        if self.convergence_type == 'dci hvi':
+            self.meta_data_to_log.append('hvi')
+        
         md_entry = {md_type: float for md_type in self.meta_data_to_log}
         self.meta_data = {md_type: [0.0,] for md_type in self.meta_data_to_log}
         md_entry.update({'agent': str, 'time': float})
@@ -319,13 +309,11 @@ class BbOpt(blackboard.Blackboard):
         Log the any metadata values that the user wants in the metadata abstract level.
         """
         for md, array in self.meta_data.items():
+            # We skip the HVI and DCI HVI values because we already added them under determine_complete()
             if md == 'hvi':
-                array.append(float(self.hv_indicator()))
-            elif md == 'dci-hvi':
-                if self.dci_convergence_list[-1] < self.convergence_rate:
-                    array[self._trigger_event] = self.hv_indicator()
-                else:
-                    self.convergence_update()
+                ...
+            elif md == 'dci hvi':
+                ...
             elif md == 'gd':
                 array.append(bu.get_indicator('gd', self.problem.benchmark_name, self.get_pf(scaled=False)))
             elif md == 'igd':
@@ -333,12 +321,12 @@ class BbOpt(blackboard.Blackboard):
             elif md == 'function evals':
                 function_evals = float(len({**self.abstract_lvls['level 3']['old'], **self.abstract_lvls['level 3']['new']}))
                 array.append(function_evals)
+            elif md == 'total tvs':
+                array.append(len(self._kaar))
             elif md == 'PF size':
                 array.append(float(len(list(self.abstract_lvls['level 1'].keys()))))
             elif md == 'total time':
-                array.append(float(len(list(self.abstract_lvls['level 1'].keys()))))
-
-
+                array.append(0.0)
 
     def meta_data_entry(self, name, time, trigger_event):
         """
@@ -346,6 +334,8 @@ class BbOpt(blackboard.Blackboard):
 
         Trigger events start at 1, not 0, so we offset by 1 when looking at the vals
         """
+        self.log_info(trigger_event)
+        self.log_info(self.meta_data)
         entry = {md: array[trigger_event-1] for md, array in self.meta_data.items()}
         entry.update({'agent': name, 'time': float(time)})
         self.update_abstract_lvl(100, str(trigger_event), entry)
