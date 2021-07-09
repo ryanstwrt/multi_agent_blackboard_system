@@ -29,7 +29,7 @@ class KaBrLevel2(KaBr):
             return 1.0 - obj_val
         elif goal =='et':
             target = utils.scale_value(self._objectives[obj]['target'], self._objectives[obj])
-            return (1.0 - 2*abs(target - obj_val))
+            return (1.0 - 2 * abs(target - obj_val))
     
     def determine_fitness_function(self, core_name, core_objectives):
         """

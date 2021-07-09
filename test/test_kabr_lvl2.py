@@ -144,7 +144,7 @@ def test_determine_validity():
     bb.publish_trigger()
     time.sleep(0.05)
     bol, p_type = ka_br2.determine_validity('core_4')
-    assert p_type == None
+    assert p_type == 'dominated'
     assert bol == False
     
     ns.shutdown()
@@ -197,7 +197,7 @@ def test_determine_optimal_type():
     bool_ = ka_br2.determine_optimal_type(
         {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.3}, 
         {'keff': 1.10, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.3})
-    assert bool_ == None
+    assert bool_ == 'weak'
     
     bool_ = ka_br2.determine_optimal_type(
         {'keff': 1.02, 'void_coeff': -150, 'doppler_coeff': -0.75, 'pu_content': 0.3}, 
@@ -208,12 +208,11 @@ def test_determine_optimal_type():
         {'keff': 1.00, 'void_coeff': -100, 'doppler_coeff': -0.55, 'pu_content': 0.3}, 
         {'keff': 1.05, 'void_coeff': -120, 'doppler_coeff': -0.65, 'pu_content': 0.6})
     assert bool_ == 'weak'
-
     
     bool_ = ka_br2.determine_optimal_type(
         {'keff': 1.02, 'void_coeff': -110, 'doppler_coeff': -0.55, 'pu_content': 0.6}, 
         {'keff': 1.05, 'void_coeff': -120, 'doppler_coeff': -0.65, 'pu_content': 0.5})
-    assert bool_ == None
+    assert bool_ == 'dominated'
     
     ns.shutdown()
     time.sleep(0.05)

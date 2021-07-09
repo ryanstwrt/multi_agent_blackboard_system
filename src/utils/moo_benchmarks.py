@@ -25,6 +25,8 @@ class optimization_test_functions(object):
             return self.truss2d(x)
         elif 'dtlz' in self.test_name:
             return self.dtlz(x, num_vars, num_objs)
+        elif 'cre' in self.test_name:
+            return self.crep(x)
         elif 're' in self.test_name:
             return self.rep(x)
     
@@ -105,4 +107,4 @@ class optimization_test_functions(object):
     def crep(self, x):
         problem = reprob.get_problem(self.test_name)    
         objs, consts = problem.evaluate(x)
-        return {'F': objs.to_list(), 'G': consts.to_list()}
+        return {'F': objs.tolist(), 'G': consts.tolist()}

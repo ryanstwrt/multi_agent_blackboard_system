@@ -112,8 +112,8 @@ def test_write_to_bb():
     
     name = 'core_1'
     entry = {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
-            'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
-            'constraints': {}}
+             'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+             'constraints': {}}
     
     br.write_to_bb(3, name, entry, panel='new')
     br.get_attr('name')
@@ -158,6 +158,42 @@ def test_format_entry():
                      'constraints': {'f0':25.0}}
     ns.shutdown()
     time.sleep(0.05) 
+    
+def test_format_entry_missing_values():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+        
+    objs = {'f{}'.format(x+1): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}        
+    cons = {'c3': {'ll':0.0, 'ul':1000, 'variable type': list, 'goal type': 'max', 'length': 3}}           
+    bb_prime = run_agent(name='bb_prime', base=bb_opt.BbOpt)
+    bb_prime.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints=cons)
+    bb_prime.set_attr(problem=problem)
+    bb_prime.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}        
+    cons = {}     
+    bb_sub = run_agent(name='sub_bb', base=bb_opt.BbOpt)
+    bb_sub.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints=cons)
+    bb_sub.set_attr(problem=problem)    
+    bb_sub.add_abstract_lvl(100, {'agent': str, 'hvi': float, 'time': float})
+    bb_sub.connect_agent(InterBB, 'ka_br_inter', attr={'bb': bb_prime})     
+  
+    ka = bb_sub.get_attr('_proxy_server')
+    br = ka.proxy('ka_br_inter')   
+    
+    data = {'core_[0.25, 0.5, 0.75]': {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+            'objective functions': {f'f{num}':x for num,x in enumerate([25.0,50.0,75.0])},
+            'constraints': {'f3':100.0}}}
+    
+    br.set_attr(_lvl_data=data)
+    entry = br.format_entry('core_[0.25, 0.5, 0.75]')
+    assert entry == {'design variables': {f'x{num}':x for num,x in enumerate([0.25,0.5,0.75])},
+                     'objective functions': {f'f{num+1}':x for num,x in enumerate([50.0,75.0,100.0])},
+                     'constraints': {'c3':[0.0,0.0,0.0]}}
+    ns.shutdown()
+    time.sleep(0.05)     
     
 def test_handler_publish():
     try:

@@ -66,12 +66,13 @@ class KaBr(KaBase):
             
         if optimal == len(self._objectives.keys()) and pareto_optimal > 0:
             return 'pareto'
+        elif optimal == len(self._objectives.keys()):
+            return 'weak'
         elif pareto_optimal > 0:
             return 'weak'
         else:
-            #Change this to 'domianted'
-            #return 'dominated'
-            return 
+            return 'dominated'
+             
 
     def determine_validity(self, core_name):
         """Determine if the core is pareto optimal"""
@@ -87,7 +88,7 @@ class KaBr(KaBase):
             if opt_core != core_name:
                 pareto_opt = self.determine_optimal_type(self._lvl_data[core_name]['objective functions'], 
                                                          self._lvl_data[opt_core]['objective functions'])
-                if pareto_opt == None:
+                if pareto_opt == 'dominated':
                     return (False, pareto_opt)
         return (True, pareto_opt)        
         
