@@ -36,24 +36,20 @@ class Stochastic(KaS):
         Determine the core design variables using a monte carlo (stochastic) method.
         """        
         for dv, dv_dict in self._design_variables.items():
-            if 'options' in dv_dict.keys():
+            if 'permutation' in dv_dict.keys():
+                perm = dv_dict['permutation']
+                random.shuffle(perm)
+                self.current_design_variables[dv] = perm
+            elif 'options' in dv_dict.keys():
                 if 'default' in dv_dict.keys():
                     dv_val = random.choice(dv_dict['options']) if random.random() > self.learning_factor else dv_dict['default']   
                     self.current_design_variables[dv] = dv_dict['variable type'](dv_val)
                 else:
                     self.current_design_variables[dv] = dv_dict['variable type'](random.choice(dv_dict['options']))
-            elif dv_dict['variable type'] == dict:
-                design = {}
-                for pos in dv_dict['dict']:
-                    if dv_dict['dict'][pos]['variable type'] == str:
-                        design[pos] = random.choice(dv_dict['dict'][pos]['options'])
-                    else:
-                        design[pos] = utils.get_float_val(random.random(), dv_dict['dict'][pos]['ll'], dv_dict['dict'][pos]['ul'], self._design_accuracy)
-                self.current_design_variables[dv] = design
-       
             else:
                 self.current_design_variables[dv] = utils.get_float_val(random.random(), dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
         
+        self.log_info(self.current_design_variables)
         self._entry_name = self.get_design_name(self.current_design_variables)
         if not self.design_check():
             self.search_method()

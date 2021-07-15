@@ -104,7 +104,7 @@ def test_search_method_permutation():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
-    dvs = {'x0' : {'permutation': ['0','1','2','3'], 'variable type': list},}
+    dvs = {'x0' : {'permutation': ['0','1','2','3'], 'variable type': str},}
     objs = {'f1': {'ll': 80, 'ul':200, 'goal': 'lt', 'variable type': float}}
     bb.initialize_abstract_level_3(design_variables=dvs,objectives=objs,constraints={})
     problem = BenchmarkProblem(design_variables=dvs,

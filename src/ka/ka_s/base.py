@@ -90,6 +90,8 @@ class KaS(KaBase):
         Check if the design has been examined before.
         """
         core_name = self.get_design_name(self.current_design_variables)
+        print(core_name)
+        print(self.current_design_variables)
         if core_name in self._lvl_data.keys():
             self.log_debug('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl_data))
             return False
