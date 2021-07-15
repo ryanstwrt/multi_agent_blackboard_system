@@ -65,21 +65,18 @@ def test_search_method():
     rp.set_attr(_design_variables={'height':    {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
-                                  'position' :  {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
-                                  'experiments': {'length': 2, 'variable type': dict, 'dict': {'0':               {'options': ['exp_a', 'exp_b', 'no_exp'], 'default': 'no_exp', 'variable type': str},
-                                                                                               'random variable': {'ll': 0,  'ul': 2,  'variable type': float}}},
-                                   'test': {'options': [0.1,0.2,0.3], 'variable type': float}})   
+                                  'position' :  {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},})   
     rp.set_attr(samples=2)
     rp.generate_lhc()
     lhd = rp.get_attr('lhd')[0]
-    rp.set_attr(_lvl_data={'core_[79.74085,61.46695,0.43406,exp_d,exp_b,1.65115,0.3]': {},
-                           'core_[63.28205,56.12657,0.8335,exp_a,exp_a,0.96577,0.1]': {}})
+    rp.set_attr(_lvl_data={'core_[63.36984,57.2101,0.17794,exp_c]': {},
+                           'core_[69.026,67.56796,0.86104,no_exp]': {}})
+    print(lhd)
     rp.search_method()
     design = rp.get_attr('current_design_variables')
-    print(lhd)
 
-    assert lhd == [0.9913615490394273, 0.5733473184693432, 0.43406372870342824, 0.6527030520951289, 0.8756000816986493, 0.8255765478367485, 0.780659851724798]
-    assert design == {'height': 63.28205, 'smear': 56.12657, 'pu_content': 0.8335, 'position': 'exp_a', 'experiments': {'0': 'exp_a', 'random variable': 0.96577}, 'test':0.1}
+    assert lhd == [0.44566128341198663, 0.36050513961800235, 0.17793633120148006, 0.40693147491814724]
+    assert design == {'height': 69.026, 'smear': 67.56796, 'pu_content': 0.86104, 'position': 'no_exp'}
         
     ns.shutdown()
     time.sleep(0.1)  

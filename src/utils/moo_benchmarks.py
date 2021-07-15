@@ -19,6 +19,8 @@ class optimization_test_functions(object):
             return self.zdt(x, num_vars)
         elif self.test_name == 'tsp':
             return self.tsp(x)
+        elif self.test_name == 'tsp_perm':
+            return self.tsp_perm(x)        
         elif self.test_name == 'welded_beam':
             return self.welded_beam(x)
         elif self.test_name == 'truss2d':
@@ -89,6 +91,23 @@ class optimization_test_functions(object):
         path += graph[k][0]
         return {'F': [path]}
         
+    def tsp_perm(self, x):
+        """
+        traveling sales person - permutation 
+        """
+        if type(x[0][0]) == str:
+            x = [int(y) for y in x[0]]
+        graph = [[0, 10, 15, 20], [10, 0, 35, 25], 
+                 [15, 35, 0, 30], [20, 25, 30, 0]]
+
+        path = 0
+        k = 0
+        for j in x:
+            path += graph[k][j]
+            k=j
+        path += graph[k][0]
+        return {'F': [path]}   
+    
     def welded_beam(self, x):
         problem = get_problem('welded_beam')
         soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)

@@ -295,7 +295,8 @@ class BbOpt(blackboard.Blackboard):
         """
         Create the abstract level for the meta data
         """
-        self.meta_data_to_log.append(self.convergence_type)
+        if self.convergence_type != 'total tvs':
+            self.meta_data_to_log.append(self.convergence_type)
         if self.convergence_type == 'dci hvi':
             self.meta_data_to_log.append('hvi')
         
@@ -322,7 +323,7 @@ class BbOpt(blackboard.Blackboard):
                 function_evals = float(len({**self.abstract_lvls['level 3']['old'], **self.abstract_lvls['level 3']['new']}))
                 array.append(function_evals)
             elif md == 'total tvs':
-                array.append(len(self._kaar))
+                ...
             elif md == 'PF size':
                 array.append(float(len(list(self.abstract_lvls['level 1'].keys()))))
             elif md == 'total time':
@@ -334,8 +335,8 @@ class BbOpt(blackboard.Blackboard):
 
         Trigger events start at 1, not 0, so we offset by 1 when looking at the vals
         """
-        self.log_info(trigger_event)
-        self.log_info(self.meta_data)
+#        self.log_info(trigger_event, len(self.meta_data))
+#        self.log_info(self.meta_data)
         entry = {md: array[trigger_event-1] for md, array in self.meta_data.items()}
         entry.update({'agent': name, 'time': float(time)})
         self.update_abstract_lvl(100, str(trigger_event), entry)

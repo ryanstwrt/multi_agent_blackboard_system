@@ -50,6 +50,10 @@ class GeneticAlgorithm(KaLocal):
         old = set(list(self.analyzed_design.keys()))
 
         self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
+        #if self.reanalyze_designs:
+            #self._trigger_val = self._base_trigger_val if len(lvl)  >= self.pf_size else 0
+        #else:
+            #self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         

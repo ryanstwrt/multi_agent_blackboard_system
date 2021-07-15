@@ -245,7 +245,7 @@ class PrimeControllerAgent(Agent, Controller):
                                                   'progress_rate': _bb.get_attr('convergence_interval'),
                                                   'complete':False}})
 
-        ca_name = 'ca_{}'.format( blackboard['name'])
+        ca_name = 'ca_{}'.format(blackboard['name'])
         ca = run_agent(name=ca_name, base=ControllerAgent)
         ca.set_attr(prime_ca=self)
         ca.set_attr(bb_name=blackboard['name'])
@@ -272,4 +272,4 @@ class PrimeControllerAgent(Agent, Controller):
         """
         for ca_dict in self.controller_agent_attr.values():
             ca_bb = getattr(ca_dict['controller agent'], ca_dict['blackboard'])
-            self.bb_attr[ca_dict['blackboard']]['complete'] = ca_bb.get_complete_status()        
+            self.bb_attr[ca_dict['blackboard']]['complete'] = ca_bb.get_complete_status()

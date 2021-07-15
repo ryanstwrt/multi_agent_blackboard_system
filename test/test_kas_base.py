@@ -56,15 +56,11 @@ def test_get_design_name():
     rp.set_attr(_design_variables={'height':     {'ll': 50, 'ul': 80, 'variable type': float},
                                   'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                   'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
-                                  'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
-                                  'experiments': {'length':         2, 
-                                                  'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
-                                                                'random variable': {'ll': 0,  'ul': 2,  'variable type': float}},
-                                                  'variable type': dict}})
+                                  'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},})
     
     current_design_variables={'height': 62.51066, 'smear': 64.40649, 'pu_content': 0.00011, 'position': 'exp_d', 'experiments': {'0':'exp_a', 'random variable': 0.18468}}
     name = rp.get_design_name(current_design_variables)
-    assert name == 'core_[62.51066,64.40649,0.00011,exp_d,exp_a,0.18468]'
+    assert name == 'core_[62.51066,64.40649,0.00011,exp_d]'
     
     
     ns.shutdown()
@@ -86,8 +82,36 @@ def test_clear_entry():
     assert rp.get_attr('_entry') ==    {}
     
     ns.shutdown()
-    time.sleep(0.1)          
+    time.sleep(0.1)       
     
+def test_design_check():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=base.KaS)
+    rp.set_random_seed(seed=1)
+    rp.set_attr(_design_variables={'x0':     {'ll': 50, 'ul': 80, 'variable type': float},
+                                   'x1': {'permutation': [1,2,3,4],  'variable type': list},
+                                   'x2' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str}})
+    
+    rp.set_attr(current_design_variables={'x0': 60.0, 'x1': [2,3,4,1], 'x2': 'exp_a'})
+    assert rp.design_check() == True
+    rp.set_attr(_lvl_data={'core_[60.0,[2,3,4,1],exp_a]': {'x0': 60.0, 'x1': [2,3,4,1], 'x2': 'exp_a'}})
+    assert rp.design_check() == False
+
+    rp.set_attr(current_design_variables={'x0': 40.0, 'x1': [2,3,4,1], 'x2': 'exp_a'})    
+    assert rp.design_check() == False
+    
+    rp.set_attr(current_design_variables={'x0': 60.0, 'x1': [2,2,4,1], 'x2': 'exp_a'})
+    assert rp.design_check() == False
+    
+    rp.set_attr(current_design_variables={'x0': 60.0, 'x1': [2,3,4,1], 'x2': 'exp_x'})
+    assert rp.design_check() == False   
+    
+    ns.shutdown()
+    time.sleep(0.1)    
 #----------------------------------------------------------
 # Tests for KA-Local
 #----------------------------------------------------------

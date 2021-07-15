@@ -30,7 +30,11 @@ class NeighborhoodSearch(KaLocal):
         dv_value = design_[dv]
         dv_type = type(dv_value)
         design = copy.copy(design_)
-        if 'options' in self._design_variables[dv]:
+        if 'permutation' in self._design_variables[dv]:
+            idx = range(len(self._design_variables[dv]))
+            i1, i2 = random.choice(idx, size=2, replace=False)
+            design[dv][i1], design[dv][i2] = design[dv][i2], design[dv][i1]
+        elif 'options' in self._design_variables[dv]:
             options = copy.copy(self._design_variables[dv]['options'])
             options.remove(design[dv])
             design[dv] = dv_type(random.choice(options))
@@ -51,6 +55,7 @@ class NeighborhoodSearch(KaLocal):
         if core == False:
             return
         design_ = self._lvl_data[core]['design variables']
+        design = {}
         dv_keys = [x for x in design_.keys()]
         pert = self.perturbation_size if self.neighboorhod_search == 'fixed' else random.uniform(0,self.perturbation_size)
         perts = [1.0 - pert, 1.0 + pert]
@@ -60,7 +65,6 @@ class NeighborhoodSearch(KaLocal):
         if self.additional_perturbations > len(dv_keys) - 1:
             self.log_warning(f'Additional perturbations set to {self.additional_perturbations}, which is greater than number of design variabels {len(dv_keys)} minus 1. Seting additional_perturbations to {len(dv_keys) - 1}.')
             self.additional_perturbations = len(dv_keys) - 1
-            
         for dv in dv_keys:
             for pert in perts:
                 dvs_left = copy.copy(dv_keys)
@@ -71,8 +75,8 @@ class NeighborhoodSearch(KaLocal):
                     dv = random.choice(dvs_left)
                     design = self.get_perturbed_design(dv,design,random.choice(perts))
                     multi_perts -= 1
-                pert_designs.append((dv,design))
-        
+                pert_designs.append((dv,copy.deepcopy(design)))
+
         for dv, design in pert_designs:
             self.current_design_variables = design
             self._entry_name = self.get_design_name(self.current_design_variables)

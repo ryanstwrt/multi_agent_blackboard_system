@@ -56,7 +56,7 @@ class KaS(KaBase):
         """
         self.send(self._complete_alias, (self.name, self.agent_time, self._trigger_event))
         if self.execute_once:
-            self.log_info('Agent {} shutting down'.format(self.name))
+            self.log_info(f'Agent {self.name} shutting down')
             self._base_trigger_val = 0
             if self.run_multi_agent_mode:
                 self.shutdown()    
@@ -67,17 +67,18 @@ class KaS(KaBase):
         This process is performed via an interpolator or a surrogate model.
         Sets the variables for the _entry and _entry_name
         """
+        self.log_info(self.current_design_variables)
+        self.log_info(self._entry_name)
         if self.debug_wait:
             time.sleep(self.debug_wait_time)
             
-        self.log_debug('Determining core parameters based on SM')
         self._entry_name = self.get_design_name(self.current_design_variables)
 
         self.current_objectives, self.current_constraints = self.problem.evaluate(self.current_design_variables)
               
         self._entry = {'design variables': self.current_design_variables, 
-                           'objective functions': self.current_objectives,
-                           'constraints': self.current_constraints}
+                       'objective functions': self.current_objectives,
+                       'constraints': self.current_constraints}
     
     def clear_entry(self):
         self._entry = {}
@@ -98,14 +99,16 @@ class KaS(KaBase):
             violated = False
             if 'options' in dv_dict.keys():
                 violated = True if dv_val not in dv_dict['options'] else False  
+            elif 'permutation' in dv_dict.keys():
+                violated = False if sorted(dv_dict['permutation']) == sorted(dv_val) else True
             elif dv_dict['variable type'] == float:
                 violated = True if dv_val < dv_dict['ll'] or dv_val > dv_dict['ul'] else False
             else:
-                # If we are going to keep the dict option we need to add something here to check it
-                ...
+                self.log_info(f'Design variables {dv} does not match any known design variable type. Ensure you follow design variable naming protocol.')
+                return False
 
             if violated:
-                self.log_debug('Core {} not examined, design variable {} with value {} outside of limits.'.format(core_name, dv, dv_val))
+                self.log_debug(f'Core {core_name} not examined, design variable {dv} with value {dv_val} outside of limits.')
                 return False    
         return True
        
@@ -116,10 +119,7 @@ class KaS(KaBase):
         name = 'core_'
         dv_ = []
         for dv, dv_data in self._design_variables.items():
-            if dv_data['variable type'] == dict:
-                dv_.extend(list(design[dv].values()))
-            else:
-                dv_.append(design[dv])
+            dv_.append(design[dv])
         name += str(dv_).replace("'", "")
         name = name.replace(" ", "")
         return name
@@ -134,10 +134,7 @@ class KaS(KaBase):
         ---------
         message : str
             Push-pull message from blackboard, contains the current state of all abstract levels on BB
-        """
-#        if self.debug_wait:
-#            time.sleep(self.debug_wait_time)
-        
+        """        
         self.clear_entry()
         t = time.time()
         self._trigger_event = message[0]

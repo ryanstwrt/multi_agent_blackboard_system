@@ -568,7 +568,7 @@ def test_log_metadata():
     bb.update_abstract_lvl(1, 'core_[65.1, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})     
     bb.log_metadata()
     
-    assert bb.get_attr('meta_data') == {'hvi': [0.0,], 'dci hvi': [0.0,], 'gd': [0.0, 0.0001], 'igd': [0.0, 0.31842014860754597], 'total tvs': [0.,0.], 'PF size': [0., 2.], 'function evals': [0., 2.]}
+    assert bb.get_attr('meta_data') == {'hvi': [0.0,], 'dci hvi': [0.0,], 'gd': [0.0, 0.0001], 'igd': [0.0, 0.31842014860754597], 'total tvs': [0.], 'PF size': [0., 2.], 'function evals': [0., 2.]}
     ns.shutdown()
     time.sleep(0.05)       
     

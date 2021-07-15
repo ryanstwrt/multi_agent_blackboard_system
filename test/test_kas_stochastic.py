@@ -57,21 +57,17 @@ def test_search_method():
                                    'smear':      {'ll': 50, 'ul': 70, 'variable type': float},
                                    'pu_content': {'ll': 0,  'ul': 1,  'variable type': float},
                                    'position' : {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
-                                   'experiments': {'length':         2, 
-                                                   'dict':      {'0': {'options': ['exp_a', 'exp_b', 'exp_c', 'exp_d', 'no_exp'], 'default': 'no_exp', 'variable type': str},
-                                                                'random variable': {'ll': 0,  'ul': 2,  'variable type': float}},
-                                                  'variable type': dict},
                                    'test': {'options': [1,2,3], 'variable type': int}})
     
     assert rp.get_attr('current_design_variables') == {}
     assert rp.get_attr('_entry_name') == None
     rp.search_method()
-    assert rp.get_attr('current_design_variables') == {'height': 62.51066, 'smear': 64.40649, 'pu_content': 0.00011, 'position': 'no_exp', 'experiments': {'0':'exp_a', 'random variable': 0.18468}, 'test': 1}
+    assert rp.get_attr('current_design_variables') == {'height': 62.51066, 'smear': 64.40649, 'pu_content': 0.00011, 'position': 'no_exp', 'test': 1}
     rp.set_random_seed(seed=2)
     #This entry is the first for seed 2, so we should skip it and get a new entry
-    rp.set_attr(_lvl_data={'core_[63.07985,50.51852,0.54966,no_exp,exp_a,0.64107,1]': {}})
+    rp.set_attr(_lvl_data={'core_[63.07985,50.51852,0.54966,no_exp,1]': {}})
     rp.search_method()
-    assert rp.get_attr('_entry_name') == 'core_[63.07985,50.51852,0.54966,no_exp,exp_a,0.64107,2]'
+    assert rp.get_attr('_entry_name') == 'core_[59.61609,53.08853,0.69886,no_exp,3]'
     
     ns.shutdown()
     time.sleep(0.1)
