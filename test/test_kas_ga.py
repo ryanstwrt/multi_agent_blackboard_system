@@ -246,6 +246,52 @@ def test_single_point_crossover():
     ns.shutdown()
     time.sleep(0.1)
     
+def test_batch_crossover():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+
+    bb.connect_agent(ga.GeneticAlgorithm, 'ka_rp_ga')
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_ga')
+    rp.set_random_seed(seed=1073)
+    rp.set_attr(_design_variables={'x0': {'permutation': ['a','b','c','d','e'], 'variable type': str}})
+    
+    genotype1 = {'design variables': {'x0': ['a','b','c','d','e']}}
+    genotype2 = {'design variables': {'x0': ['a','b','c','d','e']}}
+    new_genotype = rp.batch_crossover(genotype1, genotype2)
+    assert new_genotype == [{'x0': ['a','b','c','d','e']}]
+    
+    genotype1 = {'design variables': {'x0': ['a','b','c','d','e']}}
+    genotype2 = {'design variables': {'x0': ['b','c','d','e','a']}}
+    new_genotype = rp.batch_crossover(genotype1, genotype2)
+    assert new_genotype == [{'x0': ['a', 'b', 'd', 'e', 'c']}]
+
+    rp.set_random_seed(seed=1073)
+    rp.set_attr(_design_variables={'x0': {'permutation': ['a','b','c','d','e'], 'variable type': str}, 'x1': {'permutation': ['f','g','h','i']}})
+    
+    genotype1 = {'design variables': {'x0': ['a','b','c','d','e'], 'x1': ['f','g','h','i']}}
+    genotype2 = {'design variables': {'x0': ['a','b','c','d','e'], 'x1': ['f','g','h','i']}}
+    new_genotype = rp.batch_crossover(genotype1, genotype2)
+    assert new_genotype == [{'x0': ['a','b','c','d','e'], 'x1': ['f','g','h','i']}]
+
+    genotype1 = {'design variables': {'x0': ['a','b','c','d','e'], 'x1': ['f','g','h','i']}}
+    genotype2 = {'design variables': {'x0': ['b','c','d','e','a'], 'x1': ['f','g','h','i']}}
+    new_genotype = rp.batch_crossover(genotype1, genotype2)
+    assert new_genotype == [{'x0': ['a','d','c','e','b'], 'x1': ['f','g','h','i']}]
+
+    genotype1 = {'design variables': {'x0': ['a','b','c','d','e'], 'x1': ['f','g','h','i']}}
+    genotype2 = {'design variables': {'x0': ['b','c','d','e','a'], 'x1': ['g','h','i','f']}}
+    new_genotype = rp.batch_crossover(genotype1, genotype2)
+    assert new_genotype == [{'x0': ['b','d','c','a','e'], 'x1': ['i','h','f','g']}]
+
+    ns.shutdown()
+    time.sleep(0.1)
+    
 def test_random_mutation():
     try:
         ns = run_nameserver()
@@ -266,6 +312,21 @@ def test_random_mutation():
     new_genotype = rp.random_mutation(genotype)
     assert new_genotype == {'x0': 0.700, 'x1': 0.650, 'x2': 0.47688}    
 
+    rp.set_attr(_design_variables={'x0': {'permutation': [0,1,2,3,4], 'variable type': int}})
+    rp.set_random_seed(seed=10994)
+    new_genotype = rp.random_mutation({'x0': [0,1,2,3,4]})
+    assert new_genotype == {'x0': [0,4,2,3,1]}
+    rp.set_random_seed(seed=10993)
+    new_genotype = rp.random_mutation({'x0': [0,1,2,3,4]})
+    assert new_genotype == {'x0': [0,1,4,3,2]}
+    rp.set_attr(_design_variables={'x0': {'options': ['0','1','2','3','4'], 'variable type': str}})
+    rp.set_random_seed(seed=10994)
+    new_genotype = rp.random_mutation({'x0': '2'})
+    assert new_genotype == {'x0': '4'}
+    rp.set_random_seed(seed=10993)
+    new_genotype = rp.random_mutation({'x0': '1'})
+    assert new_genotype == {'x0': '2'}
+    
     ns.shutdown()
     time.sleep(0.1)
     

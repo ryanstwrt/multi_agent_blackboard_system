@@ -102,7 +102,6 @@ class GeneticAlgorithm(KaLocal):
                 num_children += len(children)
             if self.kill_switch:
                 break
-
             
     def single_point_crossover(self, genotype1, genotype2, num_crossover_points):
         """
@@ -169,7 +168,24 @@ class GeneticAlgorithm(KaLocal):
             elif c3[dv] < self._design_variables[dv]['ll']:
                 c3[dv] = self._design_variables[dv]['ll']
         return [c1, c2, c3]
-        
+    
+    def batch_crossover(self, genotype1, genotype2):
+        """
+        Performa batch cross-over. Only used for Permutation type design variables.
+        Implementatino based on "Core loading pattern optimization of a typical two-loop 300 MWe PWR using Simulated Annealing (SA), novel crossover Genetic Algorithms (GA) and hybrid GA(SA) schemes" by A. Zameer et al.
+        """
+
+        c1 = copy.copy(genotype2['design variables'])
+        for dv, dv_dict in self._design_variables.items(): 
+            idx = range(len(dv_dict['permutation']))
+            i1, i2 = random.choice(idx, size=2, replace=False)
+            val1, val2 = genotype1['design variables'][dv][i1], genotype1['design variables'][dv][i2]
+            if val1 != genotype2['design variables'][dv][i1] and val2 != genotype2['design variables'][dv][i2]:
+                i3 = c1[dv].index(val1)
+                i4 = c1[dv].index(val2)
+                c1[dv][i1], c1[dv][i3] = c1[dv][i3], c1[dv][i1]
+                c1[dv][i2], c1[dv][i4] = c1[dv][i4], c1[dv][i2]
+        return [c1] 
     
     def random_mutation(self, genotype):
         """
@@ -181,13 +197,17 @@ class GeneticAlgorithm(KaLocal):
         Returns:
         --------
         genotype : dict
-            dictionary of mutated design with one of the dezign variables changed within the perturbation size
+            dictionary of mutated design with one of the design variables changed within the perturbation size
         """
         dv_mutate = random.choice(list(self._design_variables.keys()))
         if 'options' in self._design_variables[dv_mutate]:
             options = copy.copy(self._design_variables[dv_mutate]['options'])
             options.remove(genotype[dv_mutate])
             genotype[dv_mutate] = str(random.choice(options))
+        elif 'permutation' in self._design_variables[dv_mutate]:
+            idx = range(len(self._design_variables[dv_mutate]['permutation']))
+            i1, i2 = random.choice(idx, size=2, replace=False)
+            genotype[dv_mutate][i1], genotype[dv_mutate][i2] = genotype[dv_mutate][i2], genotype[dv_mutate][i1]
         else:
             ll = genotype[dv_mutate]*(1-self.perturbation_size)
             ul = genotype[dv_mutate]*(1+self.perturbation_size)

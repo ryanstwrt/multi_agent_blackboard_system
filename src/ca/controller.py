@@ -3,7 +3,6 @@ from osbrain import proxy
 from osbrain import run_nameserver
 from osbrain import Agent
 import time
-import pickle
 import src.utils.moo_benchmarks as mb
 import src.bb.blackboard as blackboard
 import src.bb.blackboard_optimization as bb_opt            

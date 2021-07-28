@@ -67,8 +67,6 @@ class KaS(KaBase):
         This process is performed via an interpolator or a surrogate model.
         Sets the variables for the _entry and _entry_name
         """
-        self.log_info(self.current_design_variables)
-        self.log_info(self._entry_name)
         if self.debug_wait:
             time.sleep(self.debug_wait_time)
             
@@ -90,8 +88,6 @@ class KaS(KaBase):
         Check if the design has been examined before.
         """
         core_name = self.get_design_name(self.current_design_variables)
-        print(core_name)
-        print(self.current_design_variables)
         if core_name in self._lvl_data.keys():
             self.log_debug('Core {} not examined; found same core in Level {}'.format(core_name, self.bb_lvl_data))
             return False
@@ -110,7 +106,7 @@ class KaS(KaBase):
                 return False
 
             if violated:
-                self.log_debug(f'Core {core_name} not examined, design variable {dv} with value {dv_val} outside of limits.')
+                self.log_info(f'Core {core_name} not examined, design variable {dv} with value {dv_val} outside of limits.')
                 return False    
         return True
        

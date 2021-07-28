@@ -120,10 +120,10 @@ def test_search_method_permutation():
     rp.set_attr(lvl_read={'core_1':  {'pareto type' : 'pareto', 'fitness': 1.0}})
     rp.set_attr(_lvl_data={'core_1': {'design variables': {'x0': ['0','1','2','3']}}})
     rp.search_method()
-    assert bb.get_blackboard()['level 3']['new'] == {'core_[[0,1,2,3]]': {'design variables': {'x0': ['0','1','2','3']}, 'objective functions': {'f1': 95.0}, 'constraints': {}},
-                                                     'core_[[1,0,2,3]]': {'design variables': {'x0': ['1','0','2','3']}, 'objective functions': {'f1': 85.0}, 'constraints': {}}}
+    assert bb.get_blackboard()['level 3']['new'] == {'core_[[0,2,1,3]]': {'design variables': {'x0': ['0','2','1','3']}, 'objective functions': {'f1': 95.0}, 'constraints': {}},
+                                                     'core_[[1,2,0,3]]': {'design variables': {'x0': ['1','2','0','3']}, 'objective functions': {'f1': 100.0}, 'constraints': {}}}
     ns.shutdown()
-    time.sleep(0.1)    
+    time.sleep(0.1)   
     
 def test_get_perturbed_design_permutation():
     try:
@@ -147,7 +147,7 @@ def test_get_perturbed_design_permutation():
     rp.set_attr(new_designs=['core_1'])
     rp.set_attr(lvl_read={'core_1':  {'pareto type' : 'pareto', 'fitness': 1.0}})
     design =  {'x0': ['0','1','2','3']}
-    assert rp.get_perturbed_design('x0', design, 0.15) == {'x0': ['1', '0', '2', '3']}
+    assert rp.get_perturbed_design('x0', design, 0.15) == {'x0': ['0','1','3','2']}
     
     ns.shutdown()
     time.sleep(0.1)    

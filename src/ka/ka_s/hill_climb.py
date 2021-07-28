@@ -24,9 +24,9 @@ class HillClimb(KaLocal):
                 return -1000.0
     
         obj_scaled_new = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(step_design['objective functions'][obj], obj_dict), scale=True)
-        obj_scaled_base = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(base_obj[obj], obj_dict), scale=True)    
-        dv_scaled_new = utils.scale_value(step_design['design variables'][dv], dv_dict) if 'options' not in dv_dict.keys() else 1.0
-        dv_scaled_base = utils.scale_value(base_dv[dv], dv_dict) if 'options' not in dv_dict.keys() else 0.0
+        obj_scaled_base = utils.convert_objective_to_minimize(obj_dict, utils.scale_value(base_obj[obj], obj_dict), scale=True) 
+        dv_scaled_new = utils.scale_value(step_design['design variables'][dv], dv_dict) if ('options' not in dv_dict.keys() and 'permutation' not in dv_dict.keys()) else 1.0
+        dv_scaled_base = utils.scale_value(base_dv[dv], dv_dict) if ('options' not in dv_dict.keys() and 'permutation' not in dv_dict.keys()) else 0.0
         
         # We are following the steepest ascent, so positive is better
         obj_diff = (obj_scaled_base - obj_scaled_new)
@@ -102,13 +102,22 @@ class HillClimb(KaLocal):
             gradient_vector = {}
             next_step = None
             potential_steps = []
+            permutation_samples = 5
             # Calculate our gradient vector
             for dv, dv_dict in self._design_variables.items():
-                if 'options' in dv_dict:
+                dv_type = type(step_design[dv])
+                if 'permutation' in dv_dict:
+                    idx = range(len(self._design_variables[dv]))
+                    for perm_step in range(permutation_samples):
+                        temp_design = copy.copy(step_design)
+                        i1, i2 = random.choice(idx, size=2, replace=False)
+                        temp_design[dv][i1], temp_design[dv][i2] = temp_design[dv][i2], temp_design[dv][i1]
+                        potential_steps.append((str(perm_step), dv, temp_design))
+                        
+                elif 'options' in dv_dict:
                     temp_design = copy.copy(step_design)
                     options = copy.copy(dv_dict['options'])
                     options.remove(step_design[dv])
-                    dv_type = type(step_design[dv])
                     temp_design[dv] = dv_type(random.choice(options))
                     potential_steps.append(('+', dv, temp_design))
                 elif dv_dict['variable type'] == float:
@@ -118,8 +127,8 @@ class HillClimb(KaLocal):
                         temp_design[dv] = round(temp_design[dv], self._design_accuracy)
                         if temp_design[dv] >= dv_dict['ll'] and temp_design[dv] <= dv_dict['ul']:
                             potential_steps.append((direction, dv, temp_design))
-
             if self.hc_type == 'simple':
+                
                 random.shuffle(potential_steps)
             while len(potential_steps) != 0:
                 direction, dv, design = potential_steps.pop()
@@ -132,6 +141,7 @@ class HillClimb(KaLocal):
                     if self.hc_type == 'simple':
                         test_step = {'{} {}'.format(direction,dv): gradient_vector['{} {}'.format(direction,dv)]}
                         next_step, diff = self.determine_step(step_design, step_objs, test_step)
+                        #print(next_step, diff)
                         if next_step:
                             step_design = gradient_vector[next_step]['design variables']
                             step_objs = gradient_vector[next_step]['objective functions']

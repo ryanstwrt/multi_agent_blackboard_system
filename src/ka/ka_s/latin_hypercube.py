@@ -41,7 +41,7 @@ class LatinHypercube(KaS):
         
         length = 0
         for v in self._design_variables.values():
-            length += v['length'] if v['variable type'] == dict else 1
+            length += len(v['permutation']) if 'permutation' in v.keys() else 1
         lhd = self.lhs(length, samples=self.samples, criterion=self.lhc_criterion)
         self.lhd = lhd.tolist()
         
@@ -163,8 +163,10 @@ class LatinHypercube(KaS):
         cur_design = self.lhd.pop(0)
         num = 0
         for dv, dv_dict in self._design_variables.items():
-            if 'options' in dv_dict.keys():
-                dv_val = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]   
+            if 'permutation' in self._design_variables[dv]:
+                ...
+            elif 'options' in dv_dict.keys():
+                dv_val = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]
                 self.current_design_variables[dv] = dv_dict['variable type'](dv_val)            
             else:
                 self.current_design_variables[dv] = utils.get_float_val(cur_design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
