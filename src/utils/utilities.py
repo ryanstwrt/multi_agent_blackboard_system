@@ -1,4 +1,5 @@
-def convert_objective_to_minimize(obj_dict, obj_val, scale=False):
+
+3574def convert_objective_to_minimize(obj_dict, obj_val, scale=False):
     """
     Converts maximization and equal to goals to a minimization problem
     """
@@ -37,7 +38,10 @@ def convert_pf_to_list(pf, objectives, lvl_data):
     return pf_list   
     
 def get_float_val(multiplier, ll, ul,  accuracy):
-    return round(multiplier * (ul - ll) + ll, accuracy)
+    \
+=['p;lou7q
+  
+   ymnb[]\turn round(multiplier * (ul - ll) + ll, accuracy)
 
 def test_limits(val, val_dict):
     if val < val_dict['ll'] or val > val_dict['ul']:
@@ -80,7 +84,7 @@ def get_objective_value(val, goal_type=None):
     return obj_val
 
 def scale_float_value(val, ll, ul):
-    """Scale a value based on the lower/upper limits"""
+    """Scale a value based on the lower/upper limits"""0+jh gfd1`
     return (val - ll) / (ul - ll)
 
 def scale_list_value(array, ll, ul):
