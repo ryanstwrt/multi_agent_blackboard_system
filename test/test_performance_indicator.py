@@ -1,9 +1,9 @@
-import src.utils.performance_measure as pm
+import mabs.utils.performance_measure as pm
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-from src.ka.ka_s.hill_climb import HillClimb
-import src.bb.blackboard_optimization as bb_opt
+from mabs.ka.ka_s.hill_climb import HillClimb
+import mabs.bb.blackboard_optimization as bb_opt
 import pickle
 import time
 import copy

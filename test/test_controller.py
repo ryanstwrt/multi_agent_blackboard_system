@@ -1,21 +1,21 @@
-import src.ca.controller as controller
-import src.bb.blackboard as blackboard
-import src.bb.blackboard_optimization as bb_opt
+import mabs.ca.controller as controller
+import mabs.bb.blackboard as blackboard
+import mabs.bb.blackboard_optimization as bb_opt
 from osbrain import run_agent
 from osbrain import run_nameserver    
 import time
 import os
 import pickle
-from src.ka.ka_s.stochastic import Stochastic
-from src.ka.ka_s.latin_hypercube import LatinHypercube
-from src.ka.ka_s.neighborhood_search import NeighborhoodSearch
-from src.ka.ka_s.hill_climb import HillClimb
-from src.ka.ka_s.genetic_algorithm import GeneticAlgorithm
-from src.ka.ka_brs.level3 import KaBrLevel3
-from src.ka.ka_brs.level2 import KaBrLevel2
-from src.ka.ka_brs.level1 import KaBrLevel1
-from src.ka.ka_brs.inter_bb import InterBB
-from src.utils.problem import BenchmarkProblem
+from mabs.ka.ka_s.stochastic import Stochastic
+from mabs.ka.ka_s.latin_hypercube import LatinHypercube
+from mabs.ka.ka_s.neighborhood_search import NeighborhoodSearch
+from mabs.ka.ka_s.hill_climb import HillClimb
+from mabs.ka.ka_s.genetic_algorithm import GeneticAlgorithm
+from mabs.ka.ka_brs.level3 import KaBrLevel3
+from mabs.ka.ka_brs.level2 import KaBrLevel2
+from mabs.ka.ka_brs.level1 import KaBrLevel1
+from mabs.ka.ka_brs.inter_bb import InterBB
+from mabs.utils.problem import BenchmarkProblem
 
 dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
 objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}  

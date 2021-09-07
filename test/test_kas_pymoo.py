@@ -1,10 +1,10 @@
 from osbrain import run_nameserver
 from osbrain import run_agent
 import time
-import src.ka.ka_s.pymoo_plugin as pm
-import src.bb.blackboard_optimization as bb_opt
+import mabs.ka.ka_s.pymoo_plugin as pm
+import mabs.bb.blackboard_optimization as bb_opt
 from pymoo.factory import get_algorithm, get_termination
-from src.utils.problem import BenchmarkProblem
+from mabs.utils.problem import BenchmarkProblem
 import numpy as np
 
 def test_init():

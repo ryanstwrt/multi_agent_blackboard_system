@@ -1,8 +1,8 @@
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka.ka_s.latin_hypercube as lhc
-import src.bb.blackboard_optimization as bb_opt
-from src.utils.problem import BenchmarkProblem
+import mabs.ka.ka_s.latin_hypercube as lhc
+import mabs.bb.blackboard_optimization as bb_opt
+from mabs.utils.problem import BenchmarkProblem
 import time
     
 dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}

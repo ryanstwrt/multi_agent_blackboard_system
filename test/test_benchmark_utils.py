@@ -1,4 +1,4 @@
-import src.utils.benchmark_utils as bu
+import mabs.utils.benchmark_utils as bu
 import numpy as np
 
 def test_get_indicator():

@@ -1,3 +1,19 @@
+Metadata-Version: 2.1
+Name: multi-agent-blackboard-system
+Version: 0.0.7
+Summary: Multi-agent blackboard system for optimization.
+Home-page: UNKNOWN
+Author: Ryan Stewart
+License: UNKNOWN
+Project-URL: Bug Tracker, https://github.com/ryanstwrt/multi_agent_blackboard_system/issues
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://travis-ci.org/ryanstwrt/multi_agent_blackboard_system.svg?branch=master)](https://travis-ci.org/ryanstwrt/multi_agent_blackboard_system)
 [![Coverage Status](https://coveralls.io/repos/github/ryanstwrt/multi_agent_blackboard_system/badge.svg?branch=master)](https://coveralls.io/github/ryanstwrt/multi_agent_blackboard_system?branch=master)
@@ -21,9 +37,9 @@ Provided is a brief example for setting up a benchmark optimization problem.
 We first need to set up the problem by importing the controller, ka_rp, and ka_br classes.
 
 ```
-import mabs.ca.controller as ca
-import mabs.ka.ka_s as karp
-import mabs.ka.ka_br as kabr
+import mabs.controller as controller
+import mabs.ka_rp as karp
+import mabs.ka_br as kabr
 
 model = 'sf1'
 objs = {'f1': {'ll':0, 'ul':4, 'goal':'lt', 'variable type': float},
@@ -31,13 +47,13 @@ objs = {'f1': {'ll':0, 'ul':4, 'goal':'lt', 'variable type': float},
 dvs =  {'x1':  {'ll':-10, 'ul':10, 'variable type': float}}
 const = {}
 
-kas = {'ka_rp_explore': karp.stochastic, 
-       'ka_rp_ns': karp.neighborhood_search,
-       'ka_br_lvl3': kabr.level3,
-       'ka_br_lvl2': kabr.level2,
-       'ka_br_lvl1': kabr.level1}
+kas = {'ka_rp_explore': karp.KaGlobal, 
+       'ka_rp_ns': karp.KaLocal,
+       'ka_br_lvl3': kabr.KaBr_lvl3,
+       'ka_br_lvl2': kabr.KaBr_lvl2,
+       'ka_br_lvl1': kabr.KaBr_lvl1}
 
-bb_controller = ca.BenchmarkController(ka=kas, 
+bb_controller = controller.BenchmarkController(ka=kas, 
                                       objectives=objs, 
                                       design_variables=dvs,
                                       constraints=const,
@@ -47,7 +63,7 @@ For this benchmark, we are examining the Schaffer Function 1 benchmark problem (
 The two objective functions are labeled `f1` and `f2`, where we describe the lower limits (`ll`), upper limits (`ul`), the type of optimization - minimiation (`goal`), and the variable type (`variable type`).
 There is one design variable `x1`, where we describe the lower limits (`ll`), upper limits (`ul`), and the variable type (`variable type`).
 There are no additional constraints.
-In this problem we utilize five knowledge agents: three agents for assessing the blackboard (KA-BR agents) and two agents to seach the design space (KA-S agents).
+In this problem we utilize five knowledge agents: three agents for assessing the blackboard (KA-BR agents) and two agents to seach the design space (KA-RP agents).
 We run the problem by invoking the `run_multi_agent_bb()` or `run_single_agent_bb`
 
 ```
@@ -59,3 +75,4 @@ The second level contains designs that meet the objectives.
 The third level contains the data for each design, including the design variables, objective functions, and any constraints.
 
 [1] osBrain v0.6.5, (2019), GitHub repository, https://github.com/opensistemas-hub/osbrain.
+

@@ -1,5 +1,5 @@
-import src.utils.problem as problem
-from src.utils.moo_benchmarks import optimization_test_functions as otf
+import mabs.utils.problem as problem
+from mabs.utils.moo_benchmarks import optimization_test_functions as otf
 
 def test_init():
     prob = problem.Problem()

@@ -1,9 +1,9 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka.ka_s.base as base
+import mabs.ka.ka_s.base as base
 import time
-from src.utils.problem import BenchmarkProblem
+from mabs.utils.problem import BenchmarkProblem
 import pickle
     
 def test_init():

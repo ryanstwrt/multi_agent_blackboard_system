@@ -1,4 +1,4 @@
-import src.utils.reproblems as re
+import mabs.utils.reproblems as re
 import numpy as np
 
 def test_RE21():
