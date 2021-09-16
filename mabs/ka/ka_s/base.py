@@ -1,4 +1,5 @@
 from mabs.ka.base import KaBase
+import mabs.utils.utilities as utils
 import copy
 import time
 from numpy import random
@@ -37,7 +38,6 @@ class KaS(KaBase):
         self._lvl_data = {}
         self.agent_time = 0
         self._trigger_event = 0
-        self.learning_factor = 0.5
         self.debug_wait = False
         self.debug_wait_time = 0.5
         self.problem = None        
@@ -188,6 +188,9 @@ class KaLocal(KaS):
         self.new_designs = []
         self._class = 'local search'
         self.reanalyze_designs = False
+        self.core_select = 'random'
+        self.core_select_fraction = 1.0
+        self.optimal_objective = None
         
     def check_new_designs(self):
         """
@@ -277,9 +280,8 @@ class KaLocal(KaS):
 
     def select_core(self):
         """
-        We select a core from the Pareto front by either selecting tha design with the maximum fitness.
-        Or we can select a random choice in self.new_design.
-        This is based on the `learning_factor`, which is a simple probability.
+        We select a core from the Pareto front by either selecting tha design with the maximum fitness, a design with a maximum set of objectives or randomly.
+        This is based on the `core_select` and `core_select_fraction`, which is a simple probability.
         
         We should look at making this a probability denstiy function rather than just the max PF choice.
         We could also try and have it select the design that has the highest hvi or something to do with dci?
@@ -288,11 +290,14 @@ class KaLocal(KaS):
         self.check_new_designs()
         if len(self.new_designs) < 1:
             return False
-        if random.random() > self.learning_factor and self.bb_lvl_read == 1:
-            fitness = {core : self.lvl_read[core]['fitness function'] for core in self.new_designs}
-            core = max(fitness,key=fitness.get)
+        
+        if self.core_select == 'fitness' and random.random() > self.core_select_fraction:
+            core = self.select_core_fitness_function()
+        elif self.core_select == 'objective' and random.random() > self.core_select_fraction:
+            core = self.select_core_optimal_objective()
         else:
-            core = random.choice(self.new_designs)
+            core = self.select_core_random()
+            
         return core
           
     def read_bb_lvl(self, lvl):
@@ -307,3 +312,22 @@ class KaLocal(KaS):
         self.new_designs = list(lvl.keys()) if self.reanalyze_designs else [key for key in lvl if key not in self.analyzed_design.keys()]
             
         return True if len(self.new_designs) > 0 else False   
+    
+    def select_core_random(self):
+        return random.choice(self.new_designs)
+        
+    def select_core_fitness_function(self):
+        fitness = {core : self.lvl_read[core]['fitness function'] for core in self.new_designs}
+        return max(fitness,key=fitness.get)
+    
+    def select_core_optimal_objective(self):
+        """
+        Select a core design based on one/multiple objectives.
+        """
+        fitness = {}
+        for core in self.new_designs:
+            fitness[core] = 0
+            core_data = self.lvl_data[core]['objective functions']
+            for objective in self.optimal_objective:
+                fitness[core] += utils.scale_value(core_data[objective], self.objectives[objective])
+        return max(fitness, key=fitness.get)

@@ -18,18 +18,12 @@ class Stochastic(KaS):
         List of the objective name for optimization
     design_variables : dict
         Dictionary of design variables for the problem and allowable rannge for the variables (key - variable name, value - tuple of min/max value)
-    _sm : dict/trained_sm class
-        Reference to the surrogate model that is used for determining objective functions.
-        This can either be a scipy interpolator or a sci-kit learn regression function.
-    sm_type : str
-        Name of the surrogate model to be used.
-        Valid options: (interpolator, lr, pr, gpr, ann, rf)
-        See surrogate_modeling for more details
     """
 
     def on_init(self):
         super().on_init()
         self._class = 'global search stochastic'
+        self.discrete_default_factor = 0.5
         
     def search_method(self):
         """
@@ -42,7 +36,7 @@ class Stochastic(KaS):
                 self.current_design_variables[dv] = perm
             elif 'options' in dv_dict.keys():
                 if 'default' in dv_dict.keys():
-                    dv_val = random.choice(dv_dict['options']) if random.random() > self.learning_factor else dv_dict['default']   
+                    dv_val = random.choice(dv_dict['options']) if random.random() > self.discrete_default_factor else dv_dict['default']   
                     self.current_design_variables[dv] = dv_dict['variable type'](dv_val)
                 else:
                     self.current_design_variables[dv] = dv_dict['variable type'](random.choice(dv_dict['options']))

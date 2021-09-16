@@ -141,7 +141,6 @@ class HillClimb(KaLocal):
                     if self.hc_type == 'simple':
                         test_step = {'{} {}'.format(direction,dv): gradient_vector['{} {}'.format(direction,dv)]}
                         next_step, diff = self.determine_step(step_design, step_objs, test_step)
-                        #print(next_step, diff)
                         if next_step:
                             step_design = gradient_vector[next_step]['design variables']
                             step_objs = gradient_vector[next_step]['objective functions']

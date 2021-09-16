@@ -32,7 +32,6 @@ class NeighborhoodSearch(KaLocal):
         design = copy.copy(design_)
         if 'permutation' in self._design_variables[dv]:
             idx = range(len(self._design_variables[dv]['permutation']))
-            print(idx)
             i1, i2 = random.choice(idx, size=2, replace=False)
             design[dv][i1], design[dv][i2] = design[dv][i2], design[dv][i1]
         elif 'options' in self._design_variables[dv]:

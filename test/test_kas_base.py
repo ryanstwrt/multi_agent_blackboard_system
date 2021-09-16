@@ -39,7 +39,6 @@ def test_init():
     assert rp.get_attr('_design_accuracy') == 5
     assert rp.get_attr('_class') == 'search'
     assert rp.get_attr('_lvl_data') == {}
-    assert rp.get_attr('learning_factor') == 0.5
     assert rp.get_attr('execute_once') == False
    
     ns.shutdown()
@@ -156,6 +155,11 @@ def test_karp_exploit_init():
     assert rp.get_attr('new_designs') == []
     assert rp.get_attr('_class') == 'local search'   
     assert rp.get_attr('reanalyze_designs') == False
+    assert rp.get_attr('optimal_objective') == None
+    assert rp.get_attr('core_select_fraction') == 1.0
+    assert rp.get_attr('core_select') == 'random'
+
+
     
     ns.shutdown()
     time.sleep(0.1)
@@ -180,7 +184,6 @@ def test_read_bb_lvl():
     ns.shutdown()
     time.sleep(0.1)
     
-    
 def test_select_core():
     try:
         ns = run_nameserver()
@@ -195,12 +198,82 @@ def test_select_core():
     
     rp.set_attr(lvl_read=lvl_read)
     rp.set_attr(new_designs=[x for x in lvl_read.keys()])
+    rp.set_random_seed(seed=109978)
+    assert rp.select_core() == 'core_[65.0,65.0,0.1]'
+    rp.set_attr(core_select_fraction=0.0)
     rp.set_random_seed(seed=109976)
-    rp.set_attr(learning_factor=1.0)
-    assert rp.select_core() == 'core_[90.0,80.0,0.5]'
-    rp.set_random_seed(seed=109977)
-    rp.set_attr(learning_factor=0.0)
+    rp.set_attr(core_select='fitness')
     assert rp.select_core() == 'core_[75.0,65.0,0.9]'
+    rp.set_attr(core_select_fraction=1.0)
+    rp.set_random_seed(seed=109976)
+    rp.set_attr(core_select='fitness')
+    assert rp.select_core() == 'core_[90.0,80.0,0.5]'
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
+def test_select_core_random():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=base.KaLocal)
+    lvl_read = {'core_[65.0,65.0,0.1]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}, 
+                'core_[70.0,60.0,0.25]': {'pareto type' : 'pareto', 'fitness function' : 1.25}, 
+                'core_[90.0,80.0,0.5]':  {'pareto type' : 'pareto', 'fitness function' : 1.5},
+                'core_[75.0,65.0,0.9]':  {'pareto type' : 'pareto', 'fitness function' : 2.5}}
+    
+    rp.set_attr(lvl_read=lvl_read)
+    rp.set_attr(new_designs=[x for x in lvl_read.keys()])
+    rp.set_random_seed(seed=109977)
+    assert rp.select_core_random() == 'core_[75.0,65.0,0.9]'
+    
+    ns.shutdown()
+    time.sleep(0.1)
+
+def test_select_core_fitness():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=base.KaLocal)
+    lvl_read = {'core_[65.0,65.0,0.1]':  {'pareto type' : 'pareto', 'fitness function' : 1.0}, 
+                'core_[70.0,60.0,0.25]': {'pareto type' : 'pareto', 'fitness function' : 1.25}, 
+                'core_[90.0,80.0,0.5]':  {'pareto type' : 'pareto', 'fitness function' : 1.5},
+                'core_[75.0,65.0,0.9]':  {'pareto type' : 'pareto', 'fitness function' : 2.5}}
+    
+    rp.set_attr(lvl_read=lvl_read)
+    rp.set_attr(new_designs=[x for x in lvl_read.keys()])
+    rp.set_random_seed(seed=109976)
+    assert rp.select_core_fitness_function() == 'core_[75.0,65.0,0.9]'
+    
+    ns.shutdown()
+    time.sleep(0.1)
+    
+def test_select_core_optiimal_objective():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    rp = run_agent(name='ka_rp', base=base.KaLocal)
+    lvl_data = {'core_[65.0,65.0,0.1]':  {'objective functions': {'f0' : 1.0,  'f1' : 1.0, 'f2' : 1.0, }}, 
+                'core_[70.0,60.0,0.25]': {'objective functions': {'f0' : 1.25, 'f1' : 1.0, 'f2' : 3.25,}}, 
+                'core_[90.0,80.0,0.5]':  {'objective functions': {'f0' : 1.5,  'f1' : 1.0, 'f2' : 1.5, }},
+                'core_[75.0,65.0,0.9]':  {'objective functions': {'f0' : 2.5,  'f1' : 1.0, 'f2' : 2.5, }}}
+    
+    rp.set_attr(lvl_data=lvl_data)
+    rp.set_attr(objectives={'f{}'.format(x): {'ll':0.0, 'ul':4., 'goal':'gt', 'variable type': float} for x in range(3)})
+    rp.set_attr(new_designs=[x for x in lvl_data.keys()])
+    rp.set_random_seed(seed=109976)
+    rp.set_attr(optimal_objective=['f2'])
+    assert rp.select_core_optimal_objective() == 'core_[70.0,60.0,0.25]'
+    rp.set_random_seed(seed=109976)
+    rp.set_attr(optimal_objective=['f0','f2'])
+    assert rp.select_core_optimal_objective() == 'core_[75.0,65.0,0.9]'
+
     
     ns.shutdown()
     time.sleep(0.1)

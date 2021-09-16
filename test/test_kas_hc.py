@@ -372,11 +372,15 @@ def test_search_method_simple():
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.set_attr(new_designs=['core_[0.650,0.650,0.4]'])
+    rp.set_attr(core_select='fitness')
+    rp.set_attr(core_select_fraction=1.0)
     
     rp.search_method()
     time.sleep(0.075)
-    rp.set_attr(step_limit=100)
+    rp.set_attr(step_limit=100)  
+
     
+    print( list(bb.get_blackboard()['level 3']['new'].keys()) )
     assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.52,0.4]', 'core_[0.65,0.52,0.48]', 'core_[0.65,0.52,0.32]', 'core_[0.65,0.416,0.4]', 'core_[0.78,0.52,0.4]', 'core_[0.52,0.52,0.4]', 'core_[0.65,0.624,0.4]']
     rp.search_method()
     time.sleep(0.075)   
@@ -419,7 +423,9 @@ def test_search_method_discrete_dv():
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
     rp.set_attr(new_designs=['core_[3,1,2,0]'])
-   
+    rp.set_attr(core_select='fitness')
+    rp.set_attr(core_select_fraction=1.0)
+    
     rp.search_method()
     time.sleep(0.5)
 
@@ -502,7 +508,9 @@ def test_search_method_mixed_dv():
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
 
     rp.set_attr(new_designs=['core_[13.0,250.0,25.0]'])
-   
+    rp.set_attr(core_select='fitness')
+    rp.set_attr(core_select_fraction=1.0)
+    
     rp.search_method()
     time.sleep(0.5)
 
@@ -533,6 +541,9 @@ def test_force_shutdown():
     rp.set_attr(problem=problem, debug_wait=True, debug_wait_time=0.05)    
     rp.set_attr(lvl_read=bb.get_blackboard()['level 1'], _lvl_data=bb.get_blackboard()['level 3']['old'], new_designs=['core_[0.650,0.650,0.4]'])
     bb.set_attr(_kaar = {0: {}, 1: {'ka_rp': 2}}, _ka_to_execute=('ka_rp', 2))
+    rp.set_attr(core_select='fitness')
+    rp.set_attr(core_select_fraction=1.0)
+    
     bb.send_executor()
     time.sleep(0.1)
     bb.send_shutdown()
