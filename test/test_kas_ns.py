@@ -1,11 +1,11 @@
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.ka.ka_s.neighborhood_search as nhs
-import src.bb.blackboard_optimization as bb_opt
-from src.utils.problem import BenchmarkProblem
+import mabs.ka.ka_s.neighborhood_search as nhs
+import mabs.bb.blackboard_optimization as bb_opt
+from mabs.utils.problem import BenchmarkProblem
 import time
 import pickle
-import src.utils.moo_benchmarks as moo
+import mabs.utils.moo_benchmarks as moo
 
 dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
 objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}    
@@ -64,7 +64,6 @@ def test_search_method_continuous():
     ns.shutdown()
     time.sleep(0.1)
     
-    
 def test_search_method_discrete():
     try:
         ns = run_nameserver()
@@ -93,10 +92,69 @@ def test_search_method_discrete():
                                                           'x1': '1',
                                                           'x2': '2',
                                                           'x3': '3'}}})
+    rp.set_attr(core_select='fitness')
+    rp.set_attr(core_select_fraction=1.0)
     rp.search_method()
     assert bb.get_blackboard()['level 3']['new'] == {'core_[1,1,2,3]': {'design variables': {'x0': '1', 'x1': '1', 'x2': '2', 'x3': '3'}, 'objective functions': {'f1': 95.0}, 'constraints': {}}, 'core_[0,2,2,3]': {'design variables': {'x0': '0', 'x1': '2', 'x2': '2', 'x3': '3'}, 'objective functions': {'f1': 65.0}, 'constraints': {}}, 'core_[0,1,0,3]': {'design variables': {'x0': '0', 'x1': '1', 'x2': '0', 'x3': '3'}, 'objective functions': {'f1': 60.0}, 'constraints': {}}, 'core_[0,1,2,1]': {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '1'}, 'objective functions': {'f1': 90.0}, 'constraints': {}}, 'core_[0,1,2,0]': {'design variables': {'x0': '0', 'x1': '1', 'x2': '2', 'x3': '0'}, 'objective functions': {'f1': 60.0}, 'constraints': {}}}
     ns.shutdown()
     time.sleep(0.1)
+    
+def test_search_method_permutation():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    dvs = {'x0' : {'permutation': ['0','1','2','3'], 'variable type': str},}
+    objs = {'f1': {'ll': 80, 'ul':200, 'goal': 'lt', 'variable type': float}}
+    bb.initialize_abstract_level_3(design_variables=dvs,objectives=objs,constraints={})
+    problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'tsp_perm')      
+    bb.connect_agent(nhs.NeighborhoodSearch, 'ka_rp')
+    rp = ns.proxy('ka_rp')
+    rp.set_random_seed(seed=1)
+    rp.set_attr(problem=problem)    
+    
+    rp.set_attr(new_designs=['core_1'])
+    rp.set_attr(lvl_read={'core_1':  {'pareto type' : 'pareto', 'fitness': 1.0}})
+    rp.set_attr(_lvl_data={'core_1': {'design variables': {'x0': ['0','1','2','3']}}})
+    rp.set_attr(core_select='fitness')
+    rp.set_attr(core_select_fraction=1.0)
+    rp.search_method()
+    assert bb.get_blackboard()['level 3']['new'] == {'core_[[0,2,1,3]]': {'design variables': {'x0': ['0','2','1','3']}, 'objective functions': {'f1': 95.0}, 'constraints': {}},
+                                                     'core_[[1,2,0,3]]': {'design variables': {'x0': ['1','2','0','3']}, 'objective functions': {'f1': 100.0}, 'constraints': {}}}
+    ns.shutdown()
+    time.sleep(0.1)   
+    
+def test_get_perturbed_design_permutation():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    dvs = {'x0' : {'permutation': ['0','1','2','3'], 'variable type': str}}
+    objs = {'f1': {'ll': 80, 'ul':200, 'goal': 'lt', 'variable type': float}}
+    bb.initialize_abstract_level_3(design_variables=dvs,objectives=objs,constraints={})
+    problem = BenchmarkProblem(design_variables=dvs,
+                         objectives=objs,
+                         constraints={},
+                         benchmark_name = 'tsp')      
+    bb.connect_agent(nhs.NeighborhoodSearch, 'ka_rp')
+    rp = ns.proxy('ka_rp')
+    rp.set_random_seed(seed=1)
+    rp.set_attr(problem=problem)    
+    
+    rp.set_attr(new_designs=['core_1'])
+    rp.set_attr(lvl_read={'core_1':  {'pareto type' : 'pareto', 'fitness': 1.0}})
+    design =  {'x0': ['0','1','2','3']}
+    assert rp.get_perturbed_design('x0', design, 0.15) == {'x0': ['0','1','3','2']}
+    
+    ns.shutdown()
+    time.sleep(0.1)    
     
 def test_search_method_mixed():
     try:
@@ -135,6 +193,8 @@ def test_search_method_mixed():
     rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
     rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
     rp.set_attr(new_designs=['core_[13.0,250.0,25.0]'])
+    rp.set_attr(core_select='fitness')
+    rp.set_attr(core_select_fraction=1.0)
     rp.search_method()
     assert list(bb.get_attr('abstract_lvls')['level 3']['new'].keys()) == ['core_[1.86,10.0,20.0]', 'core_[1.4,10.0,20.0]', 'core_[13.0,9.5,20.0]', 'core_[13.0,10.5,20.0]', 'core_[13.0,10.0,19.0]', 'core_[13.0,10.0,21.0]']
     assert list(bb.get_attr('abstract_lvls')['level 3']['old'].keys()) == ['core_[13.0,250.0,25.0]']
@@ -168,6 +228,8 @@ def test_multiple_perturbations():
     rp.set_attr(problem=problem)    
     rp.set_random_seed(seed=10893)
     rp.set_attr(additional_perturbations=3)
+    rp.set_attr(core_select='fitness')
+    rp.set_attr(core_select_fraction=1.0)    
 
     rp = ns.proxy('ka_rp_exploit')
     bb.update_abstract_lvl(3, 'core_[13.0,250.0,25.0]', {'design variables': {'x0': 13.0, 'x1': 10.0, 'x2': 20.0},
@@ -207,6 +269,8 @@ def test_force_shutdown():
     rp.set_attr(problem=problem, debug_wait=True, debug_wait_time=0.05)    
     rp.set_attr(lvl_read=bb.get_blackboard()['level 1'], _lvl_data=bb.get_blackboard()['level 3']['old'], new_designs=['core_[0.650,0.650,0.4]'])
     bb.set_attr(_kaar = {0: {}, 1: {'ka_rp_ns': 2}}, _ka_to_execute=('ka_rp_ns', 2))
+    rp.set_attr(core_select='fitness')
+    rp.set_attr(core_select_fraction=1.0)       
     bb.send_executor()
     bb.send_shutdown()
     time.sleep(0.1)

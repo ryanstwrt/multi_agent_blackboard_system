@@ -1,9 +1,9 @@
 from osbrain import run_nameserver
 from osbrain import run_agent
-from src.ka.ka_brs.base import KaBr
+from mabs.ka.ka_brs.base import KaBr
 import time
-import src.bb.blackboard as blackboard
-import src.bb.blackboard_optimization as bb_opt
+import mabs.bb.blackboard as blackboard
+import mabs.bb.blackboard_optimization as bb_opt
 
 def test_init():
     try:

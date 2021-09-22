@@ -1,10 +1,10 @@
-from src.ka.ka_brs.level1 import KaBrLevel1
+from mabs.ka.ka_brs.level1 import KaBrLevel1
 import time
-import src.bb.blackboard as blackboard
-import src.bb.blackboard_optimization as bb_opt
+import mabs.bb.blackboard as blackboard
+import mabs.bb.blackboard_optimization as bb_opt
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.utils.utilities as utils
+import mabs.utils.utilities as utils
     
 def test_init():
     try:

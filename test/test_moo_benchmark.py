@@ -1,4 +1,4 @@
-import src.utils.moo_benchmarks as moo
+import mabs.utils.moo_benchmarks as moo
 import numpy as np
 
 def test_sf_1():

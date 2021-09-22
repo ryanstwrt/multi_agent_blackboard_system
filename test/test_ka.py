@@ -1,8 +1,8 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.bb.blackboard as blackboard
-import src.ka.base as ka
+import mabs.bb.blackboard as blackboard
+import mabs.ka.base as ka
 import time
 import os
 

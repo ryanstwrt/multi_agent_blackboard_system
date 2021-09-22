@@ -1,0 +1,15 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    'osbrain',
+    'numpy',
+    'pandas',
+    'h5py',
+    'scipy',
+    'osbrain',
+    'plotly',
+    'matplotlib',
+    'pymoo'
+]
+build-backend = "setuptools.build_meta"

@@ -1,6 +1,6 @@
-from src.ka.ka_brs.level3 import KaBrLevel3
-import src.bb.blackboard as blackboard
-import src.bb.blackboard_optimization as bb_opt
+from mabs.ka.ka_brs.level3 import KaBrLevel3
+import mabs.bb.blackboard as blackboard
+import mabs.bb.blackboard_optimization as bb_opt
 import time
 from osbrain import run_nameserver
 from osbrain import run_agent

@@ -12,7 +12,7 @@ The following attributes are available for all KA-S global.
     * Description : If true, the agent can only be executed once. If `run_multi_agent_mode=True`, the agent will shutdown upon completing it's action.
     * Default : False
 * run_multi_agent_mode (bool):
-    * Description : If `execute_oncTreu`, the agent will only be executed once and then shutdown. If `run_multi_agent_mode=False`, the agent will remain active, but have a trigger value (TV) of 0 and will not be executed again.
+    * Description : If `execute_once=True`, the agent will only be executed once and then shutdown. If `run_multi_agent_mode=False`, the agent will remain active, but have a trigger value (TV) of 0 and will not be executed again.
     * Default : False
     * Note : This is required for running MABS in single_agent mode, as we require a TV from each agent.
 * _design_accuracy (int):

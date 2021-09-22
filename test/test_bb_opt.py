@@ -1,18 +1,18 @@
 import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
-import src.bb.blackboard as blackboard
-import src.bb.blackboard_optimization as bb_opt
+import mabs.bb.blackboard as blackboard
+import mabs.bb.blackboard_optimization as bb_opt
 import time
 import os
-from src.ka.ka_s.stochastic import Stochastic
-from src.ka.ka_s.latin_hypercube import LatinHypercube
-from src.ka.ka_s.neighborhood_search import NeighborhoodSearch
-from src.utils.problem import BenchmarkProblem
-from src.ka.ka_brs.level3 import KaBrLevel3
-from src.ka.ka_brs.level2 import KaBrLevel2
-from src.ka.ka_brs.level1 import KaBrLevel1
-import src.ka.base as ka
+from mabs.ka.ka_s.stochastic import Stochastic
+from mabs.ka.ka_s.latin_hypercube import LatinHypercube
+from mabs.ka.ka_s.neighborhood_search import NeighborhoodSearch
+from mabs.utils.problem import BenchmarkProblem
+from mabs.ka.ka_brs.level3 import KaBrLevel3
+from mabs.ka.ka_brs.level2 import KaBrLevel2
+from mabs.ka.ka_brs.level1 import KaBrLevel1
+import mabs.ka.base as ka
 
 dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
 objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}    
@@ -568,7 +568,7 @@ def test_log_metadata():
     bb.update_abstract_lvl(1, 'core_[65.1, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})     
     bb.log_metadata()
     
-    assert bb.get_attr('meta_data') == {'hvi': [0.0,], 'dci hvi': [0.0,], 'gd': [0.0, 0.0001], 'igd': [0.0, 0.31842014860754597], 'total tvs': [0.,0.], 'PF size': [0., 2.], 'function evals': [0., 2.]}
+    assert bb.get_attr('meta_data') == {'hvi': [0.0,], 'dci hvi': [0.0,], 'gd': [0.0, 0.0001], 'igd': [0.0, 0.31842014860754597], 'total tvs': [0.], 'PF size': [0., 2.], 'function evals': [0., 2.]}
     ns.shutdown()
     time.sleep(0.05)       
     
