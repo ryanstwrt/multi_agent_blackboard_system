@@ -47,6 +47,8 @@ class KaS(KaBase):
         self.run_multi_agent_mode = False
         
         self._proxy_server = proxy.NSProxy()
+        self.parallel = False
+        self.subagent_addrs = {}
         
     def set_random_seed(self, seed=None):
         """
@@ -167,6 +169,79 @@ class KaS(KaBase):
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
+    def parallel_executor(self):
+        agent = f'ka_sub_{len(self.subagent_addrs)}'
+        self.connect_sub_agent(agent)
+        self.send_sub_executor(agent)
+    
+    def parallel_executor_complete(self):
+        "Check the proxy agents in the subagent list and see if they have completed."
+        agents_complete = [self._proxy_server.proxy(agent).get_attr('complete') for agent in self.subagent_addrs.keys()]
+        return False if False in agents_complete else True
+    
+    def parallel_executor_complete_checker(self):
+        "TODO: Figure out how to break this if an agent fails."
+        while not self.parallel_executor_complete():
+            time.sleep(0.1)
+            if self.kill_switch:
+                self.log_info('Returning agent to allow for shutdown.')
+                return
+        
+    def connect_sub_agent(self, agent_name):
+        """
+        """
+        agent_type = KaSub
+        sub = run_agent(name=agent_name, base=agent_type)
+        sub.set_attr(debug_wait=self.debug_wait, debug_wait_time=self.debug_wait_time)
+        sub.add_prime_ka(self)
+        self.subagent_addrs[agent_name].update({'class': agent_type, 'performing action': True, '_class': sub.get_attr('_class'), 'entry name': None, 'entry': None})
+        sub.connect_sub_executor()
+        sub.connect_sub_shutdown()
+
+    def connect_sub_executor(self, agent_name):
+        alias_name = 'executor_{}'.format(agent_name)
+        executor_addr = self.bind('PUSH', alias=alias_name)
+        self.subagent_addrs[agent_name].update({'executor': (alias_name, executor_addr)})
+        return (alias_name, executor_addr) 
+    
+    def connect_sub_shutdown(self, agent_name):
+        """
+        """
+        alias_name = 'shutdown_{}'.format(agent_name)
+        shutdown_addr = self.bind('PUSH', alias=alias_name)
+        self.subagent_addrs[agent_name].update({'shutdown': (alias_name, shutdown_addr)})
+        return (alias_name, shutdown_addr)  
+    
+    def read_sub_agent_designs(self):
+        for agent_name in self.subagent_addrs.keys():
+            sub_agent = self._proxy_server.proxy(agent_name)
+            self.subagent_addrs[agent_name]['entry name'] = sub_agent.get_attr('_entry_name')
+            self.subagent_addrs[agent_name]['entry'] = sub_agent.get_attr('_entry')        
+            self.subagent_addrs[agent_name]['performing action'] = sub_agent.get_attr('complete')
+
+    def send_sub_shutdown(self):
+        subagent_addrs_copy = copy.copy(self.subagent_addrs)
+        for agent, agent_dict in subagent_addrs_copy.items():
+            self.send(agent_dict['shutdown'][0], 'shutdown')
+            del self.subagent_addrs[agent]
+        time.sleep(0.1)
+        
+    def send_sub_executor(self, agent):
+        self.send(self.subagent_addrs[agent]['executor'][0], (self.current_design_variables, self.problem))
+        
+    def determine_write_to_bb_parallel(self):
+        for agent in self.subagent_addrs.values():
+            design = agent['entry']
+            if agent['entry name'] and len(design['objective functions']) == len(self._objectives) and len(design['constraints']) == len(self._constraints):        
+                self.write_to_bb(self.bb_lvl_data, agent['entry name'], design, panel='new')
+            else:
+                self.log_warning('Failed to log current design due to a failure in objective calculations.')   
+        
+    def determine_parallel_complete(self):
+        self.parallel_executor_complete_checker()
+        self.read_sub_agent_designs()
+        self.determine_write_to_bb_parallel()
+        self.send_sub_shutdown()           
         
 class KaLocal(KaS):
     """
@@ -196,10 +271,7 @@ class KaLocal(KaS):
         self.core_select = 'random'
         self.core_select_fraction = 1.0
         self.optimal_objective = None
-        
-        self.parallel = False
-        self.subagent_addrs = {}
-        
+               
     def check_new_designs(self):
         """
         Check to ensure all designs in `new_designs` are still in `lvl_read`.
@@ -242,19 +314,11 @@ class KaLocal(KaS):
         self.lvl_read = _lvl_read if self.bb_lvl_read == 1 else {**_lvl_read['new'],**_lvl_read['old']}
         _lvl_data = message[1]['level {}'.format(self.bb_lvl_data)]        
         self._lvl_data = {**_lvl_data['new'],**_lvl_data['old']}
-            
         self.search_method()
-            
         self.agent_time = time.time() - t
         self.log_info(f'Time Required: {self.agent_time}')
 
-        self.action_complete()
-        
-    def determine_parallel_complete(self):
-        self.parallel_executor_complete_checker()
-        self.read_sub_agent_designs()
-        self.determine_write_to_bb_parallel()
-        self.send_sub_shutdown()        
+        self.action_complete()     
                                   
     def handler_trigger_publish(self, blackboard):
         """
@@ -346,74 +410,6 @@ class KaLocal(KaS):
             for objective in self.optimal_objective:
                 fitness[core] += utils.scale_value(core_data[objective], self.objectives[objective])
         return max(fitness, key=fitness.get)
-    
-    def parallel_executor(self):
-        agent = f'ka_sub_{len(self.subagent_addrs)}'
-        self.connect_sub_agent(agent)
-        self.send_sub_executor(agent)
-    
-    def parallel_executor_complete(self):
-        "Check the proxy agents in the subagent list and see if they have completed."
-        agents_complete = [self._proxy_server.proxy(agent).get_attr('complete') for agent in self.subagent_addrs.keys()]
-        return False if False in agents_complete else True
-    
-    def parallel_executor_complete_checker(self):
-        "TODO: Figure out how to break this if an agent fails."
-        while not self.parallel_executor_complete():
-            time.sleep(0.1)
-            if self.kill_switch:
-                self.log_info('Returning agent to allow for shutdown.')
-                return
-        
-    def connect_sub_agent(self, agent_name):
-        """
-        """
-        agent_type = KaSub
-        sub = run_agent(name=agent_name, base=agent_type)
-        sub.set_attr(debug_wait=self.debug_wait, debug_wait_time=self.debug_wait_time)
-        sub.add_prime_ka(self)
-        self.subagent_addrs[agent_name].update({'class': agent_type, 'performing action': True, '_class': sub.get_attr('_class'), 'entry name': None, 'entry': None})
-        sub.connect_sub_executor()
-        sub.connect_sub_shutdown()
-
-    def connect_sub_executor(self, agent_name):
-        alias_name = 'executor_{}'.format(agent_name)
-        executor_addr = self.bind('PUSH', alias=alias_name)
-        self.subagent_addrs[agent_name].update({'executor': (alias_name, executor_addr)})
-        return (alias_name, executor_addr) 
-    
-    def connect_sub_shutdown(self, agent_name):
-        """
-        """
-        alias_name = 'shutdown_{}'.format(agent_name)
-        shutdown_addr = self.bind('PUSH', alias=alias_name)
-        self.subagent_addrs[agent_name].update({'shutdown': (alias_name, shutdown_addr)})
-        return (alias_name, shutdown_addr)  
-    
-    def read_sub_agent_designs(self):
-        for agent_name in self.subagent_addrs.keys():
-            sub_agent = self._proxy_server.proxy(agent_name)
-            self.subagent_addrs[agent_name]['entry name'] = sub_agent.get_attr('_entry_name')
-            self.subagent_addrs[agent_name]['entry'] = sub_agent.get_attr('_entry')        
-            self.subagent_addrs[agent_name]['performing action'] = sub_agent.get_attr('complete')
-
-    def send_sub_shutdown(self):
-        subagent_addrs_copy = copy.copy(self.subagent_addrs)
-        for agent, agent_dict in subagent_addrs_copy.items():
-            self.send(agent_dict['shutdown'][0], 'shutdown')
-            del self.subagent_addrs[agent]
-        time.sleep(0.1)
-        
-    def send_sub_executor(self, agent):
-        self.send(self.subagent_addrs[agent]['executor'][0], (self.current_design_variables, self.problem))
-        
-    def determine_write_to_bb_parallel(self):
-        for agent in self.subagent_addrs.values():
-            design = agent['entry']
-            if agent['entry name'] and len(design['objective functions']) == len(self._objectives) and len(design['constraints']) == len(self._constraints):        
-                self.write_to_bb(self.bb_lvl_data, agent['entry name'], design, panel='new')
-            else:
-                self.log_warning('Failed to log current design due to a failure in objective calculations.')   
     
 class KaSub(KaS):
     
