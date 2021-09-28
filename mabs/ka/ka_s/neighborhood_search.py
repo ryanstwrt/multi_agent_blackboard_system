@@ -1,6 +1,7 @@
 from mabs.ka.ka_s.base import KaLocal
 import copy
 from numpy import random
+import time
 
 class NeighborhoodSearch(KaLocal):
     """
@@ -81,10 +82,14 @@ class NeighborhoodSearch(KaLocal):
             self.current_design_variables = design
             self._entry_name = self.get_design_name(self.current_design_variables)
             if self.determine_model_applicability(dv):
-                self.calc_objectives()
-                self.determine_write_to_bb()                
+                if self.parallel:
+                    self.parallel_executor()
+                else:
+                    self.calc_objectives()
+                    self.determine_write_to_bb()                
             if self.kill_switch:
                 self.log_info('Returning agent to allow for shutdown.')
                 return
-        
+        if self.parallel:
+            self.determine_parallel_complete()
         self.analyzed_design[core] = {'Analyzed': True}

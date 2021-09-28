@@ -99,6 +99,7 @@ class HillClimb(KaLocal):
         step_number = 0
         
         while step > self.convergence_criteria:
+            self.log_info(step_number)
             gradient_vector = {}
             next_step = None
             potential_steps = []
@@ -128,16 +129,19 @@ class HillClimb(KaLocal):
                         if temp_design[dv] >= dv_dict['ll'] and temp_design[dv] <= dv_dict['ul']:
                             potential_steps.append((direction, dv, temp_design))
             if self.hc_type == 'simple':
-                
                 random.shuffle(potential_steps)
+                
             while len(potential_steps) != 0:
                 direction, dv, design = potential_steps.pop()
                 self._entry_name = self.get_design_name(design)
                 self.current_design_variables = design 
                 if self.determine_model_applicability(dv):
-                    self.calc_objectives()
-                    if self.determine_write_to_bb():
-                        gradient_vector['{} {}'.format(direction,dv)] = {'design variables': self.current_design_variables, 
+                    if self.parallel and self.hc_type != 'simple':
+                        self.parallel_executor()
+                    else:
+                        self.calc_objectives()
+                        if self.determine_write_to_bb():
+                            gradient_vector['{} {}'.format(direction,dv)] = {'design variables': self.current_design_variables, 
                                                                      'objective functions': {k:v for k,v in self.current_objectives.items()},
                                                                      'constraints': self.current_constraints}
                     if self.hc_type == 'simple':
@@ -149,6 +153,8 @@ class HillClimb(KaLocal):
                             break
                 if self.kill_switch:
                     break
+            if self.parallel and self.hc_type != 'simple':
+                self.determine_parallel_complete()
             if self.kill_switch:
                 break
             

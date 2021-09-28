@@ -68,7 +68,7 @@ class GeneticAlgorithm(KaLocal):
             
         children = []
         num_children = 0
-                
+        self.log_info(population)
         while num_children < self.offspring_per_generation:
             if len(population) < 2:
                 break
@@ -89,6 +89,7 @@ class GeneticAlgorithm(KaLocal):
 
             # Determine if we mutate a child
             for child in children:
+                self.log_info(child)
                 if random.random() < self.mutation_rate:
                     if self.mutation_type == 'random':
                         child = self.random_mutation(child)
@@ -99,9 +100,15 @@ class GeneticAlgorithm(KaLocal):
                         child = self.random_mutation(child)
                 self.current_design_variables = child
                 if self.determine_model_applicability(next(iter(child))):
-                    self.calc_objectives()
-                    self.determine_write_to_bb()
+                    if self.parallel:
+                        self.parallel_executor()
+                    else:
+                        self.calc_objectives()
+                        self.determine_write_to_bb()
                 num_children += len(children)
+                
+            if self.parallel:
+                self.determine_parallel_complete()
             if self.kill_switch:
                 break
             
