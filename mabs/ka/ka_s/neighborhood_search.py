@@ -80,7 +80,9 @@ class NeighborhoodSearch(KaLocal):
         for dv, design in pert_designs:
             self.current_design_variables = design
             self._entry_name = self.get_design_name(self.current_design_variables)
-            self.determine_model_applicability(dv)
+            if self.determine_model_applicability(dv):
+                self.calc_objectives()
+                self.determine_write_to_bb()                
             if self.kill_switch:
                 self.log_info('Returning agent to allow for shutdown.')
                 return

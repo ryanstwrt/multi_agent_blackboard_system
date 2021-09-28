@@ -135,7 +135,9 @@ class HillClimb(KaLocal):
                 self._entry_name = self.get_design_name(design)
                 self.current_design_variables = design 
                 if self.determine_model_applicability(dv):
-                    gradient_vector['{} {}'.format(direction,dv)] = {'design variables': self.current_design_variables, 
+                    self.calc_objectives()
+                    if self.determine_write_to_bb():
+                        gradient_vector['{} {}'.format(direction,dv)] = {'design variables': self.current_design_variables, 
                                                                      'objective functions': {k:v for k,v in self.current_objectives.items()},
                                                                      'constraints': self.current_constraints}
                     if self.hc_type == 'simple':

@@ -26,5 +26,7 @@ class RandomWalk(KaLocal):
             design[dv] = design[dv] + step if direction == '+' else design[dv] - step
             design[dv] = round(design[dv], self._design_accuracy)
             self.current_design_variables = design
-            self.determine_model_applicability(dv)
+            if self.determine_model_applicability(dv):
+                self.calc_objectives()
+                self.determine_write_to_bb()    
         self.analyzed_design[core] = {'Analyzed': True, 'HV': 0.0}

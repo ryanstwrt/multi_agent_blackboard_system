@@ -98,7 +98,9 @@ class GeneticAlgorithm(KaLocal):
                         self.log_warning('Warning: mutation type {} is not implemented, reverting to `random` mutation.'.format(self.mutation_type))
                         child = self.random_mutation(child)
                 self.current_design_variables = child
-                self.determine_model_applicability(next(iter(child)))
+                if self.determine_model_applicability(next(iter(child))):
+                    self.calc_objectives()
+                    self.determine_write_to_bb()
                 num_children += len(children)
             if self.kill_switch:
                 break
