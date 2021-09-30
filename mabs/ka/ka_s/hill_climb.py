@@ -99,7 +99,6 @@ class HillClimb(KaLocal):
         step_number = 0
         
         while step > self.convergence_criteria:
-            self.log_info(step_number)
             gradient_vector = {}
             next_step = None
             potential_steps = []

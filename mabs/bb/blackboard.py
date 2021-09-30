@@ -6,6 +6,8 @@ import numpy as np
 import h5py
 import os
 import re
+import copy
+import time
 
 class Blackboard(Agent):
     """
@@ -271,6 +273,8 @@ class Blackboard(Agent):
         """
         try:
             ka = self._proxy_server.proxy(agent)
+            time.sleep(0.01)
+            #self.log_info((agent,ka.get_attr('_running')))
             if ka.get_attr('_running'):
                 return True
             else:
@@ -286,12 +290,18 @@ class Blackboard(Agent):
         Dioagnostics test repalce an essential agent.
         If the agent is in the required_agents list, and the it is not present, the BB creates an instance of the agent.
         """
-        for agent_name, addrs in self.agent_addrs.items():
+        copy_agent_addrs = copy.copy(self.agent_addrs)
+        for agent_name, addrs in copy_agent_addrs.items():
             present = self.diagnostics_agent_present(agent_name)
             agent_type = addrs['class']
             if not present and agent_type in self.required_agents:
                 self.log_info('Found agent ({}) of type {} not connect. Reconnecting agent.'.format(agent_name, agent_type))
                 self.connect_agent(agent_type, agent_name)
+            elif not present and agent_type not in self.required_agents:
+                self.log_info('Found agent ({}) of type {} not connect and not a required agent type. Removing agent.'.format(agent_name, agent_type))                
+                del self.agent_addrs[agent_name]
+                if agent_name in self.agent_list:
+                    del self.agent_list[self.agent_list.index(agent_name)]
                 
     def determine_complete(self):
         """Holder for determining when a problem will be completed."""

@@ -162,7 +162,7 @@ class BbOpt(blackboard.Blackboard):
             self.determine_complete_hv()
         elif self.convergence_type == 'total tvs':
             ...
-        elif self.convergence_type == 'total function evals':
+        elif self.convergence_type == 'function evals':
             ... 
         else:
             self.log_warning('Convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
@@ -312,7 +312,10 @@ class BbOpt(blackboard.Blackboard):
         for md, array in self.meta_data.items():
             # We skip the HVI and DCI HVI values because we already added them under determine_complete()
             if md == 'hvi':
-                ...
+                if self.convergence_type != 'hvi':
+                    array.append(self.hv_indicator())
+                else:
+                    ...
             elif md == 'dci hvi':
                 ...
             elif md == 'gd':
@@ -337,7 +340,13 @@ class BbOpt(blackboard.Blackboard):
         """
 #        self.log_info(trigger_event, len(self.meta_data))
 #        self.log_info(self.meta_data)
-        entry = {md: array[trigger_event-1] for md, array in self.meta_data.items()}
+#        for md, array in self.meta_data.items():
+#            self.log_info((trigger_event, md, len(array)))
+#            self.log_info(array)
+#        self.log_info(' ')
+#        entry = {md: array[trigger_event-1] for md, array in self.meta_data.items()}
+        #self.log_info(self._proxy_server.agents())
+        entry = {md: array[-1] for md, array in self.meta_data.items()}
         entry.update({'agent': name, 'time': float(time)})
         self.update_abstract_lvl(100, str(trigger_event), entry)
 

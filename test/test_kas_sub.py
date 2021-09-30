@@ -5,6 +5,11 @@ import mabs.ka.ka_s.base as base
 import time
 from mabs.utils.problem import BenchmarkProblem
 import pickle
+import mabs.bb.blackboard_optimization as bb_opt
+import mabs.ka.ka_s.neighborhood_search as nhs
+
+
+
 
 dvs = {'x{}'.format(x):{'ll':0.0, 'ul':1.0, 'variable type': float} for x in range(3)}
 objs = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}    
@@ -63,7 +68,6 @@ def test_add_prime_ka():
     sub.add_prime_ka(prime)
     
     assert sub.get_attr('ka') == prime
-    assert prime.get_attr('subagent_addrs') == {'ka_sub': {}}
    
     ns.shutdown()
     time.sleep(0.1)
@@ -78,7 +82,8 @@ def test_connect_sub_executor():
     sub = run_agent(name='ka_sub', base=base.KaSub)
     prime = run_agent(name='ka_prime', base=base.KaLocal)
     sub.add_prime_ka(prime)
-    sub.connect_sub_executor()
+    prime.set_attr(subagent_addrs={'ka_sub': {}})
+    prime.connect_sub_executor(sub, 'ka_sub')
     
     assert sub.get_attr('_executor_alias') == 'executor_ka_sub'
     assert prime.get_attr('subagent_addrs')['ka_sub']['executor'][0] == 'executor_ka_sub'
@@ -96,7 +101,8 @@ def test_connect_sub_shutdown():
     sub = run_agent(name='ka_sub', base=base.KaSub)
     prime = run_agent(name='ka_prime', base=base.KaLocal)
     sub.add_prime_ka(prime)
-    sub.connect_sub_shutdown()
+    prime.set_attr(subagent_addrs={'ka_sub': {}})
+    prime.connect_sub_shutdown(sub, 'ka_sub')
     
     assert sub.get_attr('_shutdown_alias') == 'shutdown_ka_sub'
     assert prime.get_attr('subagent_addrs')['ka_sub']['shutdown'][0] == 'shutdown_ka_sub'
@@ -129,13 +135,12 @@ def test_sub_shutdown_handler():
         time.sleep(0.5)
         ns = run_nameserver()
 
-    sub = run_agent(name='ka_sub', base=base.KaSub)
     prime = run_agent(name='ka_prime', base=base.KaLocal)
 
-    sub.add_prime_ka(prime)
-    sub.connect_sub_shutdown()
+    prime.connect_sub_agent('ka_sub')
 
-    assert ns.agents() == ['ka_sub','ka_prime']    
+
+    assert ns.agents() == ['ka_prime','ka_sub']    
     prime.send_sub_shutdown()
     time.sleep(0.1)
     assert ns.agents() == ['ka_prime']
@@ -179,7 +184,7 @@ def test_parallel_executor():
     prime.set_attr(current_design_variables={'x0': 0.650, 'x1': 0.650, 'x2': 0.4})
     prime.parallel_executor()
     
-    sub = ns.proxy('ka_sub_0')
+    sub = ns.proxy('ka_prime_sub_0')
     assert sub.get_attr('problem').benchmark_name == 'dtlz1'
     assert sub.get_attr('_entry_name') == 'core_[0.65,0.65,0.4]'
     assert sub.get_attr('_entry') == {'design variables': {'x0': 0.65, 'x1': 0.65, 'x2': 0.4}, 

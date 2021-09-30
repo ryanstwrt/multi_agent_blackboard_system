@@ -468,7 +468,7 @@ def test_parallel_ga():
     rp.set_attr(lvl_read=bb.get_blackboard()['level 1'], _lvl_data=bb.get_blackboard()['level 3']['old'], new_designs=['core_[0.650,0.650,0.4]','core_[0.650,0.750,0.24]','core_[0.950,0.50,0.84]','core_[0.250,0.70,0.2]'])
     bb.set_attr(_kaar = {0: {}, 1: {'ka_rp': 2}}, _ka_to_execute=('ka_rp', 2))
     bb.send_executor()
-    time.sleep(1)
+    time.sleep(2.5)
     assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.65,0.5,0.84]', 'core_[0.95,0.75,0.24]', 'core_[0.25,0.65,0.4]', 'core_[0.65,0.7,0.2]']
 
     ns.shutdown() 

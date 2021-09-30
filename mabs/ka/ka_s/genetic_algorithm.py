@@ -68,7 +68,6 @@ class GeneticAlgorithm(KaLocal):
             
         children = []
         num_children = 0
-        self.log_info(population)
         while num_children < self.offspring_per_generation:
             if len(population) < 2:
                 break
@@ -83,13 +82,14 @@ class GeneticAlgorithm(KaLocal):
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
             elif self.crossover_type == 'linear crossover':
                 children = self.linear_crossover(parent1, parent2)
+            elif self.crossover_type == 'batch crossover':
+                children = self.batch_crossover(parent1, parent2)
             else:
                 self.log_warning('Warning: cross-over type {} is not implemented, reverting to `single-point` cross-over.'.format(self.crossover_rate))
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
 
             # Determine if we mutate a child
             for child in children:
-                self.log_info(child)
                 if random.random() < self.mutation_rate:
                     if self.mutation_type == 'random':
                         child = self.random_mutation(child)

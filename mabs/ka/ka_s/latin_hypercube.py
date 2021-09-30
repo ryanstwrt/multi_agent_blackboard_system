@@ -22,6 +22,7 @@ class LatinHypercube(KaS):
         self.lhd = []
         self._class = 'global search lhc'
         self.execute_once = True
+        self.max_sub_agents = 10
 
     def generate_lhc(self):
         """
@@ -161,7 +162,6 @@ class LatinHypercube(KaS):
         if len(self.lhd) == 0:
             return
         
-        #cur_design = self.lhd.pop(0)
         for sub_num, cur_design in enumerate(self.lhd):
             if self._entry_name not in self._lvl_data.keys():
                 self.get_current_design_variables(cur_design)
@@ -176,11 +176,12 @@ class LatinHypercube(KaS):
                     self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
 
             if self.kill_switch:
-                self.log_info('Returning agent to allow for shutdown.')            
-                return
+                self.log_info('Returning agent to allow for shutdown.')   
+                break
             
         if self.parallel:
-            self.determine_parallel_complete()         
+            self.determine_parallel_complete() 
+        self.lhd = []
             
     def get_current_design_variables(self, design):
         num = 0
@@ -194,7 +195,3 @@ class LatinHypercube(KaS):
                 self.current_design_variables[dv] = utils.get_float_val(design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
             num += 1 if dv_dict['variable type'] != dict else 0       
         self._entry_name = self.get_design_name(self.current_design_variables)
-
-[[0.18138629498362946, 0.12684001013140717, 0.9644321661138323], [0.6729923107231075, 0.07210102792360047, 0.5424381716178905], [0.41465469562070445, 0.7457199480632895, 0.8856743298774347], [0.2722082224147817, 0.5432047030187988, 0.40745619764302127], [0.08913225668239733, 0.42553038882142824, 0.7055500746438945], [0.7004020495426739, 0.8428736768080212, 0.17567958268281822], [0.8007651658464432, 0.27690554664840555, 0.03558726624029601], [0.9877583856561771, 0.6336589240854456, 0.3373125804173238], [0.3718349223824361, 0.3328912631994727, 0.630682853014433], [0.5688959184769032, 0.9003173502289027, 0.2749150974067331]]            
-
-[[0.18138629498362946, 0.12684001013140717, 0.9644321661138323], [0.6729923107231075, 0.07210102792360047, 0.5424381716178905], [0.41465469562070445, 0.7457199480632895, 0.8856743298774347], [0.2722082224147817, 0.5432047030187988, 0.40745619764302127], [0.08913225668239733, 0.42553038882142824, 0.7055500746438945], [0.7004020495426739, 0.8428736768080212, 0.17567958268281822], [0.8007651658464432, 0.27690554664840555, 0.03558726624029601], [0.9877583856561771, 0.6336589240854456, 0.3373125804173238], [0.3718349223824361, 0.3328912631994727, 0.630682853014433], [0.5688959184769032, 0.9003173502289027, 0.2749150974067331]]

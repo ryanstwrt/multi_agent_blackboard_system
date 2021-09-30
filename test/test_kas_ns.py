@@ -312,7 +312,7 @@ def test_parallel_ns():
     rp.set_attr(core_select='fitness')
     bb.send_executor()
     
-    time.sleep(0.5)
+    time.sleep(1.5)
     assert list(bb.get_attr('abstract_lvls')['level 3']['new'].keys()) == ['core_[0.6175,0.65,0.4]', 'core_[0.6825,0.65,0.4]', 'core_[0.65,0.6175,0.4]', 'core_[0.65,0.6825,0.4]', 'core_[0.65,0.65,0.38]', 'core_[0.65,0.65,0.42]']
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['old'].keys()] == ['core_[0.650,0.650,0.4]']
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[0.650,0.650,0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}

@@ -43,7 +43,6 @@ class Stochastic(KaS):
             else:
                 self.current_design_variables[dv] = utils.get_float_val(random.random(), dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
         
-        self.log_info(self.current_design_variables)
         self._entry_name = self.get_design_name(self.current_design_variables)
         if not self.design_check():
             self.search_method()

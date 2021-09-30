@@ -140,7 +140,7 @@ class Controller(object):
                 bb.convergence_update()
                 agent_time = 0
             time.sleep(0.05)
-            
+
         entry = {md: array[trig_num] for md, array in bb.get_attr('meta_data').items()}
         entry.update({'agent': 'final', 'time': time.time()-bb_time})
         bb.update_abstract_lvl(100, 'final', entry)

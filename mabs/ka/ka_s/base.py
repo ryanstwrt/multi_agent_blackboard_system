@@ -49,6 +49,7 @@ class KaS(KaBase):
         self._proxy_server = proxy.NSProxy()
         self.parallel = False
         self.subagent_addrs = {}
+        self.num_subagents = 0
         
     def set_random_seed(self, seed=None):
         """
@@ -111,7 +112,7 @@ class KaS(KaBase):
                 return False
 
             if violated:
-                self.log_info(f'Core {core_name} not examined, design variable {dv} with value {dv_val} outside of limits.')
+                self.log_debug(f'Core {core_name} not examined, design variable {dv} with value {dv_val} outside of limits.')
                 return False    
         return True
        
@@ -170,49 +171,68 @@ class KaS(KaBase):
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
     def parallel_executor(self):
-        agent = f'ka_sub_{len(self.subagent_addrs)}'
+        """
+        Connects and directs a subagent to execute a design
+        """
+        agent = f'{self.name}_sub_{self.num_subagents}'
         self.connect_sub_agent(agent)
         self.send_sub_executor(agent)
+        self.num_subagents+=1
     
     def parallel_executor_complete(self):
-        "Check the proxy agents in the subagent list and see if they have completed."
+        """"
+        Check the proxy agents in the subagent list and see if they have completed.
+        """
         agents_complete = [self._proxy_server.proxy(agent).get_attr('complete') for agent in self.subagent_addrs.keys()]
         return False if False in agents_complete else True
     
     def parallel_executor_complete_checker(self):
-        "TODO: Figure out how to break this if an agent fails."
+        """"
+        Continually check to see if each subagent as completed it's task.
+        TODO: Figure out how to break this if an agent fails.
+        """
         while not self.parallel_executor_complete():
-            time.sleep(0.1)
+            time.sleep(1.)
             if self.kill_switch:
                 self.log_info('Returning agent to allow for shutdown.')
                 return
         
-    def connect_sub_agent(self, agent_name):
+    def connect_sub_agent(self, agent_name, num=0):
         """
+        Connect a subagent to the nameserver and connect the two communication lines
         """
         agent_type = KaSub
+        
         sub = run_agent(name=agent_name, base=agent_type)
+            
         sub.set_attr(debug_wait=self.debug_wait, debug_wait_time=self.debug_wait_time)
         sub.add_prime_ka(self)
-        self.subagent_addrs[agent_name].update({'class': agent_type, 'performing action': True, '_class': sub.get_attr('_class'), 'entry name': None, 'entry': None})
-        sub.connect_sub_executor()
-        sub.connect_sub_shutdown()
+        self.subagent_addrs[agent_name] = {'class': agent_type, 'performing action': True, '_class': sub.get_attr('_class'), 'entry name': None, 'entry': None}
+        self.connect_sub_executor(sub, agent_name)
+        self.connect_sub_shutdown(sub, agent_name)
 
-    def connect_sub_executor(self, agent_name):
+    def connect_sub_executor(self, agent, agent_name):
+        """
+        Connect the executor line of communiication to tell the subagent to perform its task
+        """
         alias_name = 'executor_{}'.format(agent_name)
         executor_addr = self.bind('PUSH', alias=alias_name)
         self.subagent_addrs[agent_name].update({'executor': (alias_name, executor_addr)})
-        return (alias_name, executor_addr) 
+        agent.connect_sub_executor(alias_name, executor_addr)
     
-    def connect_sub_shutdown(self, agent_name):
+    def connect_sub_shutdown(self, agent, agent_name):
         """
+        Connect the shutdown line of communiication to tell the subagent to shutdown
         """
         alias_name = 'shutdown_{}'.format(agent_name)
         shutdown_addr = self.bind('PUSH', alias=alias_name)
         self.subagent_addrs[agent_name].update({'shutdown': (alias_name, shutdown_addr)})
-        return (alias_name, shutdown_addr)  
+        agent.connect_sub_shutdown(alias_name, shutdown_addr)
     
     def read_sub_agent_designs(self):
+        """
+        Read the design information from the subagent once it has completed it's task
+        """
         for agent_name in self.subagent_addrs.keys():
             sub_agent = self._proxy_server.proxy(agent_name)
             self.subagent_addrs[agent_name]['entry name'] = sub_agent.get_attr('_entry_name')
@@ -220,16 +240,28 @@ class KaS(KaBase):
             self.subagent_addrs[agent_name]['performing action'] = sub_agent.get_attr('complete')
 
     def send_sub_shutdown(self):
+        """
+        Send the shutdown message to the sub agent and close all communications sockets.
+        This will prevent errors of having too many sockets open.
+        """
         subagent_addrs_copy = copy.copy(self.subagent_addrs)
         for agent, agent_dict in subagent_addrs_copy.items():
             self.send(agent_dict['shutdown'][0], 'shutdown')
+            self.close(self.subagent_addrs[agent][f'executor'][0])
+            self.close(self.subagent_addrs[agent][f'shutdown'][0])
             del self.subagent_addrs[agent]
-        time.sleep(0.1)
+#        time.sleep(1.0)
         
     def send_sub_executor(self, agent):
+        """
+        Send the executor message to the subagent, we pass the current deisign variables and the problem statement.
+        """
         self.send(self.subagent_addrs[agent]['executor'][0], (self.current_design_variables, self.problem))
         
     def determine_write_to_bb_parallel(self):
+        """
+        Loop through each of the subagents that has performed a design simulation and determine if it should be written to the blackboard.
+        """
         for agent in self.subagent_addrs.values():
             design = agent['entry']
             if agent['entry name'] and len(design['objective functions']) == len(self._objectives) and len(design['constraints']) == len(self._constraints):        
@@ -238,6 +270,9 @@ class KaS(KaBase):
                 self.log_warning('Failed to log current design due to a failure in objective calculations.')   
         
     def determine_parallel_complete(self):
+        """
+        Determine if all subagents have completed their task, and once they do, we read in the designs, write them to the BB, and shutdown the agents.
+        """
         self.parallel_executor_complete_checker()
         self.read_sub_agent_designs()
         self.determine_write_to_bb_parallel()
@@ -317,7 +352,6 @@ class KaLocal(KaS):
         self.search_method()
         self.agent_time = time.time() - t
         self.log_info(f'Time Required: {self.agent_time}')
-
         self.action_complete()     
                                   
     def handler_trigger_publish(self, blackboard):
@@ -423,9 +457,9 @@ class KaSub(KaS):
         """
         """
         self.ka = ka
-        ka_agent_addr = self.ka.get_attr('subagent_addrs')
-        ka_agent_addr[self.name] = {}
-        self.ka.set_attr(subagent_addrs=ka_agent_addr)    
+        #ka_agent_addr = self.ka.get_attr('subagent_addrs')
+        #ka_agent_addr[self.name] = {}
+        #self.ka.set_attr(subagent_addrs=ka_agent_addr)    
         
     def get_design_name(self, design):
         """    
@@ -438,22 +472,26 @@ class KaSub(KaS):
         name += str(dv_).replace("'", "")
         name = name.replace(" ", "")
         return name        
-        
-    def connect_sub_executor(self):
+       
+    def connect_sub_executor(self, alias_name, executor_addr):
         """Create a push-pull communication channel to execute KaSub."""
-        self._executor_alias, self._executor_addr = self.ka.connect_sub_executor(self.name)
+        self._executor_alias, self._executor_addr = alias_name, executor_addr
         self.connect(self._executor_addr, alias=self._executor_alias, handler=self.handler_sub_executor)
         self.log_debug('Agent {} connected executor to BB'.format(self.name))    
         
-    def connect_sub_shutdown(self):
+    def connect_sub_shutdown(self, alias_name, executor_addr):
         """Creates a reply-requst communication channel for the KA to be shutdown by the BB"""
-        self._shutdown_alias, self._shutdown_addr = self.ka.connect_sub_shutdown(self.name)
+        self._shutdown_alias, self._shutdown_addr = alias_name, executor_addr
         self.connect(self._shutdown_addr, alias=self._shutdown_alias, handler=self.handler_sub_shutdown)
         self.log_debug('Agent {} connected shutdown to BB'.format(self.name))
 
     def handler_sub_shutdown(self, message):
+        """
+        Note that we close all communication sockets to ensure we do not violate the number of open sockets.
+        """
         self.log_debug('Sub-Agent {} shutting down'.format(self.name))
         self.kill_switch = True
+        self.close_all()
         self.shutdown()      
         
     
