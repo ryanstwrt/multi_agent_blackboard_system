@@ -271,14 +271,16 @@ class Blackboard(Agent):
         """
         try:
             ka = self._proxy_server.proxy(agent)
-            if ka.get_attr('_running'):
-                return True
-            else:
-                ka.kill()
-                self.log_info('Agent {} found non-responsive, killing agent.'.format(agent))
-                return False
         except:
+            self.log_info(self._proxy_server.agents())
             self.log_info('Found no agent named {}'.format(agent))
+            return False
+        
+        if ka.get_attr('_running'):
+            return True
+        else:
+            ka.kill()
+            self.log_info('Agent {} found non-responsive, killing agent.'.format(agent))
             return False
     
     def diagnostics_replace_agent(self):
@@ -291,7 +293,10 @@ class Blackboard(Agent):
             agent_type = addrs['class']
             if not present and agent_type in self.required_agents:
                 self.log_info('Found agent ({}) of type {} not connect. Reconnecting agent.'.format(agent_name, agent_type))
-                self.connect_agent(agent_type, agent_name)
+                try:
+                    self.connect_agent(agent_type, agent_name)
+                except:
+                    self.log_info('Could not reconnect agent ({}) of type (). '.format(agent_name, agent_type))
                 
     def determine_complete(self):
         """Holder for determining when a problem will be completed."""

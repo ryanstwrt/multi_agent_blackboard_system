@@ -229,6 +229,7 @@ class KaLocal(KaS):
         
         KA will perturb the core via the perturbations method and write all results the BB
         """
+#        self.clear_entry()
         t = time.time()
         self._trigger_event = message[0]
         self.log_debug('Executing agent {}'.format(self.name))
