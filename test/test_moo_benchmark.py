@@ -35,13 +35,13 @@ def test_tsp():
 def test_welded_beam():
     tsp = moo.optimization_test_functions('welded_beam')
     val = tsp.predict('welded_beam', [1.15081317, 1.15874195, 9.99999932, 4.99999488])
-    val = [round(x, 6) for x in val['F']]
+    val = [round(x, 6) for x in val['F'][0]]
     assert  val == [3.8159607e+01, 4.39e-04]
     
 def test_truss_2d():
     tsp = moo.optimization_test_functions('truss2d')
     val = tsp.predict('truss_2d', [0.05,0.05,1.5])
-    val = [round(x, 6) for x in val['F']]
+    val = [round(x, 6) for x in val['F'][0]]
     assert  val == [0.303739, 1922.96068]    
 
 def test_re21():

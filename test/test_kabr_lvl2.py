@@ -15,7 +15,7 @@ def test_init():
     ka_br2 = run_agent(name='ka_br2', base=KaBrLevel2)
     assert ka_br2.get_attr('bb_lvl_write') == 1
     assert ka_br2.get_attr('bb_lvl_read') == 2
-    assert ka_br2.get_attr('_num_allowed_entries') == 10
+    assert ka_br2.get_attr('_num_allowed_entries') == 50
     assert ka_br2.get_attr('_trigger_val_base') == 4.00000000002
     assert ka_br2.get_attr('_fitness') == 0.0
     

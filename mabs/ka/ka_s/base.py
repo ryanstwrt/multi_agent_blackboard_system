@@ -1,5 +1,7 @@
 from mabs.ka.base import KaBase
 import mabs.utils.utilities as utils
+from osbrain import proxy
+from osbrain import run_agent
 import copy
 import time
 from numpy import random
@@ -44,6 +46,11 @@ class KaS(KaBase):
         self.execute_once = False
         self.run_multi_agent_mode = False
         
+        self._proxy_server = proxy.NSProxy()
+        self.parallel = False
+        self.subagent_addrs = {}
+        self.num_subagents = 0
+        
     def set_random_seed(self, seed=None):
         """
         Sets the random seed number to provide a reproducabel result
@@ -71,12 +78,13 @@ class KaS(KaBase):
             time.sleep(self.debug_wait_time)
             
         self._entry_name = self.get_design_name(self.current_design_variables)
-
         self.current_objectives, self.current_constraints = self.problem.evaluate(self.current_design_variables)
-              
         self._entry = {'design variables': self.current_design_variables, 
                        'objective functions': self.current_objectives,
                        'constraints': self.current_constraints}
+        
+        if 'subagent' not in self._class:
+            self.heartbeat()
     
     def clear_entry(self):
         self._entry = {}
@@ -106,13 +114,15 @@ class KaS(KaBase):
                 return False
 
             if violated:
-                self.log_info(f'Core {core_name} not examined, design variable {dv} with value {dv_val} outside of limits.')
+                self.log_debug(f'Core {core_name} not examined, design variable {dv} with value {dv_val} outside of limits.')
                 return False    
         return True
        
     def get_design_name(self, design):
         """
         Generate the design name given the multiple dv options
+        
+        TODO: Change _design_variables to problems.dvs (update in tests)
         """
         name = 'core_'
         dv_ = []
@@ -162,6 +172,123 @@ class KaS(KaBase):
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
+    def parallel_executor(self):
+        """
+        Connects and directs a subagent to execute a design
+        """
+        agent = f'{self.name}_sub_{self.num_subagents}'
+        self.connect_sub_agent(agent)
+        self.send_sub_executor(agent)
+        self.num_subagents+=1
+    
+    def parallel_executor_complete(self):
+        """"
+        Check the proxy agents in the subagent list and see if they have completed.
+        We wait an initial amount of time (the approximate time for a simulation) before we start checking for messages.
+        
+        TODO: Figure out a way to determine if an agent fails.
+        """
+        time.sleep(self.debug_wait_time*1.05)
+        for agent, agent_dict in self.subagent_addrs.items():
+            #if agent in self._proxy_server.agents():
+            entry_name, entry, complete = self.recv(agent_dict['heartbeat'][0])[2]
+            self.subagent_addrs[agent]['entry name'] = entry_name
+            self.subagent_addrs[agent]['entry'] = entry        
+            self.subagent_addrs[agent]['performing action'] = complete
+            self.log_debug(f'Heartbeat for {agent} detected.')
+        return True
+                
+    def connect_sub_agent(self, agent_name, num=0):
+        """
+        Connect a subagent to the nameserver and connect the two communication lines
+        """
+        agent_type = KaSub
+        try:
+            sub = run_agent(name=agent_name, base=agent_type)
+        except:
+            time.sleep(1)
+            self.log_warning(f'failed to create {agent_name}')
+            self.connect_sub_agent(agent_name, num=num+1)
+        
+        sub.set_attr(debug_wait=self.debug_wait, debug_wait_time=self.debug_wait_time)
+        sub.add_prime_ka(self)
+        self.subagent_addrs[agent_name] = {'class': agent_type, 'performing action': True, '_class': sub.get_attr('_class'), 'entry name': None, 'entry': None}
+        self.connect_sub_executor(sub, agent_name)
+        self.connect_sub_shutdown(sub, agent_name)
+        self.connect_sub_heartbeat(sub, agent_name)
+
+    def connect_sub_heartbeat(self, message):
+        agent_name, complete_addr, complete_alias = message
+        self.subagent_addrs[agent_name].update({'heartbeat': (complete_alias, complete_addr)})
+        self.connect(complete_addr, alias=complete_alias, handler=self.handler_agent_heartbeat)
+        
+    def connect_sub_executor(self, agent, agent_name):
+        """
+        Connect the executor line of communiication to tell the subagent to perform its task
+        """
+        alias_name = 'executor_{}'.format(agent_name)
+        executor_addr = self.bind('PUSH', alias=alias_name)
+        self.subagent_addrs[agent_name].update({'executor': (alias_name, executor_addr)})
+        agent.connect_sub_executor(alias_name, executor_addr)
+    
+    def connect_sub_shutdown(self, agent, agent_name):
+        """
+        Connect the shutdown line of communiication to tell the subagent to shutdown
+        """
+        alias_name = 'shutdown_{}'.format(agent_name)
+        shutdown_addr = self.bind('PUSH', alias=alias_name)
+        self.subagent_addrs[agent_name].update({'shutdown': (alias_name, shutdown_addr)})
+        agent.connect_sub_shutdown(alias_name, shutdown_addr)
+        ### Connect a sub heartbeat with a request reply, where we periodically check the reply?
+
+    def connect_sub_heartbeat(self, agent, agent_name):
+        alias_name = 'heartbeat_{}'.format(agent_name)
+        heartbeat_addr = self.bind('ASYNC_REP', alias=alias_name, handler=self.handler_sub_heartbeat)
+        self.subagent_addrs[agent_name].update({'heartbeat': (alias_name, heartbeat_addr)})
+        agent.connect_sub_heartbeat(alias_name, heartbeat_addr)
+        
+    def handler_sub_heartbeat(self, message):
+        ...
+        
+    def send_sub_shutdown(self):
+        """
+        Send the shutdown message to the sub agent and close all communications sockets.
+        This will prevent errors of having too many sockets open.
+        """
+        subagent_addrs_copy = copy.copy(self.subagent_addrs)
+        for agent, agent_dict in subagent_addrs_copy.items():
+            self.send(agent_dict['shutdown'][0], 'shutdown')
+            self.close(self.subagent_addrs[agent][f'executor'][0])
+            self.close(self.subagent_addrs[agent][f'shutdown'][0])
+            self.close(self.subagent_addrs[agent][f'heartbeat'][0])
+            del self.subagent_addrs[agent]
+        
+    def send_sub_executor(self, agent):
+        """
+        Send the executor message to the subagent, we pass the current deisign variables and the problem statement.
+        """
+        self.send(self.subagent_addrs[agent]['executor'][0], (self.current_design_variables, self.problem))
+        
+    def determine_write_to_bb_parallel(self):
+        """
+        Loop through each of the subagents that has performed a design simulation and determine if it should be written to the blackboard.
+        """
+        for agent in self.subagent_addrs.values():
+            design = agent['entry']
+            if agent['entry name'] and len(design['objective functions']) == len(self._objectives) and len(design['constraints']) == len(self._constraints):
+                self.write_to_bb(self.bb_lvl_data, agent['entry name'], design, panel='new')
+            else:
+                self.log_ingp(agent)
+                self.log_warning('Failed to log current design due to a failure in objective calculations.')   
+        
+    def determine_parallel_complete(self):
+        """
+        Determine if all subagents have completed their task, and once they do, we read in the designs, write them to the BB, and shutdown the agents.
+        """
+        self.parallel_executor_complete()
+        self.determine_write_to_bb_parallel()
+        self.send_sub_shutdown()  
+        self.heartbeat()
         
 class KaLocal(KaS):
     """
@@ -190,8 +317,8 @@ class KaLocal(KaS):
         self.reanalyze_designs = False
         self.core_select = 'random'
         self.core_select_fraction = 1.0
-        self.optimal_objective = None
-        
+        self.optimal_objective = []
+               
     def check_new_designs(self):
         """
         Check to ensure all designs in `new_designs` are still in `lvl_read`.
@@ -211,13 +338,12 @@ class KaLocal(KaS):
         dv_dict = self._design_variables[dv]
         dv_cur_val = self.current_design_variables[dv]
         core_name = self.get_design_name(self.current_design_variables)
-        if not self.design_check():
-            return False
+        return False if not self.design_check() else True
         
-        self.calc_objectives()
+    def determine_write_to_bb(self):
+        
         if self._entry_name and len(self.current_objectives) == len(self._objectives) and len(self.current_constraints) == len(self._constraints):        
             self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
-            self.log_debug('Perturbed variable {} with value {}'.format(dv, dv_cur_val))    
         else:
             self.log_warning('Failed to log current design due to a failure in objective calculations.')
             return False
@@ -229,19 +355,19 @@ class KaLocal(KaS):
         
         KA will perturb the core via the perturbations method and write all results the BB
         """
-#        self.clear_entry()
+        self.clear_entry()
         t = time.time()
         self._trigger_event = message[0]
-        self.log_debug('Executing agent {}'.format(self.name))
         _lvl_read = message[1]['level {}'.format(self.bb_lvl_read)]
         self.lvl_read = _lvl_read if self.bb_lvl_read == 1 else {**_lvl_read['new'],**_lvl_read['old']}
         _lvl_data = message[1]['level {}'.format(self.bb_lvl_data)]        
         self._lvl_data = {**_lvl_data['new'],**_lvl_data['old']}
-            
+
         self.search_method()
         self.agent_time = time.time() - t
-        self.action_complete()
-                      
+        self.log_info(f'Time Required: {self.agent_time}')
+        self.action_complete()     
+                                  
     def handler_trigger_publish(self, blackboard):
         """
         Read the BB level and determine if an entry is available.
@@ -270,12 +396,6 @@ class KaLocal(KaS):
         
     def search_method(self):
         """
-        Perturb a core design
-        
-        This first selects a core at random from abstract level 1 (from the 'new' panel).
-        It then perturbs each design variable independent by the values in perturbations, this produces n*m new cores (n = # of design variables, m = # of perturbations)
-        
-        These results are written to the BB level 3, so there are design_vars * pert added to level 3.
         """
         raise NotImplementedError('KaLocal is a base class, and should be inherited from')
 
@@ -332,3 +452,67 @@ class KaLocal(KaS):
             for objective in self.optimal_objective:
                 fitness[core] += utils.scale_value(core_data[objective], self.objectives[objective])
         return max(fitness, key=fitness.get)
+    
+class KaSub(KaS):
+    
+    def on_init(self):
+        super().on_init()
+        self._class = 'search subagent'
+        self.ka = None
+        self.complete = False
+       
+    def add_prime_ka(self, ka):
+        """
+        """
+        self.ka = ka
+        
+    def get_design_name(self, design):
+        """    
+        Generate the design name given the multiple dv options
+        """
+        name = 'core_'
+        dv_ = []
+        for dv, dv_data in self.problem.dvs.items():
+            dv_.append(design[dv])
+        name += str(dv_).replace("'", "")
+        name = name.replace(" ", "")
+        return name        
+       
+    def connect_sub_executor(self, alias_name, executor_addr):
+        """Create a push-pull communication channel to execute KaSub."""
+        self._executor_alias, self._executor_addr = alias_name, executor_addr
+        self.connect(self._executor_addr, alias=self._executor_alias, handler=self.handler_sub_executor)
+        self.log_debug('Agent {} connected executor to BB'.format(self.name))    
+        
+    def connect_sub_shutdown(self, alias_name, executor_addr):
+        """Creates a reply-requst communication channel for the KA to be shutdown by the BB"""
+        self._shutdown_alias, self._shutdown_addr = alias_name, executor_addr
+        self.connect(self._shutdown_addr, alias=self._shutdown_alias, handler=self.handler_sub_shutdown)
+        self.log_debug('Agent {} connected shutdown to BB'.format(self.name))
+
+    def connect_sub_heartbeat(self, alias_name, sub_heartbeat_addr):
+        """Create a push-pull communication channel to execute KA."""
+        self._heartbeat_alias, self._heartbeat_addr = alias_name, sub_heartbeat_addr
+        self.connect(sub_heartbeat_addr, alias=self._heartbeat_alias)
+        self.log_debug('Sub Agent {} connected heartbeat to prime agent'.format(self.name))
+        
+    def handler_sub_shutdown(self, message):
+        """
+        Note that we close all communication sockets to ensure we do not violate the number of open sockets.
+        """
+        self.log_debug('Sub-Agent {} shutting down'.format(self.name))
+        if message == 'kill':
+            self.kill_switch = True
+        #self.close_all()
+        self.shutdown()      
+    
+    def handler_sub_executor(self, message):
+        """
+        Execution handler for KA-RP.
+        
+        KA will perturb the core via the perturbations method and write all results the BB
+        """
+        self.current_design_variables, self.problem = message
+        self.calc_objectives()  
+        self.send(self._heartbeat_alias, (self._entry_name, self._entry, self.complete))
+        self.complete = True

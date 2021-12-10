@@ -12,7 +12,8 @@ def hypervolume_indicator(pf, upper_ref):
     upper_ref : list
     """
     hv = get_performance_indicator("hv", ref_point=np.array(upper_ref))
-    
+    print(pf)
+    print(np.array(pf))
     return float(hv.do(np.array(pf)))
 
 class diversity_comparison_indicator(object):

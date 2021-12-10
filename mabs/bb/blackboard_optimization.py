@@ -53,6 +53,8 @@ class BbOpt(blackboard.Blackboard):
         self.meta_data_to_log = []
         self.meta_data = {}
 
+        self.hard_shutdown = False
+        
     def controller(self):
         """Determines which KA to select after a trigger event."""
         self.log_debug('Determining which KA to execute')
@@ -162,7 +164,7 @@ class BbOpt(blackboard.Blackboard):
             self.determine_complete_hv()
         elif self.convergence_type == 'total tvs':
             ...
-        elif self.convergence_type == 'total function evals':
+        elif self.convergence_type == 'function evals':
             ... 
         else:
             self.log_warning('Convergence type ({}) not recognized, reverting to total TVs'.format(self.convergence_type))
@@ -240,6 +242,7 @@ class BbOpt(blackboard.Blackboard):
         return self.meta_data.get('hvi')
 
     def get_complete_status(self):
+        self.log_debug('Getting complete status')
         return self._complete
 
     def get_pf(self, scaled=True):
@@ -261,13 +264,15 @@ class BbOpt(blackboard.Blackboard):
         self.log_debug('Logging agent {} complete.'.format(message[0]))
         self.agent_addrs[message[0]].update({'performing action':False})
         self.meta_data_entry(message[0], message[1], message[2])
-
+                
     def hv_indicator(self):
         """
         Calculate the Hypervolume for the current pareto front
+        
+        Make sure we pass back a 0 if there are not results present on the PF
         """
         pf = self.get_pf()
-        return pm.hypervolume_indicator(pf, self.objectives_ul)
+        return pm.hypervolume_indicator(pf, self.objectives_ul) if len(pf) > 0 else 0.
 
     def initialize_abstract_level_3(self, objectives={}, design_variables={}, constraints={}):
         """
@@ -312,13 +317,20 @@ class BbOpt(blackboard.Blackboard):
         for md, array in self.meta_data.items():
             # We skip the HVI and DCI HVI values because we already added them under determine_complete()
             if md == 'hvi':
-                ...
+                if self.convergence_type != 'hvi':
+                    array.append(self.hv_indicator())
+                else:
+                    ...
             elif md == 'dci hvi':
                 ...
             elif md == 'gd':
-                array.append(bu.get_indicator('gd', self.problem.benchmark_name, self.get_pf(scaled=False)))
+                pf = self.get_pf(scaled=False)
+                gd = bu.get_indicator('gd', self.problem.benchmark_name, pf) if len(pf) > 0 else 0.
+                array.append(gd)
             elif md == 'igd':
-                array.append(bu.get_indicator('igd', self.problem.benchmark_name, self.get_pf(scaled=False)))
+                pf = self.get_pf(scaled=False)
+                igd = bu.get_indicator('igd', self.problem.benchmark_name, pf) if len(pf) > 0 else 0.
+                array.append(igd)
             elif md == 'function evals':
                 function_evals = float(len({**self.abstract_lvls['level 3']['old'], **self.abstract_lvls['level 3']['new']}))
                 array.append(function_evals)
@@ -335,9 +347,7 @@ class BbOpt(blackboard.Blackboard):
 
         Trigger events start at 1, not 0, so we offset by 1 when looking at the vals
         """
-#        self.log_info(trigger_event, len(self.meta_data))
-#        self.log_info(self.meta_data)
-        entry = {md: array[trigger_event-1] for md, array in self.meta_data.items()}
+        entry = {md: array[-1] for md, array in self.meta_data.items()}
         entry.update({'agent': name, 'time': float(time)})
         self.update_abstract_lvl(100, str(trigger_event), entry)
 
@@ -424,40 +434,56 @@ class BbOpt(blackboard.Blackboard):
         We follow this up by running the three blackboard reader agents, where we wait until each one is complete before moving to the next.
         We finish this by shutting down the blackboard reader agents.
         """
-
         search_agents = {ka: self.agent_addrs[ka] for ka in self.agent_list if 'reader' not in self.agent_addrs[ka]['_class']}
-
         if search_agents != {}:
+            self.log_info(' ')
             for agent_name, connections in search_agents.items():
+                save_agent = False
+                
                 if not connections['shutdown']:
-                    ...
+                    self.log_info(f'Agent {agent_name} does not have a shutdown method associated with this BA.')
+                elif not self.diagnostic_check_hearbeat(agent_name):
+                    self.log_info(f'Agent {agent_name} not present in the simulation.')
+                    self.agent_addrs[agent_name]['performing action'] = False
+                    
                 elif connections['performing action']:
-                    agent = self._proxy_server.proxy(agent_name)
-                    agent.unsafe.handler_shutdown('kill')
-                elif not self.diagnostics_agent_present(agent_name):
-                    ...
+                    save_agent = True
+                    self.log_info(f'Sending shutdown to {agent_name} who is performing action')
+                    self.agent_addrs[agent_name]['message'] = True
+                    
+                    if self.hard_shutdown == True:
+                        # hard set the heatbeats to be greater than the limit, and make it seem as if the agent is not performing an action
+                        self.agent_addrs[agent_name]['missed heartbeat'] = self.missed_heartbeat_limit + 10
+                        self.agent_addrs[agent_name]['performing action'] = False
                 else:
+                    self.log_info(f'Sending shutdown to {agent_name} who is not performing an action')
                     self.send(connections['shutdown'][0], "shutdown")
-                try:
-                    self.agent_list.remove(agent_name)
-                except:
-                    ...
 
-        if True in [ka['performing action'] for ka in self.agent_addrs.values()]:
-            #self.log_info('Waiting for agents to finish action')
-            return
+                if agent_name in self.agent_list and not save_agent:
+                    self.log_info(f'Removing: {agent_name}')
+                    self.agent_list.remove(agent_name)
+                    
+        agents_waiting = [k for k,v in self.agent_addrs.items() if v['performing action']]
+        # if True in agent_waiting and self.time < self.maximum_time:
+        if len(agents_waiting) > 0:
+            for agent in agents_waiting:
+                self.diagnostic_check_hearbeat(agent)
+            self.log_info(f'Waiting for {agents_waiting} to finish action')
+            return False
 
         if self.final_trigger > 0:
             ka_ = [ka for ka, ka_dict in self.agent_addrs.items() if str(self.final_trigger) in ka_dict['class'].__name__]
             self._ka_to_execute=(ka_[0], 2)
             self.send_executor()
             self.final_trigger -= 1
-            return
+            return False
+        
         # Add something for inter-agent BB
-        agent_addrs = copy.copy(self.agent_addrs)
-        for agent_name in self.agent_list:
+        agent_list = copy.copy(self.agent_list)
+        for agent_name in agent_list:
             self.send(self.agent_addrs[agent_name]['shutdown'][0], "shutdown")
             self.agent_list.remove(agent_name)
+        return True
 
     def set_random_seed(self, seed=None):
         """

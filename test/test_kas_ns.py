@@ -25,7 +25,7 @@ def test_init():
 
     assert rp.get_attr('_base_trigger_val') == 5.00001
     assert rp.get_attr('perturbation_size') == 0.05
-    assert rp.get_attr('neighboorhod_search') == 'fixed'
+    assert rp.get_attr('neighborhood_search') == 'fixed'
     assert rp.get_attr('_class') == 'local search neighborhood search'
 
     ns.shutdown()
@@ -60,6 +60,42 @@ def test_search_method_continuous():
     assert list(bb.get_attr('abstract_lvls')['level 3']['new'].keys()) == ['core_[0.6175,0.65,0.4]', 'core_[0.6825,0.65,0.4]', 'core_[0.65,0.6175,0.4]', 'core_[0.65,0.6825,0.4]', 'core_[0.65,0.65,0.38]', 'core_[0.65,0.65,0.42]']
     assert [core for core in bb.get_attr('abstract_lvls')['level 3']['old'].keys()] == ['core_[0.650,0.650,0.4]']
     assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[0.650,0.650,0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+
+    ns.shutdown()
+    time.sleep(0.1)
+    
+def test_search_method_continuous_overlimit():
+    dvs1 = {'x{}'.format(x):{'ll':0.50, 'ul':1.0, 'variable type': float} for x in range(3)}
+    objs1 = {'f{}'.format(x): {'ll':0.0, 'ul':1000, 'goal':'lt', 'variable type': float} for x in range(3)}   
+    
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs1, design_variables=dvs1)
+    bb.connect_agent(nhs.NeighborhoodSearch, 'ka_rp_exploit')
+    
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(problem=problem)    
+    rp.set_random_seed(seed=10893)
+
+    rp = ns.proxy('ka_rp_exploit')
+    bb.update_abstract_lvl(3, 'core_[0.51,0.99,0.99]', {'design variables': {'x0': 0.51, 'x1': 0.99, 'x2': 0.99},
+                                                          'objective functions': {'f0': 999.0, 'f1': 999.0, 'f2' : 999.0}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[0.51,0.99,0.99]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[0.51,0.99,0.99]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(new_designs=['core_[0.51,0.99,0.99]'])
+    rp.search_method()
+
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new'].keys()) == ['core_[0.5,0.99,0.99]', 'core_[0.5355,0.99,0.99]', 'core_[0.51,0.9405,0.99]', 'core_[0.51,1.0,0.99]', 'core_[0.51,0.99,0.9405]', 'core_[0.51,0.99,1.0]']
+
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['old'].keys()] == ['core_[0.51,0.99,0.99]']
 
     ns.shutdown()
     time.sleep(0.1)
@@ -274,8 +310,94 @@ def test_force_shutdown():
     bb.send_executor()
     bb.send_shutdown()
     time.sleep(0.1)
+    bb.send_shutdown() #send a second shutdown to check if it is complete
+    time.sleep(0.3)        
     assert ns.agents() == ['blackboard']
     assert list(bb.get_blackboard()['level 3']['new'].keys()) == ['core_[0.6175,0.65,0.4]']
 
     ns.shutdown() 
     time.sleep(0.1)      
+    
+def test_parallel_ns():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.initialize_metadata_level()
+    bb.connect_agent(nhs.NeighborhoodSearch, 'ka_rp_exploit')
+    
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(problem=problem)  
+    rp.set_attr(parallel=True, debug_wait=True, debug_wait_time=0.1)  
+    rp.set_random_seed(seed=10893)
+
+    rp = ns.proxy('ka_rp_exploit')
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+ 
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[0.650,0.650,0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(new_designs=['core_[0.650,0.650,0.4]'])
+    rp.set_attr(core_select_fraction=1.0) 
+    bb.set_attr(_kaar = {0: {}, 1: {'ka_rp_exploit': 2}}, _ka_to_execute=('ka_rp_exploit', 2))
+    rp.set_attr(core_select='fitness')
+    bb.send_executor()
+    
+    time.sleep(1.5)
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new'].keys()) == ['core_[0.6175,0.65,0.4]', 'core_[0.6825,0.65,0.4]', 'core_[0.65,0.6175,0.4]', 'core_[0.65,0.6825,0.4]', 'core_[0.65,0.65,0.38]', 'core_[0.65,0.65,0.42]']
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['old'].keys()] == ['core_[0.650,0.650,0.4]']
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[0.650,0.650,0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+
+    assert ns.agents() == ['blackboard', 'ka_rp_exploit']
+                
+    ns.shutdown()
+    time.sleep(0.1)
+    
+def test_serial_ns():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs)
+    bb.initialize_metadata_level()
+    bb.connect_agent(nhs.NeighborhoodSearch, 'ka_rp_exploit')
+    
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp_exploit')
+    rp.set_attr(problem=problem)  
+    rp.set_attr(parallel=False) 
+    rp.set_random_seed(seed=10893)
+
+    rp = ns.proxy('ka_rp_exploit')
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                          'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0}}, panel='old')
+    
+    bb.update_abstract_lvl(1, 'core_[0.650,0.650,0.4]', {'pareto type' : 'pareto', 'fitness function' : 1.0})
+ 
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[0.650,0.650,0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+    rp.set_attr(lvl_read=bb.get_attr('abstract_lvls')['level 1'])
+    rp.set_attr(_lvl_data=bb.get_attr('abstract_lvls')['level 3']['old'])
+    rp.set_attr(new_designs=['core_[0.650,0.650,0.4]'])
+    rp.set_attr(core_select_fraction=1.0) 
+    bb.set_attr(_kaar = {0: {}, 1: {'ka_rp_exploit': 2}}, _ka_to_execute=('ka_rp_exploit', 2))
+    rp.set_attr(core_select='fitness')
+    bb.send_executor()
+    
+    time.sleep(0.1)
+    assert list(bb.get_attr('abstract_lvls')['level 3']['new'].keys()) == ['core_[0.6175,0.65,0.4]', 'core_[0.6825,0.65,0.4]', 'core_[0.65,0.6175,0.4]', 'core_[0.65,0.6825,0.4]', 'core_[0.65,0.65,0.38]', 'core_[0.65,0.65,0.42]']
+    assert [core for core in bb.get_attr('abstract_lvls')['level 3']['old'].keys()] == ['core_[0.650,0.650,0.4]']
+    assert bb.get_attr('abstract_lvls')['level 1'] == {'core_[0.650,0.650,0.4]' : {'pareto type' : 'pareto', 'fitness function' : 1.0}}
+
+    assert ns.agents() == ['blackboard', 'ka_rp_exploit']
+                
+    ns.shutdown()
+    time.sleep(0.1)    

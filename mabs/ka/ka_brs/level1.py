@@ -40,7 +40,8 @@ class KaBrLevel1(KaBr):
         designs_to_remove = []
         
         for design_name, design in zip(pf, scaled_pf):
-            design_hvi_contribution = hvi - self.calculate_hvi([x for x in scaled_pf if x != design])
+            designs_left = [x for x in scaled_pf if x != design]
+            design_hvi_contribution = hvi - self.calculate_hvi(designs_left) if designs_left != [] else hvi # Special case if we only have 2 entries that are identical
             if design_hvi_contribution <= 0:
                 designs_to_remove.append(design_name)
             else:

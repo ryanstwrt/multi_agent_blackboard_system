@@ -6,6 +6,8 @@ import numpy as np
 import h5py
 import os
 import re
+import copy
+import time
 
 class Blackboard(Agent):
     """
@@ -25,8 +27,6 @@ class Blackboard(Agent):
             Toggle to determine if BB should be write to archive while it is waiting.
         archive_name : str
             Name of the hdf5 file that will store abstract levels long term.
-        _sleep_limit : int
-            Number of seconds to wait if it doesn't hear from an agent before it sends another trigger event.
         abstract_lvls : dict 
             Dictionary of abstract levels on the blackboard, which stores all data from KA.
         abstract_lvl_format : dict
@@ -50,10 +50,11 @@ class Blackboard(Agent):
         self.agent_addrs = {}
         self.required_agents = []
         self._proxy_server = proxy.NSProxy()
+        self._ns = None
         self._agent_writing = False
         self._new_entry = False
         self.archive_name = '{}_archive.h5'.format(self.name)
-        self._sleep_limit = 10
+        self.agent_wait_time = 30
             
         self.abstract_lvls = {}
         self.abstract_lvls_format = {}
@@ -66,7 +67,11 @@ class Blackboard(Agent):
         self.write_h5 = True
         self._panels = {}
         self._sub_bbs = {}
-        self.agent_list = []        
+        self.agent_list = []   
+        
+        self.missed_heartbeat_limit = 3
+        self.ka_timeout_limit = 3
+        self._h5_time = 0
         
     def add_abstract_lvl(self, level, entry):
         """
@@ -138,13 +143,14 @@ class Blackboard(Agent):
         """
         ka = run_agent(name=agent_alias, base=agent_type)
         ka.add_blackboard(self)
+        ka.connect_heartbeat()
         ka.connect_writer()
         ka.connect_trigger()
         ka.connect_executor()
         ka.connect_shutdown()
         ka.connect_complete()
         self.connect_ka_specific(agent_alias, attr=attr)
-        self.agent_addrs[agent_alias].update({'class': agent_type, 'performing action': False, '_class': ka.get_attr('_class')})
+        self.agent_addrs[agent_alias].update({'class': agent_type, 'performing action': False, 'missed heartbeat': 0, 'message': False , '_class': ka.get_attr('_class')})
         self.agent_list.append(agent_alias)
         self.log_info('Connected agent {} of agent type {}'.format(agent_alias, agent_type))
 
@@ -165,6 +171,25 @@ class Blackboard(Agent):
         agent_name, complete_addr, complete_alias = message
         self.agent_addrs[agent_name].update({'complete': (complete_alias, complete_addr)})
         self.connect(complete_addr, alias=complete_alias, handler=self.handler_agent_complete)
+        
+    def connect_heartbeat(self, agent_name):
+        """
+        Connects the BB's compelte communication with the KA.
+        
+        Parameters
+        ----------
+        message : tupple (agent_name, complete_addr, complete_alias)
+            agent_name : str
+                Alias of the agent to connect.
+            complete_addr : str
+                Address of the KA's trigger complete line of communication tor BB to connect with.
+            complete_alias : str
+                Alias of the KA's trigger complete line of communication.       
+        """
+        alias_name = 'heartbeat_{}'.format(agent_name)
+        hearbteat_addr = self.bind('REP', alias=alias_name, handler=self.handler_agent_heartbeat)
+        self.agent_addrs[agent_name].update({'heartbeat': (alias_name, hearbteat_addr)})
+        return (alias_name, hearbteat_addr)
         
     def connect_trigger(self, message):
         """
@@ -257,7 +282,7 @@ class Blackboard(Agent):
         """Update the _kaar with the time required to run this KA"""
         self._kaar[trig_num].update({'time': (self._ka_to_execute[0], time)})
     
-    def diagnostics_agent_present(self, agent):
+    def diagnostic_check_hearbeat(self, agent):
         """
         Diagnostics test to determine if the agent is still running.
         If the agent is running it returns true.
@@ -269,35 +294,52 @@ class Blackboard(Agent):
             alias of the agent to check
         
         """
-        try:
-            ka = self._proxy_server.proxy(agent)
-        except:
-            self.log_info(self._proxy_server.agents())
-            self.log_info('Found no agent named {}'.format(agent))
-            return False
+        agent_dict = self.agent_addrs[agent]
+        if agent_dict['performing action']:
+            agent_dict['missed heartbeat'] += 1
         
-        if ka.get_attr('_running'):
-            return True
-        else:
-            ka.kill()
-            self.log_info('Agent {} found non-responsive, killing agent.'.format(agent))
+        if agent_dict['missed heartbeat'] > self.missed_heartbeat_limit:
+            self.log_info(f'Agent {agent} had no heartbeat for {self.missed_heartbeat_limit} consecutive diagnostic checks, removing agent.')
+            self.log_info(agent_dict)
+            for comm_channel in ['heartbeat', 'shutdown', 'writer', 'trigger_response', 'complete']:
+                # Depending on timing, the agent may have been removed between iterations of this, so we add a try statement to catch if the comm channel is already removed
+                try:
+                    self.close(agent_dict[comm_channel][0])
+                except KeyError:
+                    self.log_info(f'Channel {comm_channel} already removed.')
+            try:
+                ka = self._proxy_server.proxy(agent, timeout=self.ka_timeout_limit)
+                if not ka.get_attr('_running'):
+                    ka.kill()
+            except:
+                self.log_info(f'Failed to grab and kill agent {agent}, assuming agent is no longer in proxy server and moving on.')
             return False
-    
+        return True
+                
     def diagnostics_replace_agent(self):
         """
         Dioagnostics test repalce an essential agent.
         If the agent is in the required_agents list, and the it is not present, the BB creates an instance of the agent.
         """
-        for agent_name, addrs in self.agent_addrs.items():
-            present = self.diagnostics_agent_present(agent_name)
+        copy_agent_addrs = copy.copy(self.agent_addrs)
+        for agent_name, addrs in copy_agent_addrs.items():
+            present = self.diagnostic_check_hearbeat(agent_name)
             agent_type = addrs['class']
             if not present and agent_type in self.required_agents:
                 self.log_info('Found agent ({}) of type {} not connect. Reconnecting agent.'.format(agent_name, agent_type))
                 try:
                     self.connect_agent(agent_type, agent_name)
                 except:
-                    self.log_info('Could not reconnect agent ({}) of type (). '.format(agent_name, agent_type))
-                
+                    self.log_info(f'Could not reconnect agent ({agent_name}) of type {agent_type}.')
+                    
+            elif not present and agent_type not in self.required_agents:
+                self.log_info(f'Found agent ({agent_name}) of type {agent_type} not connected and not a required agent type. Removing agent.')
+                del self.agent_addrs[agent_name]
+                self.log_info('Deleted agent in agent addrs')
+                if agent_name in self.agent_list:
+                    del self.agent_list[self.agent_list.index(agent_name)]
+                    self.log_info(f'Removed agent {agent_name} in agent list')
+                    
     def determine_complete(self):
         """Holder for determining when a problem will be completed."""
         pass
@@ -414,6 +456,21 @@ class Blackboard(Agent):
         self._new_entry = True
         self.log_debug('Logging agent {} complete.'.format(agent_name))
         self.agent_addrs[agent_name].update({'performing action':False})
+        self.agent_addrs[agent_name].update({'missed heartbeat': 0})
+              
+    def handler_agent_heartbeat(self, agent_name):
+        """
+        Handler for KAs complete response, i.e. when a KA has finished their action
+        
+        Parameters
+        ----------
+        agent_name : str
+            Alias for the KA
+        """
+        self.log_debug('Logging agent {} has heartbeat.'.format(agent_name))
+        self.agent_addrs[agent_name].update({'missed heartbeat': 0})
+        
+        return self.agent_addrs[agent_name]['message']
         
     def handler_trigger_response(self, message):
         """
@@ -430,6 +487,7 @@ class Blackboard(Agent):
         agent_name, trig_val = message
         self.log_debug('Logging trigger response ({}) for agent {}.'.format(trig_val, agent_name))
         self._kaar[self._trigger_event].update({agent_name: trig_val})
+        self.agent_addrs[agent_name].update({'missed heartbeat': 0})
         
     def handler_writer(self, message):
         """
@@ -447,6 +505,7 @@ class Blackboard(Agent):
             True if agent can write, false if agent must wait
         """
         agent_name, bb_lvl, entry_name, entry, panel, remove = message
+        self.agent_addrs[agent_name].update({'missed heartbeat': 0})
         
         if not self._agent_writing:
             self._agent_writing = True
@@ -460,7 +519,7 @@ class Blackboard(Agent):
             return True
         else:
             self.log_debug('Agent {} waiting to write'.format(agent_name))
-            return False
+            return True
        
     def load_dataset(self, data_name, data, data_dict):
         """
@@ -678,6 +737,7 @@ class Blackboard(Agent):
         Root directory will have a sub dicrectory for each abstract level.
         Each abstract level will then have a number of subdirectories, based on what results are written to them.
         """
+        t1 = time.time()
         if not self.write_h5:
             return
         
@@ -709,7 +769,11 @@ class Blackboard(Agent):
                     self.h5_group_writer(group_level, name, data)
         self.log_debug("Finished writing to archive")
         h5.close()
-    
+        t2 = time.time() - t1
+        self._h5_time += t2
+        self.log_info(f'Took {t2} s to log H5 file.')
+        self.log_info(f'Total time {self._h5_time} s to log H5 file.')
+        
     def h5_delete_entries(self, h5):
         """
         Examine the H5 file and current blackbaord dabstract levels and remove entries in the H5 file that are no longer in the BB bastract levels. (likely this is due to solution no longer being on the Pareto front)

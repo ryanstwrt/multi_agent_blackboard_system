@@ -49,9 +49,11 @@ class KaBase(Agent):
         self._executor_addr = None
         self._executor_alias = None
         self._trigger_response_alias = 'trigger_response_{}'.format(self.name)
+        self._trigger_response_addr = None
         self._complete_alias = 'complete_{}'.format(self.name)
         self._complete_addr = None
-        self._trigger_response_addr = None
+        self._heartbeat_alias = None
+        self._heartbeat_addr = None
         self._trigger_publish_alias = None
         self._trigger_publish_addr = None
         self._trigger_val = 0
@@ -83,7 +85,20 @@ class KaBase(Agent):
             self.bb.connect_complete((self.name, self._complete_addr, self._complete_alias))
             self.log_debug('Agent {} connected complete to BB'.format(self.name))
         else:
-            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))        
+            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))  
+            
+    def connect_heartbeat(self):
+        """Create a push-pull communication channel to execute KA."""
+        if self.bb:
+            self._heartbeat_alias, self._heartbeat_addr = self.bb.connect_heartbeat(self.name)
+            self.connect(self._heartbeat_addr, alias=self._heartbeat_alias)
+            self.log_debug('Agent {} connected heartbeat to BB'.format(self.name))
+        else:
+            self.log_warning('Warning: Agent {} not connected to blackboard agent'.format(self.name))
+        
+    def heartbeat(self):
+        self.send(self._heartbeat_alias, (self.name))
+        self.kill_switch = self.recv(self._heartbeat_alias)
 
     def connect_executor(self):
         """Create a push-pull communication channel to execute KA."""
@@ -136,6 +151,7 @@ class KaBase(Agent):
         """
         self.log_info('Agent {} shutting down'.format(self.name))
         self.kill_switch = True
+        #self.close_all()
         self.shutdown()
             
     def handler_executor(self, message):
@@ -144,7 +160,21 @@ class KaBase(Agent):
         Each Ka will have a unique executor
         """
         raise NotImplementedError
+        
+    def send_heartbeat(self):
+        """
+        Heartbeat handler to let the BB know we are alive.
+        This should occur after every design analysis.
+        """
+        self.send(self._heartbeat_alias, (self.name))
 
+    def handler_heartbeat(self, message):
+        """
+        Heartbeat handler to determine when the agent should be shutdown during the middle of a simulation.
+        """
+        if message == 'shutdown':
+            self.kill_switch = True
+        
     def handler_trigger_publish(self, message):
         """
         Send a message to the BB indiciating it's trigger value.

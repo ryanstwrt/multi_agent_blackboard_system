@@ -31,7 +31,8 @@ class Controller(object):
                               agent_wait_time=30, 
                               min_agent_wait_time=0,
                               plot_progress=False,
-                              random_seed=None):    
+                              random_seed=None,
+                              load=False):    
         
         setattr(self, blackboard['name'], run_agent(name=blackboard['name'], base=blackboard['type']))
         _bb = getattr(self, blackboard['name'])
@@ -52,6 +53,10 @@ class Controller(object):
                                        'agent_wait_time': agent_wait_time,
                                        'progress_rate': _bb.get_attr('convergence_interval'),
                                        'complete':False}})
+        
+        if load:
+            _bb.load_h5(panels={2:['new','old'],3:['new','old']})
+
 
     def run_single_agent_bb(self, bb):
         """Run a BB optimization problem single-agent mode."""
@@ -139,8 +144,6 @@ class Controller(object):
             else:
                 bb.convergence_update()
                 agent_time = 0
-            time.sleep(0.05)
-            
         entry = {md: array[trig_num] for md, array in bb.get_attr('meta_data').items()}
         entry.update({'agent': 'final', 'time': time.time()-bb_time})
         bb.update_abstract_lvl(100, 'final', entry)
@@ -149,7 +152,7 @@ class Controller(object):
     def shutdown_agents(self,bb):
         while len(bb.get_attr('agent_list')) > 0:  
             bb.send_shutdown()
-            time.sleep(0.01)
+            time.sleep(1.)
         
     def run_multi_tiered(self):
         """

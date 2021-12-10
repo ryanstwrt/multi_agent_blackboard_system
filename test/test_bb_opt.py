@@ -33,7 +33,6 @@ def test_BbOpt_init():
     assert bb.get_attr('_agent_writing') == False
     assert bb.get_attr('_new_entry') == False
     assert bb.get_attr('archive_name') == 'blackboard_archive.h5'
-    assert bb.get_attr('_sleep_limit') == 10
     assert bb.get_attr('_ka_to_execute') == (None, 0) 
     assert bb.get_attr('_trigger_event') == 0
     assert bb.get_attr('_kaar') == {}
@@ -377,7 +376,7 @@ def test_meta_data_entry():
     bb.initialize_metadata_level()
     bb.set_attr(meta_data={'hvi': [0.1,0.2,0.3,0.4,0.5]})
     bb.meta_data_entry('agent_x', 1.5, 4)
-    assert bb.get_attr('abstract_lvls')['level 100'] == {'4': {'agent': 'agent_x', 'time': 1.5, 'hvi': 0.4}}
+    assert bb.get_attr('abstract_lvls')['level 100'] == {'4': {'agent': 'agent_x', 'time': 1.5, 'hvi': 0.5}}
     
     ns.shutdown()
     time.sleep(0.05)    
@@ -568,11 +567,9 @@ def test_log_metadata():
     bb.update_abstract_lvl(1, 'core_[65.1, 65.0, 0.42]', {'pareto type' : 'pareto', 'fitness function' : 1.0})     
     bb.log_metadata()
     
-    assert bb.get_attr('meta_data') == {'hvi': [0.0,], 'dci hvi': [0.0,], 'gd': [0.0, 0.0001], 'igd': [0.0, 0.31842014860754597], 'total tvs': [0.], 'PF size': [0., 2.], 'function evals': [0., 2.]}
+    assert bb.get_attr('meta_data') == {'hvi': [0.0, .999999650000025], 'dci hvi': [0.0,], 'gd': [0.0, 0.0001], 'igd': [0.0, 0.31842014860754597], 'total tvs': [0.], 'PF size': [0., 2.], 'function evals': [0., 2.]}
     ns.shutdown()
     time.sleep(0.05)       
-    
-
     
 def test_read_from_h5():
     try:
@@ -692,21 +689,77 @@ def test_agent_shutdown():
     # Force the agent to fail due to passing False
     rp = ns.proxy('ka_rp')
     bb.send('executor_{}'.format('ka_rp2'), 1.0)
+    addrs = bb.get_attr('agent_addrs')
+    addrs['ka_rp2']['performing action'] = True
+    bb.set_attr(agent_addrs=addrs)
     
-    rp.set_attr(debug_wait=True, debug_wait_time=0.1)
-    bb.set_attr(_ka_to_execute=('ka_rp', 2))
+    rp.set_attr(debug_wait=True, debug_wait_time=0.15)
+    bb.set_attr(_ka_to_execute=('ka_rp', 2), ka_timeout_limit=0.05)
+
     rp.set_random_seed(seed=1)
     bb.send_executor()
     assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == True
-    while len(bb.get_attr('agent_list')) > 0:
-        bb.send_shutdown()
-    time.sleep(0.5)
-
+    shutdown_complete = False
+    while not shutdown_complete:
+        shutdown_complete = bb.send_shutdown()
+        time.sleep(0.5)
+    
     assert ns.agents() == ['blackboard'] 
     assert bb.get_attr('final_trigger') == 0
     assert list(bb.get_blackboard()['level 3']['old'].keys()) == ['core_[0.650,0.650,0.4]', 'core_[0.41702,0.72032,0.00011]']
     assert list(bb.get_blackboard()['level 2']['old'].keys()) == ['core_[0.650,0.650,0.4]', 'core_[0.41702,0.72032,0.00011]']
     assert list(bb.get_blackboard()['level 1'].keys()) == ['core_[0.41702,0.72032,0.00011]']
+
+    ns.shutdown()       
+    time.sleep(0.05)  
+    
+def test_agent_hard_shutdown():
+    # Testing shutdown of agents who have failed (ka_rp2), who are idel (ka_rp3), and are in the middle of an action (ka_rp).
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=bb_opt.BbOpt)
+    bb.initialize_abstract_level_3(objectives=objs, design_variables=dvs, constraints={})
+    bb.set_attr(problem=problem)
+    bb.connect_agent(Stochastic, 'ka_rp')
+    bb.connect_agent(NeighborhoodSearch, 'ka_rp2')
+    bb.connect_agent(Stochastic, 'ka_rp3')
+    bb.connect_agent(KaBrLevel1, 'ka_br_lvl1')
+    bb.connect_agent(KaBrLevel2, 'ka_br_lvl2')
+    bb.connect_agent(KaBrLevel3, 'ka_br_lvl3')
+
+    bb.update_abstract_lvl(3, 'core_[0.650,0.650,0.4]', {'design variables': {'x0': 0.650, 'x1': 0.650, 'x2': 0.4},
+                                                         'objective functions': {'f0': 365.0, 'f1': 500.0, 'f2' : 600.0},
+                                                         'constraints': {}}, panel='new')  
+
+    bb.initialize_metadata_level()
+    
+    rp2 = ns.proxy('ka_rp2')
+    # Force the agent to fail due to passing False
+    rp = ns.proxy('ka_rp')
+    bb.send('executor_{}'.format('ka_rp2'), 1.0)
+    addrs = bb.get_attr('agent_addrs')
+    addrs['ka_rp2']['performing action'] = True
+    bb.set_attr(agent_addrs=addrs, hard_shutdown=True)
+    
+    rp.set_attr(debug_wait=True, debug_wait_time=0.15)
+    bb.set_attr(_ka_to_execute=('ka_rp', 2), ka_timeout_limit=0.05)
+
+    rp.set_random_seed(seed=1)
+    bb.send_executor()
+    assert bb.get_attr('agent_addrs')['ka_rp']['performing action'] == True
+    shutdown_complete = False
+   
+    while not shutdown_complete:
+        shutdown_complete = bb.send_shutdown()
+        time.sleep(0.5)
+    assert ns.agents() == ['blackboard'] 
+    assert bb.get_attr('final_trigger') == 0
+    assert list(bb.get_blackboard()['level 3']['old'].keys()) == ['core_[0.650,0.650,0.4]']
+    assert list(bb.get_blackboard()['level 2']['old'].keys()) == ['core_[0.650,0.650,0.4]']
+    assert list(bb.get_blackboard()['level 1'].keys()) == ['core_[0.650,0.650,0.4]']
 
     ns.shutdown()       
     time.sleep(0.05)  

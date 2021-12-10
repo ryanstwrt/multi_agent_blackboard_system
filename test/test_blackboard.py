@@ -20,7 +20,6 @@ def test_blackboard_init_agent():
     assert bb.get_attr('_agent_writing') == False
     assert bb.get_attr('_new_entry') == False
     assert bb.get_attr('archive_name') == 'blackboard_archive.h5'
-    assert bb.get_attr('_sleep_limit') == 10
 
     assert bb.get_attr('abstract_lvls') == {}
     assert bb.get_attr('abstract_lvls_format') == {}
@@ -30,6 +29,11 @@ def test_blackboard_init_agent():
     assert bb.get_attr('_kaar') == {}
     assert bb.get_attr('_pub_trigger_alias') == 'trigger'
     
+    assert bb.get_attr('missed_heartbeat_limit') == 3
+    assert bb.get_attr('ka_timeout_limit') == 3
+    assert bb.get_attr('_h5_time') == 0
+    assert bb.get_attr('write_h5') == True
+
     ns.shutdown()
     time.sleep(0.05)
 
@@ -225,23 +229,22 @@ def test_controller():
     ns.shutdown()
     time.sleep(0.05)
 
-def test_diagnostics_agent_present():
+def diagnostic_check_hearbeat():
     try:
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    assert bb.diagnostics_agent_present('blank') == False
+    assert bb.diagnostic_check_hearbeat('blank') == False
     bb.connect_agent(ka.KaBase, 'ka_b')
     ka_b = ns.proxy('ka_b')
-    assert bb.diagnostics_agent_present('ka_b') == True
+    assert bb.diagnostic_check_hearbeat('ka_b') == True
     assert ns.agents() == ['blackboard', 'ka_b']
     bb.set_attr(_ka_to_execute=('ka_b',1))
     bb.send_executor() 
-    assert bb.diagnostics_agent_present('ka_b') == False
+    assert bb.diagnostic_check_hearbeat('ka_b') == False
     assert ns.agents() == ['blackboard']
-
 
     ns.shutdown()
     time.sleep(0.05)
@@ -253,23 +256,33 @@ def test_diagnostics_replace_agent():
         time.sleep(0.5)
         ns = run_nameserver()
     bb = run_agent(name='blackboard', base=blackboard.Blackboard)
-    bb.set_attr(required_agents=[ka.KaBase])
+    bb.set_attr(required_agents=[ka.KaBase], ka_timeout_limit=0.05)
     bb.connect_agent(ka.KaBase, 'ka_b')
     ka_b = ns.proxy('ka_b')
+        
+    assert ns.agents() == ['blackboard', 'ka_b']
+    bb.diagnostics_replace_agent()
+    assert ns.agents() == ['blackboard', 'ka_b']
+    bb.set_attr(_ka_to_execute=('ka_b', 2))
+    bb.send_executor() # Force the agent the agent to fail
     
     assert ns.agents() == ['blackboard', 'ka_b']
-    bb.diagnostics_replace_agent()
-    assert ns.agents() == ['blackboard', 'ka_b']
-    bb.send('shutdown_ka_b', 'message')
-    time.sleep(0.05)
+    for i in range(3): # We need to register 3 consecutive heartbeat failures to assert it is dead
+        assert bb.diagnostic_check_hearbeat('ka_b') == True
+    assert bb.diagnostic_check_hearbeat('ka_b') == False # diagnostic_check_hearbeat will kill the agent if it is not present
     assert ns.agents() == ['blackboard']
+    
     bb.diagnostics_replace_agent()
     assert ns.agents() == ['blackboard', 'ka_b']
-    bb.set_attr(_ka_to_execute=('ka_b',1))
+    
+    bb.set_attr(required_agents=[])
+    bb.set_attr(_ka_to_execute=('ka_b',2))
     bb.send_executor()
-    bb.diagnostics_replace_agent()
-    assert ns.agents() == ['blackboard', 'ka_b']
-
+    for i in range(4): # Check if the agent has failed, but this time we just kill the agent since it is no longer required.
+        bb.diagnostics_replace_agent()
+        
+    assert ns.agents() == ['blackboard']
+    
     ns.shutdown()
     time.sleep(0.05)  
     

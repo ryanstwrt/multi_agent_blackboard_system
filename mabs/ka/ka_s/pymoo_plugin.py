@@ -1,13 +1,13 @@
 from mabs.ka.ka_s.base import KaLocal
 import numpy as np
 from numpy import random
-from pymoo.model.problem import Problem
-from pymoo.factory import get_algorithm, get_termination, get_crossover, get_mutation
+from pymoo.core.problem import ElementwiseProblem as Problem
+from pymoo.factory import get_algorithm, get_termination, get_crossover, get_mutation, get_reference_directions
 from pymoo.operators.mixed_variable_operator import MixedVariableSampling, MixedVariableMutation, MixedVariableCrossover
-from pymoo.model.callback import Callback
+from pymoo.core.callback import Callback
 from pymoo.optimize import minimize
-from pymoo.model.population import Population
-from pymoo.model.evaluator import Evaluator
+from pymoo.core.population import Population
+from pymoo.core.evaluator import Evaluator
 import mabs.utils.utilities as utils
 
 
@@ -26,7 +26,11 @@ class PyMooAlgorithm(KaLocal):
         self.pop_size = 25
         self.n_offspring = 10
         self.initial_pop = None
-        
+        self.execute_once = True
+    
+        self.ref_dir = 'das-dennis'
+        self.ref_dir_partitions = 12
+
     def clear_entry(self):
         self._entry = {}
         self._entry_name = None 
@@ -141,6 +145,7 @@ class PyMooAlgorithm(KaLocal):
             pf_size += len(lvl.keys())         
 
         self._trigger_val = self._base_trigger_val if pf_size >= self.pop_size else 0
+
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))            
     
@@ -172,8 +177,7 @@ class PyMooAlgorithm(KaLocal):
                                          n_obj=len(self._objectives),
                                          n_constr=len(self._constraints),
                                          xl=np.array([x['ll'] if 'll' in x else x['options'][0] for x in self._design_variables.values() ]),
-                                         xu=np.array([x['ul'] if 'll' in x else x['options'][-1] for x in self._design_variables.values()]),
-                                         elementwise_evaluation=True)            
+                                         xu=np.array([x['ul'] if 'll' in x else x['options'][-1] for x in self._design_variables.values()]),)            
         else:
             co = get_crossover(self.crossover)
             mu = get_mutation(self.mutation)
@@ -183,16 +187,25 @@ class PyMooAlgorithm(KaLocal):
                                          n_obj=len(self._objectives),
                                          n_constr=len(self._constraints),
                                          xl=np.array([x['ll'] for x in self._design_variables.values()]),
-                                         xu=np.array([x['ul'] for x in self._design_variables.values()]),
-                                         elementwise_evaluation=True)
+                                         xu=np.array([x['ul'] for x in self._design_variables.values()]))
         self._problem.base = self
         # Grab the design variables for the current PF
-        self.algorithm = get_algorithm(self.pymoo_algorithm_name,
+        if self.pymoo_algorithm_name in ['nsga2', 'agemoea']:
+            self.algorithm = get_algorithm(self.pymoo_algorithm_name,
                                        sampling=pop,
                                        crossover=co,
                                        mutation=mu,
                                        pop_size=self.pop_size,
                                        n_offpsring=self.n_offspring)
+        else:
+            ref_dirs = get_reference_directions(self.ref_dir, len(self._objectives), n_partitions=self.ref_dir_partitions)
+            self.algorithm = get_algorithm(self.pymoo_algorithm_name,
+                                       sampling=pop,
+                                       crossover=co,
+                                       mutation=mu,
+                                       pop_size=self.pop_size,
+                                       n_offpsring=self.n_offspring,
+                                       ref_dirs=ref_dirs)
         
     def search_method(self):
         """
@@ -206,4 +219,6 @@ class PyMooAlgorithm(KaLocal):
                                         verbose=False)
         
         self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
+        if self.execute_once:
+            self._base_trigger_val = 0
     

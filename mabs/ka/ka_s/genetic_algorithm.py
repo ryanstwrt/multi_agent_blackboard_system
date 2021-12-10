@@ -1,5 +1,6 @@
 from mabs.ka.ka_s.base import KaLocal
 import copy
+import time
 from numpy import random
 
 class GeneticAlgorithm(KaLocal):
@@ -46,14 +47,14 @@ class GeneticAlgorithm(KaLocal):
         """
         lvl = message['level {}'.format(self.bb_lvl_read)]
         lvl = lvl if self.bb_lvl_read == 1 else {**lvl['new'], **lvl['old']}
-        new = set(list(lvl.keys()))
-        old = set(list(self.analyzed_design.keys()))
 
-        self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
-        #if self.reanalyze_designs:
-            #self._trigger_val = self._base_trigger_val if len(lvl)  >= self.pf_size else 0
-        #else:
-            #self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
+        #self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
+        if self.reanalyze_designs:
+            self._trigger_val = self._base_trigger_val if len(lvl)  >= self.pf_size else 0
+        else:
+            new = set(list(lvl.keys()))
+            old = set(list(self.analyzed_design.keys()))
+            self._trigger_val = self._base_trigger_val if len(new) - len(old) >= self.pf_size else 0
         self.send(self._trigger_response_alias, (self.name, self._trigger_val))
         self.log_debug('Agent {} triggered with trigger val {}'.format(self.name, self._trigger_val))
         
@@ -68,7 +69,6 @@ class GeneticAlgorithm(KaLocal):
             
         children = []
         num_children = 0
-                
         while num_children < self.offspring_per_generation:
             if len(population) < 2:
                 break
@@ -83,6 +83,8 @@ class GeneticAlgorithm(KaLocal):
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
             elif self.crossover_type == 'linear crossover':
                 children = self.linear_crossover(parent1, parent2)
+            elif self.crossover_type == 'batch crossover':
+                children = self.batch_crossover(parent1, parent2)
             else:
                 self.log_warning('Warning: cross-over type {} is not implemented, reverting to `single-point` cross-over.'.format(self.crossover_rate))
                 children = self.single_point_crossover(parent1, parent2, self.num_cross_over_points)
@@ -98,10 +100,21 @@ class GeneticAlgorithm(KaLocal):
                         self.log_warning('Warning: mutation type {} is not implemented, reverting to `random` mutation.'.format(self.mutation_type))
                         child = self.random_mutation(child)
                 self.current_design_variables = child
-                self.determine_model_applicability(next(iter(child)))
+                if self.determine_model_applicability(next(iter(child))):
+                    if self.parallel:
+                        self.parallel_executor()
+                    else:
+                        self.calc_objectives()
+                        self.determine_write_to_bb()
                 num_children += len(children)
+                if self.kill_switch:
+                    break
+                
             if self.kill_switch:
                 break
+        if self.parallel:
+            self.determine_parallel_complete()
+                                      
             
     def single_point_crossover(self, genotype1, genotype2, num_crossover_points):
         """
@@ -172,7 +185,7 @@ class GeneticAlgorithm(KaLocal):
     def batch_crossover(self, genotype1, genotype2):
         """
         Performa batch cross-over. Only used for Permutation type design variables.
-        Implementatino based on "Core loading pattern optimization of a typical two-loop 300 MWe PWR using Simulated Annealing (SA), novel crossover Genetic Algorithms (GA) and hybrid GA(SA) schemes" by A. Zameer et al.
+        Implementation based on "Core loading pattern optimization of a typical two-loop 300 MWe PWR using Simulated Annealing (SA), novel crossover Genetic Algorithms (GA) and hybrid GA(SA) schemes" by A. Zameer et al.
         """
 
         c1 = copy.copy(genotype2['design variables'])

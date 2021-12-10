@@ -66,12 +66,16 @@ class optimization_test_functions(object):
         problem = get_problem(self.test_name, n_var=num_vars)
         #problem = mop.ZDT1(n_var=num_vars)
         soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)
+        soln['F'] = soln['F'][0]
+        soln['G'] = soln['G'][0] if soln['G'] else None
         return soln
 
 
     def dtlz(self, x, num_vars, num_objs):
         problem = get_problem(self.test_name, n_var=num_vars, n_obj=num_objs)
         soln = problem.evaluate(x, return_values_of=['F','G'], return_as_dictionary=True)
+        soln['F'] = soln['F'][0]
+        soln['G'] = soln['G'][0] if soln['G'] else None
         return soln     
     
     def tsp(self, x):

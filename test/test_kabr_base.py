@@ -18,7 +18,7 @@ def test_init():
     assert ka_b.get_attr('new_panel') == 'new'
     assert ka_b.get_attr('old_panel') == 'old'
     assert ka_b.get_attr('_num_entries') == 0
-    assert ka_b.get_attr('_num_allowed_entries') == 25
+    assert ka_b.get_attr('_num_allowed_entries') == 125
     assert ka_b.get_attr('_trigger_val_base') == 0
     assert ka_b.get_attr('_objectives') == None
     assert ka_b.get_attr('_constraints') == None

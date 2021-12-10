@@ -8,7 +8,7 @@ class KaBrLevel2(KaBr):
         super().on_init()
         self.bb_lvl_write= 1
         self.bb_lvl_read = 2
-        self._num_allowed_entries = 10
+        self._num_allowed_entries = 50
         self._trigger_val_base = 4.00000000002
         self._fitness = 0.0
         self._class = 'reader level 2'
@@ -72,6 +72,7 @@ class KaBrLevel2(KaBr):
         
         self._trigger_val = 0
         self.agent_time = time.time() - t
+        self.log_info(f'Time Required: {self.agent_time}')
         self.action_complete()      
 
     def handler_trigger_publish(self, message):

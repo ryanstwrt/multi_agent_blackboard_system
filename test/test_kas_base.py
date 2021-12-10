@@ -2,8 +2,9 @@ import osbrain
 from osbrain import run_nameserver
 from osbrain import run_agent
 import mabs.ka.ka_s.base as base
-import time
 from mabs.utils.problem import BenchmarkProblem
+import mabs.bb.blackboard_optimization as bb_opt
+import time
 import pickle
     
 def test_init():
@@ -111,6 +112,7 @@ def test_design_check():
     
     ns.shutdown()
     time.sleep(0.1)    
+    
 #----------------------------------------------------------
 # Tests for KA-Local
 #----------------------------------------------------------
@@ -155,7 +157,7 @@ def test_karp_exploit_init():
     assert rp.get_attr('new_designs') == []
     assert rp.get_attr('_class') == 'local search'   
     assert rp.get_attr('reanalyze_designs') == False
-    assert rp.get_attr('optimal_objective') == None
+    assert rp.get_attr('optimal_objective') == []
     assert rp.get_attr('core_select_fraction') == 1.0
     assert rp.get_attr('core_select') == 'random'
 
@@ -304,8 +306,13 @@ def test_calc_objective():
         ns = run_nameserver()
     except OSError:
         time.sleep(0.5)
-        ns = run_nameserver()    
-        
+
+    bb = run_agent(name='bb', base=bb_opt.BbOpt)
+    bb.connect_agent(base.KaLocal, 'ka_rp')
+    addrs = bb.get_attr('agent_addrs')
+    addrs['ka_rp']['missed heartbeat'] = 3
+    bb.set_attr(agent_addrs=addrs)
+    
     dvs = {}
     objs = {}
     for x in range(3):
@@ -319,14 +326,16 @@ def test_calc_objective():
                          constraints={},
                          benchmark_name = 'dtlz1')
 
-    rp = run_agent(name='ka_rp', base=base.KaLocal)
+    ka = bb.get_attr('_proxy_server')
+    rp = ka.proxy('ka_rp')
     rp.set_attr(problem=problem)
     rp.set_attr(current_design_variables={'x0': 0.25, 'x1':0.75, 'x2':0.13})
+    assert bb.get_attr('agent_addrs')['ka_rp']['missed heartbeat'] == 3
     rp.calc_objectives()
-    
     assert rp.get_attr('current_objectives') == {'f0': 13.649221822265138, 'f1': 4.549740607421713, 'f2': 54.596887289060554}
     assert rp.get_attr('current_constraints') == {}
-
+    assert bb.get_attr('agent_addrs')['ka_rp']['missed heartbeat'] == 0
+    
     ns.shutdown()
     time.sleep(0.1)         
     

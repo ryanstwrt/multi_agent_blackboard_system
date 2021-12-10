@@ -82,6 +82,23 @@ def test_connect_complete():
     ns.shutdown()
     time.sleep(0.05)
 
+def test_connect_heartbeat():
+    try:
+        ns = run_nameserver()
+    except OSError:
+        time.sleep(0.5)
+        ns = run_nameserver()
+    bb = run_agent(name='blackboard', base=blackboard.Blackboard)
+    ka_b = run_agent(name='ka_base', base=ka.KaBase)
+    ka_b.add_blackboard(bb)
+    ka_b.connect_heartbeat()
+
+    assert ka_b.get_attr('_heartbeat_alias') == 'heartbeat_ka_base'
+    assert bb.get_attr('agent_addrs')['ka_base']['heartbeat'] == (ka_b.get_attr('_heartbeat_alias'), ka_b.get_attr('_heartbeat_addr'))
+    
+    ns.shutdown()
+    time.sleep(0.05)
+    
 def test_connect_trigger_event():
     try:
         ns = run_nameserver()

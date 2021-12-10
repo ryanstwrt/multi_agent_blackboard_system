@@ -18,7 +18,7 @@ class KaBr(KaBase):
         self.new_panel = 'new'
         self.old_panel = 'old'
         self._num_entries = 0
-        self._num_allowed_entries = 25
+        self._num_allowed_entries = 125
         self._trigger_val_base = 0
         self._objectives = None
         self._constraints = None
@@ -115,6 +115,7 @@ class KaBr(KaBase):
             self.move_entry(self.bb_lvl_read, self._entry_name, entry, self.old_panel, self.new_panel) 
         self._trigger_val = 0
         self.agent_time = time.time() - t
+        self.log_info(f'Time Required: {self.agent_time}')
         self.action_complete()
             
     def handler_trigger_publish(self, message):

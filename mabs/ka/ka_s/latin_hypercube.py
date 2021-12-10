@@ -22,6 +22,7 @@ class LatinHypercube(KaS):
         self.lhd = []
         self._class = 'global search lhc'
         self.execute_once = True
+        self.max_sub_agents = 10
 
     def generate_lhc(self):
         """
@@ -69,6 +70,7 @@ class LatinHypercube(KaS):
 
         self._trigger_val = 0
         self.agent_time = time.time() - t
+        self.log_info(f'Time Required: {self.agent_time}')
         self.action_complete()
         if not self.execute_once:
             self.generate_lhc()    
@@ -160,27 +162,36 @@ class LatinHypercube(KaS):
         if len(self.lhd) == 0:
             return
         
-        cur_design = self.lhd.pop(0)
+        for sub_num, cur_design in enumerate(self.lhd):
+            if self._entry_name not in self._lvl_data.keys():
+                self.get_current_design_variables(cur_design)
+                if self.parallel:
+                    self.parallel_executor()
+                    if sub_num % self.max_sub_agents == 0:
+                        self.determine_parallel_complete()         
+                else:
+                    self.calc_objectives()
+                    self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
+                    self.clear_entry()
+                    self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
+
+            if self.kill_switch:
+                self.log_info('Returning agent to allow for shutdown.')   
+                break
+            
+        if self.parallel:
+            self.determine_parallel_complete() 
+        self.lhd = []
+            
+    def get_current_design_variables(self, design):
         num = 0
         for dv, dv_dict in self._design_variables.items():
             if 'permutation' in self._design_variables[dv]:
                 ...
             elif 'options' in dv_dict.keys():
-                dv_val = dv_dict['options'][int(len(dv_dict['options']) * cur_design[num])]
+                dv_val = dv_dict['options'][int(len(dv_dict['options']) * design[num])]
                 self.current_design_variables[dv] = dv_dict['variable type'](dv_val)            
             else:
-                self.current_design_variables[dv] = utils.get_float_val(cur_design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
-            num += 1 if dv_dict['variable type'] != dict else 0
-        
+                self.current_design_variables[dv] = utils.get_float_val(design[num], dv_dict['ll'], dv_dict['ul'], self._design_accuracy)
+            num += 1 if dv_dict['variable type'] != dict else 0       
         self._entry_name = self.get_design_name(self.current_design_variables)
-        if self._entry_name not in self._lvl_data.keys():
-            self.calc_objectives()
-            self.write_to_bb(self.bb_lvl_data, self._entry_name, self._entry, panel='new')
-            self.clear_entry()
-                  
-        self.log_debug('Core design variables determined: {}'.format(self.current_design_variables))
-        if self.kill_switch:
-            self.log_info('Returning agent to allow for shutdown.')            
-            return
-        else:
-            self.search_method()

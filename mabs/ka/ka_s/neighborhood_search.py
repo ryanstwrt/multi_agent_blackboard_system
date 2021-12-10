@@ -1,6 +1,7 @@
 from mabs.ka.ka_s.base import KaLocal
 import copy
 from numpy import random
+import time
 
 class NeighborhoodSearch(KaLocal):
     """
@@ -23,7 +24,7 @@ class NeighborhoodSearch(KaLocal):
         self._base_trigger_val = 5.00001
         self.perturbation_size = 0.05
         self.additional_perturbations = 0
-        self.neighboorhod_search = 'fixed'
+        self.neighborhood_search = 'fixed'
         self._class = 'local search neighborhood search'
         
     def get_perturbed_design(self,dv,design_,pert):
@@ -36,10 +37,14 @@ class NeighborhoodSearch(KaLocal):
             design[dv][i1], design[dv][i2] = design[dv][i2], design[dv][i1]
         elif 'options' in self._design_variables[dv]:
             options = copy.copy(self._design_variables[dv]['options'])
-            options.remove(design[dv])
+            options.remove(self._design_variables[dv]['variable type'](design[dv]))
             design[dv] = dv_type(random.choice(options))
         else:
-            design[dv] = dv_type(round(dv_value * pert, self._design_accuracy))    
+            dv_value = dv_type(round(dv_value * pert, self._design_accuracy))
+            dv_value = self._design_variables[dv]['ll'] if dv_value < self._design_variables[dv]['ll'] else dv_value
+            dv_value = self._design_variables[dv]['ul'] if dv_value > self._design_variables[dv]['ul'] else dv_value
+            design[dv] = dv_value
+            #design[dv] = dv_type(round(dv_value * pert, self._design_accuracy)) #if 
         return design
         
     def search_method(self):
@@ -57,7 +62,7 @@ class NeighborhoodSearch(KaLocal):
         design_ = self._lvl_data[core]['design variables']
         design = {}
         dv_keys = [x for x in design_.keys()]
-        pert = self.perturbation_size if self.neighboorhod_search == 'fixed' else random.uniform(0,self.perturbation_size)
+        pert = self.perturbation_size if self.neighborhood_search == 'fixed' else random.uniform(0,self.perturbation_size)
         perts = [1.0 - pert, 1.0 + pert]
         pert_designs = []
             
@@ -65,6 +70,7 @@ class NeighborhoodSearch(KaLocal):
         if self.additional_perturbations > len(dv_keys) - 1:
             self.log_warning(f'Additional perturbations set to {self.additional_perturbations}, which is greater than number of design variabels {len(dv_keys)} minus 1. Seting additional_perturbations to {len(dv_keys) - 1}.')
             self.additional_perturbations = len(dv_keys) - 1
+            
         for dv in dv_keys:
             for pert in perts:
                 dvs_left = copy.copy(dv_keys)
@@ -80,9 +86,15 @@ class NeighborhoodSearch(KaLocal):
         for dv, design in pert_designs:
             self.current_design_variables = design
             self._entry_name = self.get_design_name(self.current_design_variables)
-            self.determine_model_applicability(dv)
+            if self.determine_model_applicability(dv):
+                if self.parallel:
+                    self.parallel_executor()
+                else:
+                    self.calc_objectives()
+                    self.determine_write_to_bb() 
             if self.kill_switch:
                 self.log_info('Returning agent to allow for shutdown.')
                 return
-        
+        if self.parallel:
+            self.determine_parallel_complete()
         self.analyzed_design[core] = {'Analyzed': True}
