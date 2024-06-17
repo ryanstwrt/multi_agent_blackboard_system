@@ -11,7 +11,7 @@ h5py
 scipy
 osbrain
 plotly
-scikit-learn==0.22.1
+scikit-learn==1.5.0
 scikit-optimize==0.7.1
 matplotlib
 pymoo
